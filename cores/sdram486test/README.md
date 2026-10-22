@@ -1,63 +1,64 @@
-# sdram486test — SDRAM-Test für den z486-Controller (P5 Z3)
+# sdram486test — SDRAM test for the z486 controller (P5 Z3)
 
-Prüft upstreams SDRAM-Controller des z486 (`cores/z486/pro/src/memory/sdram.v`)
-auf dem Onboard-SDRAM des DE25-Nano, bevor der ganze z486 darauf läuft.
-Rahmen und Anzeige stammen aus MiSTers MemTest (`cores/memtest`).
+Tests the z486's upstream SDRAM controller (`cores/z486/pro/src/memory/sdram.v`)
+on the DE25-Nano's onboard SDRAM before the whole z486 runs on it.
+Framework and display are taken from MiSTer's MemTest (`cores/memtest`).
 
-## Dateien
+## Files
 
-| Datei | Zweck |
+| File | Purpose |
 |---|---|
-| `rtl/tester486.v` | Prüfablauf + upstream-Controller (85 MHz, `HAS_DQM=1`, 128 MB) |
-| `rtl/sdram486test.sv` | `emu`: Takte, Reset, Anzeige (aus MemTest abgeleitet, GPL-2.0-or-later) |
-| `core.tcl`, `sdram486test.sdc`, `build_id.v` | Projekt (`tools/make_core_qsf.py sdram486test`) |
-| `make_variants.py` | je Phase eine PLL (`ip/pNNN/pll_486.ip`, per `ip-deploy`) und eine Revision `sdram486test_pNNN` |
-| `../../tb/tb_tester486.v` | Testbench (Questa) mit zwei Chip-Modellen `tb/sdram_chip_model.v` |
+| `rtl/tester486.v` | Test sequence + upstream controller (85 MHz, `HAS_DQM=1`, 128 MB) |
+| `rtl/sdram486test.sv` | `emu`: clocks, reset, display (derived from MemTest, GPL-2.0-or-later) |
+| `core.tcl`, `sdram486test.sdc`, `build_id.v` | Project (`tools/make_core_qsf.py sdram486test`) |
+| `make_variants.py` | one PLL per phase (`ip/pNNN/pll_486.ip`, via `ip-deploy`) and one revision `sdram486test_pNNN` |
+| `../../tb/tb_tester486.v` | Testbench (Questa) with two chip models `tb/sdram_chip_model.v` |
 
-Bauen: `python cores/sdram486test/make_variants.py`, dann
+Build: `python cores/sdram486test/make_variants.py`, then
 `Q:\tools\build_core.bat sdram486test sdram486test_p090`.
 
-## Was geprüft wird
+## What is tested
 
-Ein Durchlauf über die ganzen 128 MB (beide Chips; `SDRAM_nCS2 = ~SDRAM_nCS`
-in `sys_top_de25.v`, wie MiSTers 128-MB-Modul):
+One pass over the full 128 MB (both chips; `SDRAM_nCS2 = ~SDRAM_nCS` in
+`sys_top_de25.v`, like MiSTer's 128 MB module):
 
-1. jedes Dword voll schreiben — Muster `{~i[24:16], i[6:0], i[15:0]} ^ seed`
-   (je Adresse eindeutig, beide Hälften verschieden, `seed` wechselt je
-   Durchlauf)
-2. je Dword ein Byte über DQM überschreiben (Byte-Spur wechselt)
-3. alles lesen und vergleichen: gerade Durchläufe als Line Reads (4 Dwords
-   mit Wrap ab wechselndem Start-Dword, wie der Cache der CPU), ungerade als
-   lineare Bursts zu 8 Dwords
+1. write every dword in full — pattern `{~i[24:16], i[6:0], i[15:0]} ^ seed`
+   (unique per address, both halves differ, `seed` changes with every
+   pass)
+2. overwrite one byte per dword via DQM (the byte lane alternates)
+3. read everything back and compare: even passes as line reads (4 dwords
+   with wrap from an alternating start dword, like the CPU's cache), odd
+   passes as linear bursts of 8 dwords
 
-Fehler zählen: falsches Dword, falsche Anzahl Antworten, Zeitüberschreitung.
-Ein Durchlauf dauert bei 85 MHz etwa 7 s.
+Counted as errors: wrong dword, wrong number of responses, timeout.
+One pass takes about 7 s at 85 MHz.
 
-Anzeige: oben Laufzeit (Minuten) und Phase von `SDRAM_CLK` in Grad, Mitte
-`3` (= 128 MB) und Durchläufe (hex), unten Fehler (hex). OSD: „Reset Test“.
+Display: top, run time (minutes) and `SDRAM_CLK` phase in degrees; middle,
+`3` (= 128 MB) and passes (hex); bottom, errors (hex). OSD: "Reset Test".
 
 ## Testbench
 
-`python tb/run_sim.py tb_tester486` — echter Controller, zwei Chip-Modelle
-(prüfen tRCD, tRP, tRC, tRAS, tRFC, Befehlsfolge, Bank-Zustand). Ergebnis:
-zwei Durchläufe ohne Fehler, beide Chips gleich oft benutzt; Gegenprobe mit
-gekipptem Datenbit in Chip 1 zählt genau dessen Dwords als Fehler.
+`python tb/run_sim.py tb_tester486` — real controller, two chip models
+(checking tRCD, tRP, tRC, tRAS, tRFC, command sequence, bank state). Result:
+two passes without errors, both chips used equally often; a cross-check
+with a flipped data bit in chip 1 counts exactly that chip's dwords as
+errors.
 
-## Ergebnisse am Board (85 MHz, CL2, tRCD/tRP 2, tRC 6)
+## Results on the board (85 MHz, CL2, tRCD/tRP 2, tRC 6)
 
-| Phase SDRAM_CLK | Ergebnis (Fehler hex) |
+| SDRAM_CLK phase | Result (errors, hex) |
 |---|---|
-| 0° | fehlerfrei (2,5 min, 21 Durchläufe) |
-| 45° | fehlerfrei (2,5 min, 21 Durchläufe) |
-| 90° | fehlerfrei (10 min, 88 Durchläufe) |
-| 135° | fehlerfrei (2,5 min, 21 Durchläufe) |
-| 180° | Rand: ~0x39E00 Fehler in 21 Durchläufen (vereinzelt) |
-| 225° | 0x2A000000 = jedes Dword in jedem Durchlauf falsch |
-| 270° | 0x2A000000 = jedes Dword falsch |
-| 315° | 0x29FFFFC0 = fast jedes Dword falsch |
+| 0° | error-free (2.5 min, 21 passes) |
+| 45° | error-free (2.5 min, 21 passes) |
+| 90° | error-free (10 min, 88 passes) |
+| 135° | error-free (2.5 min, 21 passes) |
+| 180° | marginal: ~0x39E00 errors in 21 passes (sporadic) |
+| 225° | 0x2A000000 = every dword wrong in every pass |
+| 270° | 0x2A000000 = every dword wrong |
+| 315° | 0x29FFFFC0 = almost every dword wrong |
 
-Fenster also etwa 0°…135° (Mitte ~67°). Gewählt: **90°** — liegt gut
-im Fenster (≥ 45° = 1,5 ns Abstand zu beiden Kanten) und ist dieselbe Phase
-wie beim C64 (`sdram_clk_ddio`), also eine Einstellung für alle Cores.
-Hinweis: Bei 2,5 min je Phase ist „fehlerfrei“ nur grob; 90° lief zusätzlich
-10 min.
+So the window is roughly 0°…135° (center ~67°). Chosen: **90°** — well
+inside the window (≥ 45° = 1.5 ns margin to both edges) and the same phase
+as for the C64 (`sdram_clk_ddio`), i.e. one setting for all cores.
+Note: with 2.5 min per phase, "error-free" is only a rough indication; 90°
+additionally ran for 10 min.

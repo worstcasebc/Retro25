@@ -1,91 +1,92 @@
-# linux/system — Systemeinstellungen des Boards (P3a)
+# linux/system — Board system settings (P3a)
 
-Ziel: Ein harter Reset (Hänger bei der Core-Entwicklung, Strom weg) soll das
-System auf der SD-Karte nicht mehr beschädigen können. Am 2026-10-16 hatte
-eine Serie solcher Resets das Root-Dateisystem zerstört (Superblock,
-16 Programme in `/usr/bin`; gerettet mit `tools/sd_rescue.py`).
+Goal: a hard reset (a hang during core development, power loss) should no
+longer be able to damage the system on the SD card. On 2026-10-16 a series
+of such resets had destroyed the root file system (superblock, 16 programs
+in `/usr/bin`; recovered with `tools/sd_rescue.py`).
 
-Prinzip: Das System liegt schreibgeschützt („im Tresor“), beschrieben werden
-nur die Datenpartition und RAM-Ordner. Auf eine `ro` eingehängte Partition
-schreibt Linux nichts — ein Reset findet dort keinen halben Schreibvorgang.
-Ganz ausschließen lässt sich ein Schaden nicht: Der Controller einer SD-Karte
-sortiert intern um und kann bei einem Reset mitten im Schreiben in seltenen
-Fällen auch benachbarte Daten treffen.
+Principle: the system is kept read-only ("in the vault"); only the data
+partition and RAM folders are written. Linux writes nothing to a partition
+mounted `ro` — a reset finds no half-finished write there. Damage cannot be
+ruled out completely: an SD card's controller reorganizes data internally
+and, in rare cases, a reset in the middle of a write can also hit
+neighboring data.
 
-## Aufteilung der SD-Karte
+## SD card layout
 
-| Partition | Größe | Inhalt | eingehängt |
+| Partition | Size | Contents | Mounted |
 |---|---|---|---|
-| `mmcblk0p1` | 300 MB, FAT | Bootloader, Kernel, Start-Core (`retro25/core.rbf`) | nicht |
-| `mmcblk0p2` | 8 GiB, ext4 | Ubuntu (Root) | `/`, **ro** |
-| `mmcblk0p3` | 20,8 GiB, ext4, Label `retro25data` | `/media/fat` (Main, Cores, Konfiguration, Spielstände), `/media/fat/retro25` (Bereitstellung, `~/retro25` zeigt dorthin) | `/media/fat`, rw |
+| `mmcblk0p1` | 300 MB, FAT | Bootloader, kernel, start core (`retro25/core.rbf`) | no |
+| `mmcblk0p2` | 8 GiB, ext4 | Ubuntu (root) | `/`, **ro** |
+| `mmcblk0p3` | 20.8 GiB, ext4, label `retro25data` | `/media/fat` (Main, cores, configuration, save games), `/media/fat/retro25` (staging, `~/retro25` points there) | `/media/fat`, rw |
 
-Im RAM (nach einem Neustart leer): `/tmp`, `/var/tmp`, `/var/log` (auch das
-Journal, höchstens 32 MB), `/var/lib/NetworkManager`,
-`/var/lib/systemd/timesync`, `/var/lib/logrotate`, die Datenbanken von
-PulseAudio (`~/.config/pulse`) und der jeweils geladene Core
+In RAM (empty after a reboot): `/tmp`, `/var/tmp`, `/var/log` (including
+the journal, at most 32 MB), `/var/lib/NetworkManager`,
+`/var/lib/systemd/timesync`, `/var/lib/logrotate`, the PulseAudio databases
+(`~/.config/pulse`) and the currently loaded core
 (`/run/retro25-fw/retro25/main.core.rbf`).
 
-## Dateien
+## Files
 
-| Datei | wohin | Zweck |
+| File | Destination | Purpose |
 |---|---|---|
-| `install.sh` | — | installiert alles (schaltet bei Bedarf selbst auf rw und zurück) |
-| `fstab` | `/etc/fstab` | Root ro, Datenpartition, RAM-Ordner |
-| `tmpfiles-retro25.conf` | `/etc/tmpfiles.d/retro25.conf` | Rechte der RAM-Ordner, Firmware-Suchpfad `/run/retro25-fw` |
-| `journald-retro25.conf` | `/etc/systemd/journald.conf.d/` | Journal nur im RAM |
-| `90-retro25.conf` | `/etc/sysctl.d/` | Magic SysRq vollständig frei |
-| `retro25-rw` | `/usr/local/sbin/retro25-rw`, `retro25-ro` | Root für Wartung umschalten |
-| `rw-offen.py` | `/usr/local/sbin/retro25-rw-offen` | zeigt, wer das Root beschreibbar hält |
-| `retro25-usb` | `/usr/local/sbin/` | USB-Datenträger ein-/aushängen (`/media/usb0..5`) |
-| `retro25-usb@.service` | `/etc/systemd/system/` | je Gerät ein Dienst, an das Gerät gebunden (Abziehen = aushängen) |
-| `99-retro25-usb.rules` | `/etc/udev/rules.d/` | startet den Dienst beim Einstecken |
+| `install.sh` | — | installs everything (switches to rw and back by itself if needed) |
+| `fstab` | `/etc/fstab` | root ro, data partition, RAM folders |
+| `tmpfiles-retro25.conf` | `/etc/tmpfiles.d/retro25.conf` | permissions of the RAM folders, firmware search path `/run/retro25-fw` |
+| `journald-retro25.conf` | `/etc/systemd/journald.conf.d/` | journal in RAM only |
+| `90-retro25.conf` | `/etc/sysctl.d/` | Magic SysRq fully enabled |
+| `retro25-rw` | `/usr/local/sbin/retro25-rw`, `retro25-ro` | switch the root for maintenance |
+| `rw-offen.py` | `/usr/local/sbin/retro25-rw-offen` | shows who is keeping the root writable |
+| `retro25-usb` | `/usr/local/sbin/` | mount/unmount USB drives (`/media/usb0..5`) |
+| `retro25-usb@.service` | `/etc/systemd/system/` | one service per device, bound to the device (unplugging = unmounting) |
+| `99-retro25-usb.rules` | `/etc/udev/rules.d/` | starts the service when a device is plugged in |
 
-Außerdem schaltet `install.sh` Timer und Dienste ab, die aufs Root schreiben
-wollen: apt-Updates, motd-news, man-db, dpkg-db-backup, e2scrub, fstrim,
-apport.
+In addition, `install.sh` disables timers and services that want to write
+to the root: apt updates, motd-news, man-db, dpkg-db-backup, e2scrub,
+fstrim, apport.
 
-## USB-Datenträger (Spiele)
+## USB drives (games)
 
-Wie bei MiSTer: Jeder USB-Datenträger mit FAT oder ext4 wird beim Einstecken
-unter dem ersten freien `/media/usb0..5` eingehängt (lesen und schreiben,
-Besitzer `terasic`, bei FAT mit `flush` — Schreibzugriffe gehen sofort auf den
-Stick) und beim Abziehen wieder ausgehängt. exFAT und NTFS kennt der Kernel
-nicht. Main sucht Spiele zuerst auf USB (`<Laufwerk>/C64` oder
-`<Laufwerk>/games/C64`), dann unter `/media/fat/games/C64`. Einen Stick nie
-abziehen, während der Core auf eine Diskette schreibt.
-Prüfen: `findmnt | grep usb`, `systemctl status 'retro25-usb@*'`,
+As on MiSTer: every USB drive with FAT or ext4 is mounted on plug-in at the
+first free `/media/usb0..5` (read-write, owner `terasic`, FAT with `flush` —
+writes go to the stick immediately) and unmounted again when unplugged. The
+kernel does not support exFAT or NTFS. Main looks for games on USB first
+(`<drive>/C64` or `<drive>/games/C64`), then in `/media/fat/games/C64`.
+Never unplug a stick while the core is writing to a floppy.
+To check: `findmnt | grep usb`, `systemctl status 'retro25-usb@*'`,
 `journalctl -u 'retro25-usb@*'`.
 
-## Wartung
+## Maintenance
 
 ```
-sudo retro25-rw          # Root beschreibbar (apt, Dateien in /etc …)
-sudo retro25-ro          # wieder schreibgeschützt; ein Neustart tut es auch
-sudo retro25-rw-offen    # falls retro25-ro "busy" meldet: wer schreibt noch?
+sudo retro25-rw          # root writable (apt, files in /etc …)
+sudo retro25-ro          # read-only again; a reboot does it too
+sudo retro25-rw-offen    # if retro25-ro reports "busy": who is still writing?
 ```
 
-`linux/main/install.sh` und `linux/system/install.sh` schalten selbst um.
-Dateien fürs Board per `scp` nach `~/retro25/` (liegt auf der Datenpartition).
+`linux/main/install.sh` and `linux/system/install.sh` switch by themselves.
+Copy files for the board via `scp` to `~/retro25/` (it is on the data
+partition).
 
-## Hänger: sauber neu starten statt Reset
+## Hangs: clean reboot instead of reset
 
-Solange der Kernel noch Meldungen ausgibt (z. B. `arm-smmu-v3 … CMD_SYNC
-timeout`), über die serielle Konsole (COM11, 115200) Magic SysRq senden:
-BREAK, dann die Taste — `w`/`l` zur Diagnose, dann `s` (sync), `u` (alles
-ro), `b` (Neustart). Nur wenn gar nichts mehr reagiert: Reset-Knopf.
+As long as the kernel is still printing messages (e.g. `arm-smmu-v3 …
+CMD_SYNC timeout`), send Magic SysRq over the serial console (COM11,
+115200): BREAK, then the key — `w`/`l` for diagnostics, then `s` (sync),
+`u` (remount everything ro), `b` (reboot). Only if nothing responds at all:
+the reset button.
 
-## Netz
+## Network
 
-Die Ethernet-MAC-Adresse würfelt U-Boot bei jedem Start neu (keine
-gespeicherte Adresse); dann vergab der Router jedes Mal eine andere IP.
-NetworkManager setzt deshalb eine feste, lokal verwaltete Adresse
+U-Boot randomizes the Ethernet MAC address on every boot (no stored
+address); as a result, the router assigned a different IP each time.
+NetworkManager therefore sets a fixed, locally administered address
 (`nmcli con modify "Wired connection 1|2" 802-3-ethernet.cloned-mac-address
-a2:d3:33:94:7a:42`, in `/etc/NetworkManager`); das Board ist jetzt immer
-unter derselben Adresse erreichbar (zuletzt 192.168.178.125).
+a2:d3:33:94:7a:42`, in `/etc/NetworkManager`); the board is now always
+reachable at the same address (most recently 192.168.178.125).
 
-## Sicherung
+## Backup
 
-Abbild der ganzen Karte (Karte im PC, Administrator-PowerShell):
+Image of the entire card (card in the PC, administrator PowerShell):
 `python tools/sd_rescue.py backup DISK F:\retro25-sd\karte.img` —
-zurückspielen mit balenaEtcher, Rufus o. Ä.
+restore with balenaEtcher, Rufus or similar.

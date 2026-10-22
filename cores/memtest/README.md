@@ -1,81 +1,82 @@
-# Memtest — SDRAM-Test (MiSTers MemTest auf dem DE25)
+# Memtest — SDRAM test (MiSTer's MemTest on the DE25)
 
-Prüft das 128-MB-SDRAM des DE25 (1,8 V, zwei Chip-Selects; getestet wird
-wie bei MiSTer der erste Chip, 64 MB) mit MiSTers
-[MemTest](https://github.com/MiSTer-devel/MemTest_MiSTer). Dient in P4 dazu,
-den SDRAM-Takt für den C64 festzulegen.
+Tests the DE25's 128 MB SDRAM (1.8 V, two chip selects; as on MiSTer, the
+first chip, 64 MB, is tested) with MiSTer's
+[MemTest](https://github.com/MiSTer-devel/MemTest_MiSTer). Used in P4 to
+determine the SDRAM clock for the C64.
 
-- `vendor/` — Original, unverändert, nicht im Repository (`python tools/setup.py` bzw. `tools/fetch_memtest.py`)
-- `pro/` — angepasste Kopien für Quartus Pro/Agilex 5; im Repository nur die Diffs `pro/*.patch` (`tools/apply_patches.py` erzeugt die Dateien)
-- `ip/pll_memtest` — feste PLL: 64 MHz (wie clk64 des C64) und dieselbe
-  Frequenz mit +90 Grad für `SDRAM_CLK`; `ip/pll_memtest_vid` — 27 MHz Video
-- Bau: `python tools/make_core_qsf.py memtest`, dann `Q:\tools\build_core.bat memtest`
+- `vendor/` — original, unmodified, not in the repository (`python tools/setup.py` or `tools/fetch_memtest.py`)
+- `pro/` — adapted copies for Quartus Pro/Agilex 5; only the diffs `pro/*.patch` are in the repository (`tools/apply_patches.py` generates the files)
+- `ip/pll_memtest` — fixed PLL: 64 MHz (like the C64's clk64) and the same
+  frequency with +90 degrees for `SDRAM_CLK`; `ip/pll_memtest_vid` — 27 MHz video
+- Build: `python tools/make_core_qsf.py memtest`, then `Q:\tools\build_core.bat memtest`
 
-## Bedienung und Anzeige
+## Operation and display
 
-Im Menü (F12) unter `_Retro25` als `Memtest`. Bildschirm von oben:
+In the menu (F12) under `_Retro25` as `Memtest`. Screen from top to bottom:
 
-| Zeile | Farbe | Inhalt |
+| Line | Color | Contents |
 |---|---|---|
-| 1 | gelb | Laufzeit in Minuten, Frequenz in MHz (fest 064) |
-| 2 | türkis / grün | Speichergröße (2 = 64 MB) / bestandene Durchläufe (hex, je 32 MB) |
-| 3 | rot | **Fehler** (hex, Anzahl falsch gelesener 16-bit-Werte) — bestanden bei 0 |
+| 1 | yellow | Run time in minutes, frequency in MHz (fixed 064) |
+| 2 | cyan / green | Memory size (2 = 64 MB) / passes completed (hex, 32 MB each) |
+| 3 | red | **Errors** (hex, number of 16-bit values read incorrectly) — passed at 0 |
 
-Enter setzt den Test zurück. Frequenz umstellen und Automatik (Tasten
-hoch/runter, A) wirken hier nicht: Nur `sys` darf zur Laufzeit eine PLL
-umstellen (zwei umgestellte HVIO-PLLs stören sich, siehe
-`sys/de25/README.md`); jede Frequenz ist ein eigener Bau.
+Enter resets the test. Changing the frequency and auto mode (keys
+up/down, A) have no effect here: only `sys` may reconfigure a PLL at
+runtime (two reconfigured HVIO PLLs interfere with each other, see
+`sys/de25/README.md`); every frequency is a separate build.
 
-Aus der Ferne (Main nimmt Befehle über `/dev/MiSTer_cmd`):
+Remotely (Main accepts commands via `/dev/MiSTer_cmd`):
 
 ```
 echo "load_core /media/fat/_Retro25/Memtest.rbf" > /dev/MiSTer_cmd
-echo screenshot > /dev/MiSTer_cmd     # PNG unter /media/fat/screenshots/MEMTEST/
+echo screenshot > /dev/MiSTer_cmd     # PNG in /media/fat/screenshots/MEMTEST/
 ```
 
-## Anpassungen (pro/)
+## Changes (pro/)
 
-- **memtest.sv:** feste IOPLL statt der umstellbaren Cyclone-V-PLL samt
-  `pll_cfg`; SDRAM-Takt vom zweiten PLL-Ausgang über das DDIO-Register
-  `sys/de25/ip/sdram_clk_ddio` (`din = 2'b10`: Takt unverändert); feste
-  Frequenzanzeige; Automatik aus; Falle 16754 (Register mit Startwert im
-  always-Block).
-- **sdram.v:** `inout reg` → Tri-State mit `dq_out`/`dq_oe`; `dq_out` ohne
-  Clock-Enable (sonst passen Daten- und Freigaberegister nicht gemeinsam in
-  die I/O-Zelle, Fitter-Fehler 14996/24403); `altddio_out` entfällt
-  (`DRAM_CLK` unbenutzt); Falle 16754.
-- **tester.v:** Falle 16754 — sonst startet der Test nie.
+- **memtest.sv:** fixed IOPLL instead of the reconfigurable Cyclone V PLL
+  including `pll_cfg`; SDRAM clock from the second PLL output via the DDIO
+  register `sys/de25/ip/sdram_clk_ddio` (`din = 2'b10`: clock unchanged);
+  fixed frequency display; auto mode off; pitfall 16754 (register with
+  initial value in an always block).
+- **sdram.v:** `inout reg` → tri-state with `dq_out`/`dq_oe`; `dq_out`
+  without clock enable (otherwise the data and output-enable registers do
+  not fit into the I/O cell together, Fitter errors 14996/24403);
+  `altddio_out` removed (`DRAM_CLK` unused); pitfall 16754.
+- **tester.v:** pitfall 16754 — otherwise the test never starts.
 
-## Messungen (P4, 2026-10-17)
+## Measurements (P4, 2026-10-17)
 
-Alle mit I/O-Registern für Adresse, Befehle und Daten (`FAST_*_REGISTER` in
-`sys/de25/sys_de25.tcl`, wie bei MiSTer) und SDRAM-Takt über das
-DDIO-Register. Je 1,5–5 min, bei Fehlern ist der Zähler schon nach Sekunden
-riesig (praktisch jeder Lesewert falsch).
+All with I/O registers for address, commands and data (`FAST_*_REGISTER`
+in `sys/de25/sys_de25.tcl`, as on MiSTer) and the SDRAM clock via the DDIO
+register. 1.5–5 min each; when there are errors, the counter is huge after
+just seconds (practically every value read is wrong).
 
-| Frequenz | Phase SDRAM_CLK | Ergebnis |
+| Frequency | SDRAM_CLK phase | Result |
 |---|---|---|
-| 64 MHz | 0° | fast alles falsch |
-| 64 MHz | 45° | fehlerfrei |
-| 64 MHz | **90°** | **fehlerfrei** (25 min, 707 Durchläufe) |
-| 64 MHz | 135° | fehlerfrei |
-| 64 MHz | 180° (invertiert, wie MiSTer) | fast alles falsch |
-| 64 MHz | 270° | fast alles falsch |
-| 100 MHz | 0° | fehlerfrei (5 min) |
-| 100 MHz | 180° | fast alles falsch |
+| 64 MHz | 0° | almost everything wrong |
+| 64 MHz | 45° | error-free |
+| 64 MHz | **90°** | **error-free** (25 min, 707 passes) |
+| 64 MHz | 135° | error-free |
+| 64 MHz | 180° (inverted, as on MiSTer) | almost everything wrong |
+| 64 MHz | 270° | almost everything wrong |
+| 100 MHz | 0° | error-free (5 min) |
+| 100 MHz | 180° | almost everything wrong |
 
-Ohne die I/O-Register fiel auch 100–140 MHz mit 180° durch (frühere Messung).
+Without the I/O registers, 100–140 MHz with 180° also failed (earlier
+measurement).
 
-**Deutung:** MiSTers Controller liest die Daten nach einer festen Zahl von
-Takten. Das passt bei MiSTer (Cyclone V, 3,3-V-SDRAM) zum invertierten Takt.
-Beim DE25 kommen die Lesedaten später an (1,8-V-SDRAM und -Pins) — das
-gültige Fenster liegt bei 64 MHz zwischen etwa 45° und 135°. Die passende
-Phase hängt von der Frequenz ab, weil die Laufzeiten feste Zeiten sind
-(64 MHz: 90° = 3,9 ns; 100 MHz: 0° geht, 180° nicht). Terasics SDRAM-Demo
-erzeugt `DRAM_CLK` ebenfalls aus einem PLL-Ausgang mit Phase.
+**Interpretation:** MiSTer's controller reads the data after a fixed number
+of clock cycles. On MiSTer (Cyclone V, 3.3 V SDRAM) this fits the inverted
+clock. On the DE25 the read data arrives later (1.8 V SDRAM and pins) — at
+64 MHz the valid window lies between roughly 45° and 135°. The right phase
+depends on the frequency because the propagation delays are fixed times
+(64 MHz: 90° = 3.9 ns; 100 MHz: 0° works, 180° does not). Terasic's SDRAM
+demo also generates `DRAM_CLK` from a PLL output with a phase shift.
 
-**Folge für den C64 (Entscheidung 2026-10-17):** zusätzlicher Ausgang der
-C64-PLL, clk64 mit +90°, über `sdram_clk_ddio` (`din = 2'b10`) an
-`SDRAM_CLK` statt des invertierten clk64. Sein Controller kann in einem
-anderen Takt abtasten als der Memtest — die Phase wird mit dem C64 selbst
-nachgeprüft.
+**Consequence for the C64 (decision 2026-10-17):** an additional output of
+the C64 PLL, clk64 with +90°, via `sdram_clk_ddio` (`din = 2'b10`) to
+`SDRAM_CLK` instead of the inverted clk64. Its controller may sample in a
+different cycle than the Memtest — the phase is verified with the C64
+itself.

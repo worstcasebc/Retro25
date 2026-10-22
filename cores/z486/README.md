@@ -1,272 +1,272 @@
-# z486 — 486-PC (P5)
+# z486 — 486 PC (P5)
 
-nand2marios [z486_MiSTer](https://github.com/nand2mario/z486_MiSTer) — ein
-486-PC (etwa 486DX2-66) — im Retro25-Rahmen.
+nand2mario's [z486_MiSTer](https://github.com/nand2mario/z486_MiSTer) — a
+486 PC (roughly a 486DX2-66) — in the Retro25 framework.
 
-**Lizenz:** z486_MiSTer hat keine Lizenzdatei; die CPU (`src/z486`) steht nur
-für `*.sv`, `*.svh`, `*.py`, `*.md` unter Apache-2.0, der Microcode
-(`ucode.hex`) ist ausdrücklich ausgenommen. Deshalb liegt **nichts** davon im
-Repository — auch nicht die angepassten Kopien (`pro/`). `tools/fetch_z486.py`
-holt den Fremdcode aus einem festen Commit nach `vendor/`, `make_pro.py`
-erzeugt `pro/` per Textersetzung (die Suchmuster darin sind kurze
-Ausschnitte). Gebaute Bitstreams enthalten den Microcode: **nicht
-weitergeben**, nur selbst bauen.
+**License:** z486_MiSTer has no license file; the CPU (`src/z486`) is under
+Apache-2.0 only for `*.sv`, `*.svh`, `*.py`, `*.md`, and the microcode
+(`ucode.hex`) is explicitly excluded. That is why **none** of it is in the
+repository — not even the adapted copies (`pro/`). `tools/fetch_z486.py`
+fetches the third-party code from a fixed commit into `vendor/`, `make_pro.py`
+generates `pro/` by text substitution (the search patterns in it are short
+excerpts). Built bitstreams contain the microcode: **do not
+redistribute**, build them yourself.
 
-## Stand (2026-10-22)
+## Status (2026-10-22)
 
-| Bereich | Stand |
+| Area | Status |
 |---|---|
 | CPU, BIOS, VGA (ET4000, 2 MB) | ✔ FreeDOS, Windows 95 OSR2 |
-| Festplatte (IDE, `.vhd`), Diskette, CD-ROM (ISO) | ✔ lesen und schreiben |
-| Tastatur, Maus, Joystick | ✔ |
-| Sound Blaster, OPL3 | ✔ (Doom 37 fps, Quake mit Sound) |
-| SVGA-Framebuffer | ✔ bis 1024×768×8, 800×600×16, 640×480×24 |
-| x87-FPU | ✔ Quake `timedemo demo1` 8,3 fps |
-| Gemeinsamer Ordner (MISTERFS) | ✔ unter DOS |
-| Screenshot (Main) | ✔ auch im SVGA-Modus |
-| Bekannt | gelegentlich 20–30 s Pause beim Windows-Start-Jingle |
+| Hard disk (IDE, `.vhd`), floppy, CD-ROM (ISO) | ✔ read and write |
+| Keyboard, mouse, joystick | ✔ |
+| Sound Blaster, OPL3 | ✔ (Doom 37 fps, Quake with sound) |
+| SVGA framebuffer | ✔ up to 1024×768×8, 800×600×16, 640×480×24 |
+| x87 FPU | ✔ Quake `timedemo demo1` 8.3 fps |
+| Shared folder (MISTERFS) | ✔ under DOS |
+| Screenshot (Main) | ✔ in SVGA mode too |
+| Known issues | occasional 20–30 s pause during the Windows startup jingle |
 
-Belegung: 43 159 ALMs (92 %), 282 M20K, Timing bei 85 MHz erfüllt,
-HPS IO hash gleich.
+Utilization: 43,159 ALMs (92%), 282 M20K, timing met at 85 MHz,
+HPS IO hash identical.
 
-## Bauen
+## Building
 
 ```
-python tools/setup.py                    # einmalig: holt Fremdcode, ROMs, erzeugt pro/
-python cores/z486/make_pro.py            # nach Änderungen an make_pro.py: pro/, core.tcl, probe/
+python tools/setup.py                    # once: fetches third-party code, ROMs, generates pro/
+python cores/z486/make_pro.py            # after changes to make_pro.py: pro/, core.tcl, probe/
 python tools/make_core_qsf.py z486
-Q:\tools\build_core.bat z486             # ~20 min; Ergebnis quartus/output_files/z486.core.rbf
+Q:\tools\build_core.bat z486             # ~20 min; result quartus/output_files/z486.core.rbf
 ```
 
-Aufs Board: `z486.core.rbf` als `/media/fat/_Retro25/Z486.rbf`; `boot0.rom`
-und `boot1.rom` (aus `roms/z486/`, `tools/fetch_z486.py --roms`) nach
-`/media/fat/games/Z486/` (bzw. auf den Stick, siehe „USB-Stick“) — Main lädt
-sie bei jedem Start des Cores über den DDR in den Core. Einen neuen Core lädt
-ein Neustart von Main **nicht**: `echo 'load_core /media/fat/_Retro25/Z486.rbf'
-> /dev/MiSTer_cmd` oder über das Menü. Vorher Windows herunterfahren (ein
-DOS-Prompt ohne laufendes Programm ist unkritisch), sonst prüft Windows beim
-nächsten Start die Platte.
+On the board: `z486.core.rbf` as `/media/fat/_Retro25/Z486.rbf`; `boot0.rom`
+and `boot1.rom` (from `roms/z486/`, `tools/fetch_z486.py --roms`) into
+`/media/fat/games/Z486/` (or onto the USB stick, see "USB stick") — Main loads
+them into the core via the DDR every time the core starts. Restarting Main
+does **not** load a new core: `echo 'load_core /media/fat/_Retro25/Z486.rbf'
+> /dev/MiSTer_cmd` or via the menu. Shut down Windows first (a
+DOS prompt with no program running is fine), otherwise Windows checks the
+disk on the next start.
 
-## Bedienung (Z5, 2026-10-18)
+## Usage (Z5, 2026-10-18)
 
-- **OSD: Win + F12** oder die Menü-Taste — F12 allein geht bei PC-Cores
-  nicht (Main `is_f12_mod_needed()`: DOS-/Windows-Programme brauchen F12).
-- Festplatte: OSD → **IDE 0-0** → `.vhd` (Rohabbild) → **Reset and apply
-  HDD**. Gemerkt wird sie erst mit **Save settings** (`config/Z486sys.cfg`),
-  danach bindet Main sie bei jedem Start ein.
-- Eine MGL hilft beim x86 nicht: Sie bindet die Platte erst nach dem
-  Core-Start ein, wenn das BIOS die IDE schon abgefragt hat, und speichert
-  nichts.
-- Testplatte: `tools/fetch_z486.py --roms` → `roms/z486/freedos.vhd`
-  (upstream `verilator/freedos.zip`, FreeDOS 1.3, 32 MB FAT16) nach
-  `/media/fat/games/Z486/`. Bootet bis `C:\>` (Tastatur geht).
+- **OSD: Win + F12** or the Menu key — F12 alone does not work with PC cores
+  (Main `is_f12_mod_needed()`: DOS/Windows programs need F12).
+- Hard disk: OSD → **IDE 0-0** → `.vhd` (raw image) → **Reset and apply
+  HDD**. It is only remembered after **Save settings** (`config/Z486sys.cfg`);
+  from then on Main mounts it on every start.
+- An MGL does not help with x86: it mounts the disk only after the core has
+  started, when the BIOS has already probed IDE, and it saves
+  nothing.
+- Test disk: `tools/fetch_z486.py --roms` → `roms/z486/freedos.vhd`
+  (upstream `verilator/freedos.zip`, FreeDOS 1.3, 32 MB FAT16) into
+  `/media/fat/games/Z486/`. Boots to `C:\>` (keyboard works).
 
-## Spiele (Z6, 2026-10-18)
+## Games (Z6, 2026-10-18)
 
-Datenplatte an IDE 0-1 (unter FreeDOS `D:`), erzeugt mit
-`tools/make_dos_disk.py` (Docker: mkfs.fat + mtools), z. B.
-`python tools/make_dos_disk.py roms/z486/games.vhd --size 256 <ordner>=DOOMINST`.
+Data disk on IDE 0-1 (`D:` under FreeDOS), created with
+`tools/make_dos_disk.py` (Docker: mkfs.fat + mtools), e.g.
+`python tools/make_dos_disk.py roms/z486/games.vhd --size 256 <folder>=DOOMINST`.
 
-Doom 1.9 Shareware (`doom19s.zip` von idgames, Installer unter DOS
-ausgeführt): läuft flüssig, Sound Blaster (220/IRQ 5/DMA 1) mit Musik und
-Effekten über HDMI. `doom -timedemo demo3`: 2134 Gametics in 2018 Realtics
-= **37,0 fps** (Standardeinstellungen der Shareware; upstream nennt 29,1 fps
-bei voller Detailstufe auf dem DE10-Nano).
+Doom 1.9 shareware (`doom19s.zip` from idgames, installer run
+under DOS): runs smoothly, Sound Blaster (220/IRQ 5/DMA 1) with music and
+effects over HDMI. `doom -timedemo demo3`: 2134 gametics in 2018 realtics
+= **37.0 fps** (shareware default settings; upstream reports 29.1 fps
+at full detail on the DE10-Nano).
 
-## Maus und Joystick (2026-10-19)
+## Mouse and joystick (2026-10-19)
 
-- **Maus** (USB, über Main als PS/2-Maus): geht mit Main-Patch 0007 — der
-  Terasic-Kernel hat kein `mousedev`, vorher kamen nur die Tasten an.
-  FreeDOS lädt `CTMOUSE` in `FDAUTO.BAT`; Test `C:\FREEDOS\BIN\CTMOUSE\MOUSETST`.
-  Doom: `use_mouse 1` in `DEFAULT.CFG` (SETUP: Keyboard + Mouse) — die
-  Shareware-Vorgabe war 0.
-- **Joystick** (Game-Port 201h, USB-Pads über Main): Main schickt die
-  Tasten erst, wenn das Pad **im z486** belegt ist — OSD (Win + F12) →
-  Systemseite → **Define joystick buttons** (eine Datei
-  `config/inputs/Z486_input_<vid>_<pid>_v3.map` gilt für alle gleichen Pads;
-  vorher Main-Belegung im Menü-Core, siehe `cores/c64/README.md`). Prüfen
-  ohne Spiel: `debug`, `i 201` → `F0` ohne, `E0` mit Button 1 (Tasten aktiv
-  low, Bits 4–7). Doom: SETUP → Keyboard + Joystick, kalibrieren — läuft.
-  Doom kennt neben der Tastatur nur Maus *oder* Joystick.
+- **Mouse** (USB, via Main as a PS/2 mouse): works with Main patch 0007 — the
+  Terasic kernel has no `mousedev`; before that only the buttons got through.
+  FreeDOS loads `CTMOUSE` in `FDAUTO.BAT`; test `C:\FREEDOS\BIN\CTMOUSE\MOUSETST`.
+  Doom: `use_mouse 1` in `DEFAULT.CFG` (SETUP: Keyboard + Mouse) — the
+  shareware default was 0.
+- **Joystick** (game port 201h, USB pads via Main): Main only sends the
+  buttons once the pad has been mapped **in the z486** — OSD (Win + F12) →
+  system page → **Define joystick buttons** (one file
+  `config/inputs/Z486_input_<vid>_<pid>_v3.map` applies to all identical pads;
+  map it in Main in the menu core first, see `cores/c64/README.md`). Checking
+  without a game: `debug`, `i 201` → `F0` without, `E0` with button 1 (buttons active
+  low, bits 4–7). Doom: SETUP → Keyboard + Joystick, calibrate — works.
+  Besides the keyboard, Doom supports only mouse *or* joystick.
 
-## Diskette und CD-ROM (Z7, 2026-10-19)
+## Floppy and CD-ROM (Z7, 2026-10-19)
 
-Testabbilder: `tools/make_dos_disk.py … --type floppy` (1,44 MB FAT12) bzw.
-`--type iso` (ISO 9660 + Joliet), je mit `TEST\DATA.BIN` (512 KB).
+Test images: `tools/make_dos_disk.py … --type floppy` (1.44 MB FAT12) or
+`--type iso` (ISO 9660 + Joliet), each with `TEST\DATA.BIN` (512 KB).
 
-- **CD-ROM** (OSD **IDE 1-0**, `.iso`): geht. FreeDOS lädt UDVD2 („No V2.0C+
-  PCI!“, findet `IDE0 Secondary-master` über die ISA-Ports) + SHSUCDX → `E:`.
-  `fc /b A:\TEST\DATA.BIN E:\TEST\DATA.BIN`: keine Unterschiede.
-- **Diskette lesen** (OSD **Floppy A:**): geht.
-- **Diskette schreiben** (2026-10-20): geht nach Korrektur von upstream
+- **CD-ROM** (OSD **IDE 1-0**, `.iso`): works. FreeDOS loads UDVD2 ("No V2.0C+
+  PCI!", finds `IDE0 Secondary-master` via the ISA ports) + SHSUCDX → `E:`.
+  `fc /b A:\TEST\DATA.BIN E:\TEST\DATA.BIN`: no differences.
+- **Floppy read** (OSD **Floppy A:**): works.
+- **Floppy write** (2026-10-20): works after fixing upstream
   [#125](https://github.com/nand2mario/z486_MiSTer/issues/125).
-  Ursache: `sdram.v` gab Port 0 (CPU) feste Vorfahrt vor Port 1 (DMA).
-  Beim Schreiben pollt das BIOS auf den Interrupt, die CPU belegt den
-  Speicher dabei in ~83 % der Takte. Die DMA bekam für den Floppy-Controller
-  kaum Bytes (gemessen ~150 B je 250 ms, Zähler im Core + Main-Debugpatch).
-  Nach ~2 s bricht das BIOS ab, DOS hängt. Lesen (Gerät → Speicher) und
-  Sound-DMA fiel das nicht auf; die Verilator-Simulation zeigte es nicht.
-  Abhilfe (`make_pro.py`): DMA vor CPU wie im PC (HOLD/HLDA). Die DMA hat
-  höchstens eine Anfrage offen und kann die CPU nicht aushungern.
-  Test: `copy C:\FREEDOS\BIN\FC.EXE A:\Z.EXE` dauert 0,2 s für 28 Sektoren
-  (vorher Hänger), die Datei auf `test.img` ist bytegleich.
-- Mit eingelegter Diskette bootet das BIOS von A: (`Boot 1st:
+  Cause: `sdram.v` gave port 0 (CPU) fixed priority over port 1 (DMA).
+  While writing, the BIOS polls for the interrupt, and the CPU occupies the
+  memory in ~83% of the cycles. The DMA got hardly any bytes for the floppy
+  controller (measured ~150 B per 250 ms, counter in the core + Main debug patch).
+  After ~2 s the BIOS aborts and DOS hangs. Reading (device → memory) and
+  sound DMA were not affected; the Verilator simulation did not show it.
+  Fix (`make_pro.py`): DMA before CPU, as in a PC (HOLD/HLDA). The DMA has
+  at most one request outstanding and cannot starve the CPU.
+  Test: `copy C:\FREEDOS\BIN\FC.EXE A:\Z.EXE` takes 0.2 s for 28 sectors
+  (previously a hang), the file on `test.img` is byte-identical.
+- With a floppy inserted, the BIOS boots from A: (`Boot 1st:
   Floppy/Hard Disk`) → OSD **Hardware → Boot 1st: Hard Disk**.
 
-## USB-Stick und Windows 95 (2026-10-20)
+## USB stick and Windows 95 (2026-10-20)
 
-- **Images vom Stick:** Main sucht den Core-Ordner zuerst auf den Sticks
-  (`/media/usbN/games/Z486`), dann auf der SD-Karte, und nimmt nur den
-  ersten Treffer. Gibt es `games/Z486` auf dem Stick, zeigt das OSD nur
-  dessen Dateien — und Main lädt auch **`boot0.rom`/`boot1.rom`** von dort.
-  Fehlen sie, bleibt der Bildschirm schwarz (kein BIOS) → ROMs mit auf den
-  Stick kopieren.
-- Die Slots **IDE 0-x** nehmen nur `.vhd` (Rohabbild, eine `.img` einfach
-  umbenennen), **IDE 1-x** (CD) `.vhd/.iso/.cue/.chd`, Floppy `.img/.ima/.vfd`.
-  Ein Platten-Image an IDE 1-x lehnt Main ab („Cannot hot-mount HDD image
-  to CD!“).
-- **Windows 95 OSR2** (englisch, ISO an IDE 1-0, leere 512-MB-`.vhd` an
-  IDE 0-0, Boot 1st: CD-ROM, nach dem ersten Neustart Hard Disk) installiert
-  und startet bis zum Desktop; Dateisystem und Auslagerung laufen 32-bit
-  (kein MS-DOS-Kompatibilitätsmodus). Ein japanisches Win95-Abbild blieb
-  dagegen nach dem Laden von `DISPLAY.DRV` stehen (nicht weiter verfolgt).
-- **Schreibtempo:** Main öffnete Images mit `O_SYNC` — jeder IDE-Schreibbefehl
-  (unter Windows oft 1 Sektor) wartete auf den Datenträger, Stick wie
-  SD-Karte schaffen so nur ~150 Vorgänge/s (~40 KB/s, die Installation
-  dauerte Stunden). Main-Patch 0008 puffert in Linux und ruft `fsync` nach
-  1 s ohne Schreiben: `xcopy` unter Win95 schreibt jetzt ~300–400 KB/s.
-  Strom oder Stick erst ziehen, wenn ~1 s nichts mehr geschrieben wurde.
-- US-Tastaturbelegung in Windows: `:` liegt auf Shift + Ö (sonst kommt `;`).
+- **Images from the stick:** Main looks for the core folder on the sticks first
+  (`/media/usbN/games/Z486`), then on the SD card, and only takes the
+  first match. If `games/Z486` exists on the stick, the OSD shows only
+  its files — and Main also loads **`boot0.rom`/`boot1.rom`** from there.
+  If they are missing, the screen stays black (no BIOS) → copy the ROMs to the
+  stick as well.
+- The **IDE 0-x** slots accept only `.vhd` (raw image; simply rename an `.img`),
+  **IDE 1-x** (CD) `.vhd/.iso/.cue/.chd`, floppy `.img/.ima/.vfd`.
+  Main rejects a disk image on IDE 1-x ("Cannot hot-mount HDD image
+  to CD!").
+- **Windows 95 OSR2** (English, ISO on IDE 1-0, empty 512 MB `.vhd` on
+  IDE 0-0, Boot 1st: CD-ROM, Hard Disk after the first reboot) installs
+  and starts up to the desktop; file system and paging run in 32-bit mode
+  (no MS-DOS compatibility mode). A Japanese Win95 image, on the other hand,
+  stopped after loading `DISPLAY.DRV` (not pursued further).
+- **Write speed:** Main opened images with `O_SYNC` — every IDE write command
+  (often 1 sector under Windows) waited for the storage medium; both stick and
+  SD card managed only ~150 operations/s that way (~40 KB/s, the installation
+  took hours). Main patch 0008 buffers in Linux and calls `fsync` after
+  1 s without writes: `xcopy` under Win95 now writes ~300–400 KB/s.
+  Only cut power or pull the stick once nothing has been written for ~1 s.
+- US keyboard layout in Windows: `:` is on Shift + Ö (otherwise you get `;`).
 
-## Gemeinsamer Ordner (Z7, 2026-10-22)
+## Shared folder (Z7, 2026-10-22)
 
-Dateiaustausch mit dem PC ohne Plattenabbild: Der Ordner `games/Z486/shared`
-(auf dem Stick bzw. der SD-Karte, je nachdem wo `games/Z486` liegt) erscheint
-unter DOS als Netzlaufwerk.
+File exchange with the PC without a disk image: the folder `games/Z486/shared`
+(on the stick or the SD card, depending on where `games/Z486` is) appears
+as a network drive under DOS.
 
-- Treiber: `misterfs.exe` aus ao486_MiSTer (MIT-Lizenz;
-  `tools/fetch_z486.py --roms` holt ihn nach `roms/z486/`). Aufruf mit dem
-  Laufwerksbuchstaben **ohne** Schrägstrich: `MISTERFS E`. Am bequemsten nach
-  `C:\` kopieren und in die `AUTOEXEC.BAT` eintragen. Mit EMM386 den Bereich
-  ausnehmen: `X=CE00-CFFF`.
-- Geprüft unter Win95-DOS (Command prompt only): `dir`, `type`, `copy` in
-  beide Richtungen, `fc /b` bytegleich. Unter der Windows-Oberfläche noch
-  nicht getestet.
-- **Wie es funktioniert:** Der Treiber (ein DOS-Redirector, INT 2Fh) legt jede
-  Dateianfrage in einen 8-KB-Briefkasten bei PC-Adresse `CE000`. Main
-  (`x86_share.cpp`) pollt ihn im DDR bei `0x300CE000`, führt die Anfrage mit
-  echten Dateien aus und legt die Antwort zurück. Beim ao486 liegt der ganze
-  PC-Speicher im DDR; beim z486 liegt er im SDRAM. Deshalb leitet der Core
-  `CE000–CFFFF` als **Geräteseite** (ungecacht, direkt) über denselben Weg ins
-  DDR wie den linearen SVGA-Framebuffer (`main_memory`, Zustände
+- Driver: `misterfs.exe` from ao486_MiSTer (MIT license;
+  `tools/fetch_z486.py --roms` fetches it into `roms/z486/`). Invoke it with the
+  drive letter **without** a slash: `MISTERFS E`. Most convenient: copy it to
+  `C:\` and add it to `AUTOEXEC.BAT`. With EMM386, exclude the
+  region: `X=CE00-CFFF`.
+- Tested under Win95 DOS (Command prompt only): `dir`, `type`, `copy` in
+  both directions, `fc /b` byte-identical. Not yet tested under the Windows
+  GUI.
+- **How it works:** The driver (a DOS redirector, INT 2Fh) places each
+  file request into an 8 KB mailbox at PC address `CE000`. Main
+  (`x86_share.cpp`) polls it in the DDR at `0x300CE000`, executes the request on
+  real files and puts the response back. On the ao486 the entire
+  PC memory is in the DDR; on the z486 it is in the SDRAM. Therefore the core routes
+  `CE000–CFFFF` as a **device page** (uncached, direct) into the DDR via the same
+  path as the linear SVGA framebuffer (`main_memory`, states
   `FB_WRITE`/`FB_READ`). Testbench `tb/tb_main_memory_share.v`.
-- Main: Patch 0009 (Briefkasten ausgerichtet kopieren, sonst SIGBUS) und
-  `shmem_map` für Adressen mitten in einer Seite (`linux/main/de25/shmem.cpp`).
-- **Falle (sys):** Der z486 lässt `DDRAM_BE` beim Lesen auf dem Wert des
-  letzten Schreibzugriffs stehen. Über F2SDRAM kamen dann nur diese Bytes
-  zurück, der Rest war 0 — `sysmem_de25` liest jetzt immer mit `FF`
-  (`sys/de25/README.md`). Teil-Schreibzugriffe funktionieren.
-- Stresstest `SHTEST.COM` (50 000 zufällige Byte-/Wort-/Dword-Zugriffe auf
-  `CE00:0100–1FFF` gegen eine Kopie im RAM): fehlerfrei.
-- Das BIOS testet beim Start `CE0A0`/`CF0A0` als RAM und tastet `CF000–CFE00`
-  nach Options-ROMs ab — jetzt im DDR, wie beim ao486; harmlos.
+- Main: patch 0009 (copy the mailbox aligned, otherwise SIGBUS) and
+  `shmem_map` for addresses in the middle of a page (`linux/main/de25/shmem.cpp`).
+- **Pitfall (sys):** The z486 leaves `DDRAM_BE` at the value of the last write
+  access during reads. Over F2SDRAM only those bytes then came
+  back, the rest was 0 — `sysmem_de25` now always reads with `FF`
+  (`sys/de25/README.md`). Partial writes work.
+- Stress test `SHTEST.COM` (50,000 random byte/word/dword accesses to
+  `CE00:0100–1FFF` against a copy in RAM): no errors.
+- At startup the BIOS tests `CE0A0`/`CF0A0` as RAM and scans `CF000–CFE00`
+  for option ROMs — now in the DDR, as on the ao486; harmless.
 
 ## SVGA (Z7, 2026-10-22)
 
-Modi ab 256 Farben (ET4000-Modi, VESA) laufen über den **Framebuffer im
-DDR**: Die CPU schreibt über `main_memory` (Zustände `FB_WRITE`/`FB_READ`,
-banked Fenster `A0000` oder lineare Apertur bei 248 MB) nach `0x3F800000`,
-der Scaler (ascal) liest von dort und nimmt die Palette des Cores
-(`MISTER_FB=1`, `MISTER_FB_PALETTE=1` in `core.tcl`). Kostet ~160 ALMs.
+Modes with 256 colors and up (ET4000 modes, VESA) go through the **framebuffer in
+DDR**: the CPU writes via `main_memory` (states `FB_WRITE`/`FB_READ`,
+banked window `A0000` or linear aperture at 248 MB) to `0x3F800000`,
+the scaler (ascal) reads from there and uses the core's palette
+(`MISTER_FB=1`, `MISTER_FB_PALETTE=1` in `core.tcl`). Costs ~160 ALMs.
 
-- DOS: `SVGATEST.COM` (VESA `101h`, 640×480×256, 16×16 Farbfelder) korrekt.
-- Windows 95: Treiber **Tseng Labs ET4000**, 640×480, 800×600 und 1024×768
-  mit 256 Farben laufen (Grauverlauf weich).
-- **Lesepuffer** (`make_pro.py`, `main_memory`): Jeder Lesezugriff auf den
-  Framebuffer war ein einzelner Weg ins DDR (~42 Takte); Windows liest viel
-  und war zäh. Das zuletzt gelesene 64-bit-Wort bleibt gepuffert, Schreiben
-  der CPU wird nachgeführt (nur sie schreibt den Framebuffer), der Briefkasten
-  ist ausgenommen. Gemessen mit `FBREAD.COM` (VESA 101h, 10 × 320 KB):
+- DOS: `SVGATEST.COM` (VESA `101h`, 640×480×256, 16×16 color patches) correct.
+- Windows 95: driver **Tseng Labs ET4000**, 640×480, 800×600 and 1024×768
+  with 256 colors work (smooth gray gradient).
+- **Read buffer** (`make_pro.py`, `main_memory`): every read access to the
+  framebuffer was a separate trip to the DDR (~42 cycles); Windows reads a lot
+  and was sluggish. The most recently read 64-bit word stays buffered, CPU writes
+  are tracked (only the CPU writes the framebuffer), the mailbox
+  is excluded. Measured with `FBREAD.COM` (VESA 101h, 10 × 320 KB):
 
-  | | ohne | mit Lesepuffer |
+  | | without | with read buffer |
   |---|---|---|
-  | Lesen byteweise | 1 420 KB/s | 3 640 KB/s |
-  | Lesen dwordweise | 5 294 KB/s | 8 320 KB/s |
-  | Schreiben dword | 14 560 KB/s | 14 560 KB/s |
+  | Read bytewise | 1,420 KB/s | 3,640 KB/s |
+  | Read dwordwise | 5,294 KB/s | 8,320 KB/s |
+  | Write dword | 14,560 KB/s | 14,560 KB/s |
 
-  Den Rest kostet der ungecachte Gerätezugriff der CPU selbst (~23 Takte je
-  Treffer); mehr Wörter vorauszulesen brächte wenig.
-- **Windows 95 mit gemeinsamem Ordner:** `C:\WINDOWS\SYSTEM.INI`, Abschnitt
-  `[386Enh]`: `EMMExclude=CE00-CFFF`. Sonst legt Windows im Briefkasten
-  (der jetzt wie RAM aussieht) eigenen Code ab; Befehle aus einer
-  Geräteseite liefert der z486 als `FF` → Windows hängt beim Start-Jingle.
-  Beim ao486 gilt dieselbe Regel (dort überschriebe Windows den Briefkasten).
-- Screenshot (Main) geht auch im Framebuffer-Modus (Main-Patch 0010,
-  Palette über UIO `0x4E`, `sys/de25/README.md`).
-- Lesbarkeit am Monitor: HDMI auf 1080p (`video_mode=8`), für scharfe
-  Pixel `vscale_mode=1` (ganzzahlig; 1024×768 dann 1:1 in der Mitte).
-- Farbtiefen mit dem ET4000-Treiber (2 MB Bildspeicher): 256 Farben bis
-  1024×768, 16 bit bis 800×600, 24 bit bis 640×480 — größere Kombinationen
-  bietet der Treiber nicht an (z. B. 1024×768×16 = 1,5 MB).
-- Offen: gelegentlich 20–30 s Pause beim Start-Jingle von Windows
-  (sporadisch).
+  The rest is the cost of the CPU's own uncached device access (~23 cycles per
+  hit); prefetching more words would gain little.
+- **Windows 95 with shared folder:** `C:\WINDOWS\SYSTEM.INI`, section
+  `[386Enh]`: `EMMExclude=CE00-CFFF`. Otherwise Windows places its own code in the
+  mailbox (which now looks like RAM); the z486 returns instructions fetched
+  from a device page as `FF` → Windows hangs at the startup jingle.
+  The same rule applies to the ao486 (there Windows would overwrite the mailbox).
+- Screenshot (Main) also works in framebuffer mode (Main patch 0010,
+  palette via UIO `0x4E`, `sys/de25/README.md`).
+- Readability on the monitor: HDMI at 1080p (`video_mode=8`), for sharp
+  pixels `vscale_mode=1` (integer; 1024×768 then 1:1 in the center).
+- Color depths with the ET4000 driver (2 MB video memory): 256 colors up to
+  1024×768, 16 bit up to 800×600, 24 bit up to 640×480 — the driver does not
+  offer larger combinations (e.g. 1024×768×16 = 1.5 MB).
+- Open: occasional 20–30 s pause during the Windows startup jingle
+  (sporadic).
 
 ## x87 (Z7, 2026-10-22)
 
-FPU wie upstream an (`ENABLE_X87 = 1`): 43 159 ALMs (92 %), 282 M20K, Timing
-bei 85 MHz erfüllt. Anpassungen (`make_pro.py`): die drei ROMs
-(`x87_ucode_rom`, `x87_command_rom`, `x87_logexp_rom`) von M10K auf M20K,
-Inhalt weiter aus den `.mif`; der Stapel `x87_stack_mem` (8 × 80 bit, zwei
-Schreibports) über den herstellerneutralen Zweig als Register — Agilex 5
-kennt BIDIR_DUAL_PORT mit OLD_DATA nicht.
+FPU enabled as upstream (`ENABLE_X87 = 1`): 43,159 ALMs (92%), 282 M20K, timing
+met at 85 MHz. Adaptations (`make_pro.py`): the three ROMs
+(`x87_ucode_rom`, `x87_command_rom`, `x87_logexp_rom`) moved from M10K to M20K,
+contents still from the `.mif` files; the stack `x87_stack_mem` (8 × 80 bit, two
+write ports) as registers via the vendor-neutral branch — Agilex 5
+does not support BIDIR_DUAL_PORT with OLD_DATA.
 
-`FPUTEST.COM` (Testdiskette): FPU erkannt; π, √2, sin(1), cos(1), ln(2),
-1/3, atan(1) bitgenau; FMUL ~9 Mio/s, FDIV ~1,3 Mio/s (Größenordnung
+`FPUTEST.COM` (test floppy): FPU detected; π, √2, sin(1), cos(1), ln(2),
+1/3, atan(1) bit-exact; FMUL ~9 M/s, FDIV ~1.3 M/s (in the range of a
 486DX2-66).
 
-**Quake 1.06 Shareware** (`quake106.zip`, MD5 `8cee4d03…1357`, im Container
-mit `lhasa` entpackt, als `quake.vhd` an IDE 0-1): läuft unter Win95-DOS
-(„Command prompt only“), `timedemo demo1` = **8,3 fps** (320×200; ein echter
-486DX2-66 schafft ~8–10). Win95-DOS setzt kein `BLASTER` und lädt keinen
-Maustreiber — Startdatei `Q.BAT`: `set BLASTER=A220 I5 D1 H5 P330 T6`,
-`CTMOUSE` (aus FreeDOS), `QUAKE`.
-Sound und Maus gehen damit. „MSCDEX not loaded, Music is disabled“ ist
-normal: Quakes Musik sind CD-Audio-Spuren der Vollversion (Shareware ohne).
+**Quake 1.06 shareware** (`quake106.zip`, MD5 `8cee4d03…1357`, unpacked in the container
+with `lhasa`, as `quake.vhd` on IDE 0-1): runs under Win95 DOS
+("Command prompt only"), `timedemo demo1` = **8.3 fps** (320×200; a real
+486DX2-66 manages ~8–10). Win95 DOS sets no `BLASTER` and loads no
+mouse driver — startup file `Q.BAT`: `set BLASTER=A220 I5 D1 H5 P330 T6`,
+`CTMOUSE` (from FreeDOS), `QUAKE`.
+Sound and mouse work with that. "MSCDEX not loaded, Music is disabled" is
+normal: Quake's music consists of the CD audio tracks of the full version (the shareware has none).
 
-**FreeDOS-Testplatte:** `vinfo /m` (V8Power 2021) meldet einen 486 ohne
-CPUID als **80186** (Fehler in vinfo, upstream 2025 behoben, Commit
-`ccaff7ac`) — `FDAUTO.BAT` nimmt dann den 8086-Zweig: keine Maus, keine CD.
-Abhilfe in `C:\FDAUTO.BAT` nach `if errorlevel 2 goto Support286`:
-`if errorlevel 1 goto Support386`; deutsche Tastatur: `keyb gr` vor der
-`vinfo`-Zeile. (Der z486 rechnet `SHR` mit CL=32 und `PUSH SP` richtig,
-in `debug` geprüft.)
+**FreeDOS test disk:** `vinfo /m` (V8Power 2021) reports a 486 without
+CPUID as an **80186** (bug in vinfo, fixed upstream in 2025, commit
+`ccaff7ac`) — `FDAUTO.BAT` then takes the 8086 branch: no mouse, no CD.
+Fix in `C:\FDAUTO.BAT` after `if errorlevel 2 goto Support286`:
+`if errorlevel 1 goto Support386`; German keyboard: `keyb gr` before the
+`vinfo` line. (The z486 computes `SHR` with CL=32 and `PUSH SP` correctly,
+verified in `debug`.)
 
-## Anpassungen (`make_pro.py`, Gründe dort)
+## Adaptations (`make_pro.py`, reasons given there)
 
-| Datei | Änderung |
+| File | Change |
 |---|---|
-| `z486_mister.sv` | ohne x87; IOPLL `pll_z486` (`pll` heißt schon das PLL-Modul des HPS-Systems); `SDRAM_CLK` 90° über `sdram_clk_ddio` (Phasenfenster `cores/sdram486test`); LFB-Eingänge wie `sys/emu_ports.vh`; **ohne `assign gamma_bus = 'z;`** |
-| `src/memory/sdram.v` | Quartus Pro: Deklaration vor Verwendung, DQ-Ausgangsregister ohne Enable (I/O-Register) |
-| `src/z486/*` | Microcode-ROM inferiert (altsyncram mit clock1 auf Agilex verboten), `ramstyle` M20K, Nettyp-Direktive |
-| `src/common/dpram.v` | `no_rw_check`, Port B synchron (sonst Logik bzw. doppeltes RAM) |
-| `src/soc/sound/sound.v`, `hps_ext.v`, `cdda.v`, `saa1099.sv` | Quartus-Pro-Fallen 16788/16754, Nettyp-Direktive |
-| `src/z486/x87/*_rom.sv`, `x87_stack_mem.sv` | M10K → M20K; Stapel als Register (BIDIR + OLD_DATA auf Agilex 5 verboten) |
-| `src/z486/z486_pkg.sv`, `l1_cache.sv`, `src/memory/main_memory.sv` | Briefkasten `CE000–CFFFF` als Geräteseite ins DDR (gemeinsamer Ordner, siehe unten); in `main_memory` Deklarationen vor die erste Verwendung (Questa) |
+| `z486_mister.sv` | without x87; IOPLL `pll_z486` (`pll` is already the name of the HPS system's PLL module); `SDRAM_CLK` 90° via `sdram_clk_ddio` (phase window `cores/sdram486test`); LFB inputs as in `sys/emu_ports.vh`; **without `assign gamma_bus = 'z;`** |
+| `src/memory/sdram.v` | Quartus Pro: declaration before use, DQ output register without enable (I/O register) |
+| `src/z486/*` | microcode ROM inferred (altsyncram with clock1 forbidden on Agilex), `ramstyle` M20K, net type directive |
+| `src/common/dpram.v` | `no_rw_check`, port B synchronous (otherwise logic or a duplicated RAM) |
+| `src/soc/sound/sound.v`, `hps_ext.v`, `cdda.v`, `saa1099.sv` | Quartus Pro pitfalls 16788/16754, net type directive |
+| `src/z486/x87/*_rom.sv`, `x87_stack_mem.sv` | M10K → M20K; stack as registers (BIDIR + OLD_DATA forbidden on Agilex 5) |
+| `src/z486/z486_pkg.sv`, `l1_cache.sv`, `src/memory/main_memory.sv` | mailbox `CE000–CFFFF` as a device page into the DDR (shared folder, see below); in `main_memory` declarations moved before first use (Questa) |
 
-Die Dateien, die `z486_platform.svh` einbinden, liegen unverändert in `pro/`,
-damit `include` die angepasste Fassung findet (es sucht zuerst im Ordner der
-einbindenden Datei) — so braucht das Projekt kein `VERILOG_CU_MODE MFCU`,
-das auch auf alle sys-Dateien wirken würde.
+The files that include `z486_platform.svh` are placed unchanged in `pro/`
+so that `include` finds the adapted version (it searches the folder of the
+including file first) — this way the project does not need `VERILOG_CU_MODE MFCU`,
+which would also affect all sys files.
 
-## Fallen
+## Pitfalls
 
-- **Tri-State-Treiber auf internen Bussen:** `assign gamma_bus = 'z;` neben
-  den echten Treibern (`hps_io`, `gamma_corr`) ließ Quartus Pro den Bus
-  falsch auflösen (Warnungen 13034/13035/13028) — CPU und BIOS liefen, das
-  Bild blieb schwarz. Nach jedem Bau auf 1303x prüfen.
-- **Main stürzte mit SIGBUS ab** (`x86_init`): `memset` und Dateiladen direkt
-  in die `/dev/mem`-Abbildung des DDR-Fensters (Device-Speicher) — wie beim
-  C64 (Patch 0005); Main-Patch 0006.
-- Diagnose ohne UART: LED0 PLL, LED2 erster Befehl der CPU, LED4 BIOS aus dem
-  DDR kopiert, LED6 sys-PLL. Der Debug-UART des z486 (BIOS-Meldungen) führt
-  bei uns nirgends hin.
+- **Tri-state drivers on internal buses:** `assign gamma_bus = 'z;` alongside
+  the real drivers (`hps_io`, `gamma_corr`) made Quartus Pro resolve the bus
+  incorrectly (warnings 13034/13035/13028) — CPU and BIOS ran, the
+  picture stayed black. Check for 1303x after every build.
+- **Main crashed with SIGBUS** (`x86_init`): `memset` and file loading directly
+  into the `/dev/mem` mapping of the DDR window (device memory) — as with the
+  C64 (patch 0005); Main patch 0006.
+- Diagnostics without a UART: LED0 PLL, LED2 first CPU instruction, LED4 BIOS copied from
+  the DDR, LED6 sys PLL. The z486's debug UART (BIOS messages) is not
+  connected to anything in our setup.

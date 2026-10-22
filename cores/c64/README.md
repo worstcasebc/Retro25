@@ -1,145 +1,145 @@
-# C64 — MiSTers C64_MiSTer auf dem DE25
+# C64 — MiSTer's C64_MiSTer on the DE25
 
-MiSTers [C64-Core](https://github.com/MiSTer-devel/C64_MiSTer) (fester Commit
-in `tools/fetch_c64.py`), angepasst an Quartus Pro und Agilex 5.
+MiSTer's [C64 core](https://github.com/MiSTer-devel/C64_MiSTer) (fixed commit
+in `tools/fetch_c64.py`), adapted to Quartus Pro and Agilex 5.
 
-- `vendor/` — Original ohne ROMs, PLL und OPL3-Firmware-Quellen. **Nicht im
-  Repository**; `python tools/setup.py` (bzw. `tools/fetch_c64.py`) holt es.
-- `pro/` — angepasste Kopien. Im Repository liegen nur die Diffs
-  (`*.patch`, Pfade wie in `vendor/`); `tools/apply_patches.py` erzeugt daraus
-  die Dateien.
-- `rtl/` — eigene Module mit Testbench in `tb/`: `iecdrv_bitmem.v`
-  (Spurpuffer des 1541), `opl3_mem.v` (Speicher der OPL3-Emulation)
-- `ip/pll_c64` — feste PLL, `c64_de25.sdc` — Timing
-- `test/make_test_media.py` — Testprogramm, Testdiskette und MGL (siehe unten)
+- `vendor/` — original without ROMs, PLL and OPL3 firmware sources. **Not in
+  the repository**; `python tools/setup.py` (or `tools/fetch_c64.py`) fetches it.
+- `pro/` — adapted copies. Only the diffs are in the repository
+  (`*.patch`, paths as in `vendor/`); `tools/apply_patches.py` generates
+  the files from them.
+- `rtl/` — own modules with testbenches in `tb/`: `iecdrv_bitmem.v`
+  (1541 track buffer), `opl3_mem.v` (memory of the OPL3 emulation)
+- `ip/pll_c64` — fixed PLL, `c64_de25.sdc` — timing
+- `test/make_test_media.py` — test program, test disk and MGL (see below)
 
-## Bauen
+## Building
 
 ```
-python tools/setup.py                # einmalig: Fremdcode holen, pro/ erzeugen
-python tools/make_c64_roms.py        # ROMs aus roms/ -> cores/c64/quartus/rtl/ (nicht im Repo)
+python tools/setup.py                # once: fetch third-party code, generate pro/
+python tools/make_c64_roms.py        # ROMs from roms/ -> cores/c64/quartus/rtl/ (not in the repo)
 python tools/make_core_qsf.py c64
-Q:\tools\build_core.bat c64          # ~15 min; Ergebnis quartus/output_files/c64.core.rbf
+Q:\tools\build_core.bat c64          # ~15 min; result quartus/output_files/c64.core.rbf
 ```
 
-Aufs Board: `c64.core.rbf` als `/media/fat/_Retro25/C64.rbf`. Die `.rbf`
-enthält die ROMs aus `roms/` — nur für den eigenen Gebrauch, nicht weitergeben.
-Belegung (Stand 2026-10-22): 35 589 ALMs (76 %), 222 M20K, Timing erfüllt.
+On the board: `c64.core.rbf` as `/media/fat/_Retro25/C64.rbf`. The `.rbf`
+contains the ROMs from `roms/` — for personal use only, do not redistribute.
+Utilization (as of 2026-10-22): 35,589 ALMs (76%), 222 M20K, timing met.
 
-## Takt (nur PAL, Entscheidung P4)
+## Clock (PAL only, decision P4)
 
-Feste PLL: VCO 2837,5 MHz (50 · 227 / 4), clk64 = 63,0556 MHz (5,6 ppm neben
-MiSTer), clk_sys = clk64/2, clk48 (OPL) = 48,09 MHz, dazu clk64 mit +90° für
-`SDRAM_CLK` über `sys/de25/ip/sdram_clk_ddio` (MiSTers invertierter Takt passt
-nicht zum 1,8-V-SDRAM, siehe `cores/memtest/README.md`). Zur Laufzeit wird
-keine PLL umgestellt: Die OSD-Option NTSC schaltet nur das VIC-Timing, der
-Takt bleibt PAL (das Laufwerk liefe dann 3,8 % zu langsam).
+Fixed PLL: VCO 2837.5 MHz (50 · 227 / 4), clk64 = 63.0556 MHz (5.6 ppm off
+MiSTer), clk_sys = clk64/2, clk48 (OPL) = 48.09 MHz, plus clk64 with +90° for
+`SDRAM_CLK` via `sys/de25/ip/sdram_clk_ddio` (MiSTer's inverted clock does not
+suit the 1.8 V SDRAM, see `cores/memtest/README.md`). No PLL is
+reconfigured at runtime: the OSD option NTSC only switches the VIC timing, the
+clock stays PAL (the drive would then run 3.8% too slow).
 
 ## ROMs
 
-`tools/make_c64_roms.py` erzeugt aus `roms/` (Namen in `roms/README.md`):
-BASIC+KERNAL und Zeichensatz als `.mif`, das 1541-DOS (mit MiSTers 10-Byte-
-Patch, identisch mit dessen Datei) als `.hex`. Für C64GS, japanisch,
-DolphinDOS und 1581 gibt es keine ROMs: C64GS/japanisch lesen aus dem
-Standard-ROM (spart 18 M20K), das 1581 hat ein leeres, per OSD ladbares ROM.
+`tools/make_c64_roms.py` generates from `roms/` (names in `roms/README.md`):
+BASIC+KERNAL and character set as `.mif`, the 1541 DOS (with MiSTer's 10-byte
+patch, identical to its file) as `.hex`. There are no ROMs for C64GS, Japanese,
+DolphinDOS and 1581: C64GS/Japanese read from the
+standard ROM (saves 18 M20K), the 1581 has an empty ROM loadable via the OSD.
 
-## Anpassungen (Überblick)
+## Adaptations (overview)
 
-- Patches aus dem Vorgängerprojekt C64-DE25: SID, CIA (`mos6526.v`), Teile des
-  1541-Laufwerks.
-- Quartus-Pro-Fallen (Tabelle in `sys/de25/README.md`): Netze, die in
-  `always` beschrieben werden, als `reg`/`logic`; Bezeichner vor ihrer
-  Deklaration (implizite Netze verlieren ihre Zuweisung, Warnung 16788);
-  Register mit Startwert im `always`-Block auf Modulebene (16754 — `static`
-  hilft nicht); VHDL-`case` mit `others`; `entity` vor direkter Instanz.
-- Speicher: Agilex 5 kann im Zwei-Port-Betrieb keine zwei Portbreiten und legt
-  das Lesen beim gleichzeitigen Schreiben nicht fest — Spurpuffer und
-  OPL3-Speicher neu (`rtl/`), sonst `ramstyle = "no_rw_check"`.
-  `ram_init_file = " "` (Leerzeichen, „keine Datei") bringt Quartus Pro zum
-  Absturz — die Laufwerks-ROMs lädt `$readmemh`.
-- `sdram.v`: Datenregister ohne Clock-Enable (I/O-Register), kein `altddio_out`.
+- Patches from the predecessor project C64-DE25: SID, CIA (`mos6526.v`), parts of
+  the 1541 drive.
+- Quartus Pro pitfalls (table in `sys/de25/README.md`): nets assigned in
+  `always` declared as `reg`/`logic`; identifiers before their
+  declaration (implicit nets lose their assignment, warning 16788);
+  registers with an initial value in the `always` block moved to module level (16754 — `static`
+  does not help); VHDL `case` with `others`; `entity` before direct instantiation.
+- Memory: in dual-port mode Agilex 5 cannot have two port widths and does not
+  define the read result during a simultaneous write — track buffer and
+  OPL3 memory rewritten (`rtl/`), otherwise `ramstyle = "no_rw_check"`.
+  `ram_init_file = " "` (a space, "no file") crashes
+  Quartus Pro — the drive ROMs are loaded by `$readmemh`.
+- `sdram.v`: data register without clock enable (I/O register), no `altddio_out`.
 
-## Test am Board
+## Testing on the board
 
 ```
-python cores/c64/test/make_test_media.py          # schreibt nach cores/c64/test/out/
+python cores/c64/test/make_test_media.py          # writes to cores/c64/test/out/
 scp cores/c64/test/out/* terasic@<board>:/media/fat/games/C64/
 echo "load_core /media/fat/games/C64/retro25test.mgl" > /dev/MiSTer_cmd
 ```
 
-Die MGL lädt den Core, legt die Testdiskette ein und startet das Programm (es
-startet nach dem Laden selbst). Im OSD liegen die Dateien unter „Mount #8"
-bzw. „Load PRG". (Unter Git-Bash beim zweiten Argument von make_test_media.py
-`MSYS_NO_PATHCONV=1` setzen, sonst wird der Pfad zu einem Windows-Pfad.)
-Stand 2026-10-18:
+The MGL loads the core, inserts the test disk and starts the program (it
+starts by itself after loading). In the OSD the files are under "Mount #8"
+and "Load PRG". (Under Git Bash, set `MSYS_NO_PATHCONV=1` for the second argument of
+make_test_media.py, otherwise the path is turned into a Windows path.)
+Status 2026-10-18:
 
-| Test | Ergebnis |
+| Test | Result |
 |---|---|
-| BASIC-Start, RAM-Test im SDRAM | ok |
-| PRG laden und starten | ok |
-| SID (Rauschgenerator, `$D41B`) | ok |
-| Tastatur, OSD | ok |
-| Diskette schreiben (Datei landet korrekt in der `.d64`) | ok |
-| Diskette lesen (auch alle Sektoren der Spuren 16–19 einzeln) | ok |
-| Spiel von USB-Stick (`/media/usb0/C64`), Ton über HDMI | ok |
-| Joystick: Gamepad an Port 1, Ziffernblock an Port 2 (`joytest.mgl`), Nebulus mit Gamepad spielbar | ok |
-| Modul (CRT Typ 0) 8 KB und 16 KB: Startcode läuft, ROM ab `$8100` mustergleich (`crttest8k/16k.mgl`) | ok |
-| Modul mit Bankumschaltung (Magic Desk, Typ 19, 8 × 8 KB über `$DE00`, `crttestmd.mgl`) | ok |
-| Kassette (TAP v1, selbst kodiert, 6 KB inkl. 4 KB Muster, `tapetest.mgl`): KERNAL-LOAD ST=0, keine Lesefehler, Daten ok | ok |
+| BASIC startup, RAM test in SDRAM | ok |
+| Load and run PRG | ok |
+| SID (noise generator, `$D41B`) | ok |
+| Keyboard, OSD | ok |
+| Disk write (file ends up correctly in the `.d64`) | ok |
+| Disk read (including every sector of tracks 16–19 individually) | ok |
+| Game from USB stick (`/media/usb0/C64`), sound over HDMI | ok |
+| Joystick: gamepad on port 1, numeric keypad on port 2 (`joytest.mgl`), Nebulus playable with gamepad | ok |
+| Cartridge (CRT type 0) 8 KB and 16 KB: startup code runs, ROM from `$8100` matches pattern (`crttest8k/16k.mgl`) | ok |
+| Cartridge with bank switching (Magic Desk, type 19, 8 × 8 KB via `$DE00`, `crttestmd.mgl`) | ok |
+| Tape (TAP v1, self-encoded, 6 KB incl. 4 KB pattern, `tapetest.mgl`): KERNAL LOAD ST=0, no read errors, data ok | ok |
 
-Das Laufwerk lädt Spuren in Bursts ab nicht ausgerichteten Adressen. Bursts
-über eine 4-KB-Grenze verstoßen gegen AXI und kamen über F2SDRAM verfälscht an
-(Lesefehler 22/23 genau an diesen Sektoren) — behoben in `sys` durch
-`avl_burst_4k` (siehe `sys/de25/README.md`).
-Die Testmodule bringen eigenen Startcode mit (Kennung `CBM80`) und prüfen
-jedes ROM-Byte gegen das Muster `Adresse low XOR Adresse high`; grüner Rand =
-OK, roter Rand = Fehler. Der 16-KB-Test prüft zugleich, dass EXROM/GAME aus
-dem CRT-Kopf übernommen werden (sonst läge bei `$A000` BASIC). CRT-Daten
-liegen im SDRAM ab `0x200000`, nicht im DDRAM.
-Der Magic-Desk-Test kopiert seine Prüfroutine nach `$C000`, weil er beim
-Umschalten sonst seinen eigenen Code ausblenden würde. Achtung: MiSTers
-`cartridge.v` legt die Blöcke in Ladereihenfolge ab und adressiert sie direkt
-über die Blocknummer (die Tabelle `lobanks` nutzt nur EasyFlash) — CHIP-Pakete
-müssen aufsteigend in der Datei stehen (bei echten Modulen üblich).
-Der Bandtest kodiert ein Programm selbst im CBM-Format (wie die
-KERNAL-Schreibroutine: Dipole kurz/mittel, Bytemarker lang+mittel, ungerade
-Parität, zwei Kopien mit Countdown `$89…`/`$09…`, XOR-Prüfsumme). Der Lader
-`tapeload.prg` lädt per KERNAL-LOAD mit Meldungen und zeigt ST, die
-Fehlerzähler beider Durchgänge, Endadresse und XOR-Summe. TAP-Daten liegen im
-SDRAM ab `0x400000`. Zwei Eigenheiten von MiSTers `tape_subsystem.sv`:
+The drive loads tracks in bursts starting at unaligned addresses. Bursts
+crossing a 4 KB boundary violate AXI and arrived corrupted over F2SDRAM
+(read errors 22/23 exactly at those sectors) — fixed in `sys` by
+`avl_burst_4k` (see `sys/de25/README.md`).
+The test cartridges bring their own startup code (signature `CBM80`) and check
+every ROM byte against the pattern `address low XOR address high`; green border =
+OK, red border = error. The 16 KB test also checks that EXROM/GAME are taken from
+the CRT header (otherwise BASIC would be at `$A000`). CRT data
+is stored in SDRAM from `0x200000`, not in DDRAM.
+The Magic Desk test copies its check routine to `$C000` because otherwise it would
+bank out its own code when switching. Note: MiSTer's
+`cartridge.v` stores the banks in load order and addresses them directly
+by bank number (the `lobanks` table is used only by EasyFlash) — CHIP packets
+must appear in ascending order in the file (usual for real cartridges).
+The tape test encodes a program itself in CBM format (like the
+KERNAL write routine: dipoles short/medium, byte marker long+medium, odd
+parity, two copies with countdown `$89…`/`$09…`, XOR checksum). The loader
+`tapeload.prg` loads via KERNAL LOAD with messages and shows ST, the
+error counters of both passes, end address and XOR sum. TAP data is stored in
+SDRAM from `0x400000`. Two quirks of MiSTer's `tape_subsystem.sv`:
 
-- Ein Reset (auch durch Laden einer PRG mit „Reset & Run") wirft das Band
-  aus → in der MGL zuerst die PRG, dann das Band; „Tape Auto Play" drückt
-  danach PLAY.
-- „Tape Auto Unload" wirft das Band schon beim letzten Zählschritt (~3 s vor
-  dem Ende) aus, auch während es läuft. Endet die Datei direkt nach dem
-  letzten Block, fehlt das Ende der zweiten Kopie (KERNAL: ST=$20,
-  Prüfsummenfehler) → die Testdatei hat 10 s Nachlauf.
+- A reset (including the one from loading a PRG with "Reset & Run") ejects the tape
+  → in the MGL, first the PRG, then the tape; "Tape Auto Play" then presses
+  PLAY.
+- "Tape Auto Unload" ejects the tape already at the last counter step (~3 s before
+  the end), even while it is playing. If the file ends right after the
+  last block, the end of the second copy is missing (KERNAL: ST=$20,
+  checksum error) → the test file has 10 s of trailing signal.
 
-### Laufwerksanzeige
+### Drive indicator
 
-Unten rechts erscheint bei Laufwerkszugriffen z. B. „#8 12“ (Laufwerk 8,
-Spur 12; gelb = aktiv). Das ist MiSTers OSD-Option **Drives OSD**
-(Activity Only = Vorgabe, If Mounted, Debug, Off) — kein Fehler.
+During drive accesses, e.g. "#8 12" appears in the bottom right (drive 8,
+track 12; yellow = active). This is MiSTer's OSD option **Drives OSD**
+(Activity Only = default, If Mounted, Debug, Off) — not an error.
 
-### Joysticks einrichten
+### Setting up joysticks
 
-Main kennt ohne Belegungsdatei weder das Gamepad noch den Ziffernblock als
-Joystick — wie bei MiSTer muss jedes Gerät einmal definiert werden:
+Without a mapping file, Main recognizes neither the gamepad nor the numeric keypad as a
+joystick — as with MiSTer, every device has to be defined once:
 
-1. **Gamepad im Menü-Core:** F12 → System → „Define joystick buttons“, zuerst
-   eine Richtung am Pad drücken. Erzeugt `config/inputs/input_<vid>_<pid>_v3.map`.
-   Ohne diese System-Belegung bekommt das Pad keine Spielernummer: Main
-   ordnet ein Gerät erst einem Spieler zu, wenn ein Knopf in dieser Belegung
-   vorkommt, und die Ersatzbelegung nimmt Xbox-Codes (`0x130` …), die z. B.
-   das Manta-Pad (`081f:e401`, Codes `0x120`–`0x129`) nie sendet.
-2. **Im C64-Core:** F12 → „Define C64 buttons“, für das Pad und für die
-   Tastatur (Ziffernblock 8/2/4/6, Feuer z. B. Ziffernblock 0; Rest mit Enter
-   beenden). Erzeugt `config/inputs/C64_input_<vid>_<pid>_v3.map`.
-3. **Ziffernblock als Joystick:** Num Lock schaltet reihum Maus → Joystick 1
-   → Joystick 2 → Normal (Meldung „Kbd mode: …“). Die Einstellung gilt bis
-   zum nächsten Core-Laden.
+1. **Gamepad in the menu core:** F12 → System → "Define joystick buttons", first
+   press a direction on the pad. Creates `config/inputs/input_<vid>_<pid>_v3.map`.
+   Without this system mapping the pad gets no player number: Main
+   only assigns a device to a player once a button appears in this
+   mapping, and the fallback mapping uses Xbox codes (`0x130` …), which e.g.
+   the Manta pad (`081f:e401`, codes `0x120`–`0x129`) never sends.
+2. **In the C64 core:** F12 → "Define C64 buttons", for the pad and for the
+   keyboard (numeric keypad 8/2/4/6, fire e.g. keypad 0; finish the rest with
+   Enter). Creates `config/inputs/C64_input_<vid>_<pid>_v3.map`.
+3. **Numeric keypad as joystick:** Num Lock cycles through mouse → joystick 1
+   → joystick 2 → normal (message "Kbd mode: …"). The setting applies until
+   the next core load.
 
-Das erste Gamepad wird Spieler 1 = Port 1; Ports tauschen im OSD mit
-„Swap Joysticks“. Im Testprogramm zeigt Port 1 auch Tasten der
-Tastaturmatrix-Spalte 7 (1, 2, CTRL, SPACE …) — das ist kein Joystick.
+The first gamepad becomes player 1 = port 1; swap ports in the OSD with
+"Swap Joysticks". In the test program, port 1 also shows keys of
+keyboard matrix column 7 (1, 2, CTRL, SPACE …) — that is not a joystick.
