@@ -471,3 +471,14 @@ excluded, see [`cores/z486/README.md`](cores/z486/README.md)).
 
 Thanks to Sorgelig and the MiSTer developers, nand2mario (z486, ao486 parts)
 and Terasic for the board material.
+
+## Screenshots
+
+Photos of the monitor connected to the DE25-Nano via HDMI.
+
+| | |
+|---|---|
+| <img src="docs/screenshots/c64-osd-board.jpg" width="480" alt="C64 core with the MiSTer OSD open; the DE25-Nano board, USB hub and two gamepads below the monitor"> | <img src="docs/screenshots/c64-loading.jpg" width="480" alt="C64: LOAD &quot;*&quot;,8,1 from a D64 image, drive activity shown bottom right"> |
+| C64 core with the OSD (F12); below the monitor the DE25-Nano, a USB hub and two gamepads | C64 loading from a `.d64` disk image (drive #8, track 17) |
+| <img src="docs/screenshots/z486-quake.jpg" width="480" alt="Quake shareware running on the z486 core"> | |
+| Quake (shareware) on the z486 core with x87 FPU | |
