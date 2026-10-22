@@ -1,0 +1,11 @@
+--- a/rtl/opl3/compressor.sv
++++ b/rtl/opl3/compressor.sv
+@@ -23,7 +23,7 @@ module compressor
+ 	input         clk,
+ 	input         ce,
+ 	input  [11:0] in1, in2,
+-	output [15:0] out1, out2
++	output reg [15:0] out1, out2   // Retro25: reg (Quartus Pro)
+ );
+ 
+ always @(posedge clk) if(ce) out1 <= {in1[11], in1[11] ? ~tbl[~in1[10:0]] : tbl[in1[10:0]]};

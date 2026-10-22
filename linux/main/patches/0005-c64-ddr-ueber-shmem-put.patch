@@ -1,0 +1,49 @@
+Retro25: C64-Diskettenabbild (G64) über shmem_put in den DDR statt direkt
+in die /dev/mem-Abbildung zu schreiben. Auf dem DE25 ist das Fenster nur als
+Device-Speicher abbildbar (CONFIG_STRICT_DEVMEM, reserved no-map); memset und
+memcpy lösten dort SIGBUS aus (Main stürzte beim Einlegen einer D64 ab).
+
+--- a/support/c64/c64.cpp
++++ b/support/c64/c64.cpp
+@@ -429,12 +429,15 @@
+ 		//
+ 		// phys_addr = 0x30000000 (ARM) <=> 29'h06000000 (FPGA)
+ 		uint32_t phys_addr = 0x30000000 + ((idx & 1) * 0x200000);
+-		void* ddram = shmem_map(phys_addr, f->size);
++		// Retro25 (DE25): erst in normalen Speicher laden, dann per shmem_put
++		// (gerätesicher) in den DDR — siehe c64_synthesize_g64_image.
++		void* ddram = malloc(f->size);
+ 		if (ddram)
+ 		{
+ 			printf("Direct loading G64 to DDR3: %s at 0x%X\n", path, phys_addr);
+ 			FileLoad(path, ddram, f->size);
+-			shmem_unmap(ddram, f->size);
++			if (!shmem_put(phys_addr, f->size, ddram)) printf("G64: shmem_put failed\n");
++			free(ddram);
+ 		}
+ 
+ 		return G64_SUPPORT_GCR | G64_SUPPORT_MFM | (gcr_info[idx].tracks > 84 ? G64_SUPPORT_DS : 0);
+@@ -567,7 +570,12 @@
+ 
+ static void c64_synthesize_g64_image(int idx, uint32_t phys_addr, uint32_t map_size)
+ {
+-	uint8_t* ddram = (uint8_t*)shmem_map(phys_addr, map_size);
++	// Retro25 (DE25): Das DDR-Fenster ist per /dev/mem nur als Device-Speicher
++	// abbildbar; memset/memcpy (DC ZVA, nicht ausgerichtete Zugriffe) lösen
++	// dort SIGBUS aus. Daher das Abbild in normalem Speicher aufbauen und am
++	// Ende mit shmem_put (ausgerichtete Zugriffe) übertragen — nur die belegten
++	// Bytes, der Rest des Fensters bleibt wie im Original unberührt.
++	uint8_t* ddram = (uint8_t*)calloc(1, map_size);
+ 	if (ddram)
+ 	{
+ 		printf("Synthesizing D64/D71 to DDR3 G64 at 0x%X\n", phys_addr);
+@@ -629,7 +637,8 @@
+ 			}
+ 		}
+ 
+-		shmem_unmap(ddram, map_size);
++		if (!shmem_put(phys_addr, offset, ddram)) printf("G64: shmem_put failed\n");
++		free(ddram);
+ 	}
+ }
+ 

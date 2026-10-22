@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# 99-retro25-usb.rules — USB-Datenträger mit Dateisystem automatisch einhängen
+# (wie MiSTer unter /media/usb0..5; siehe retro25-usb und retro25-usb@.service).
+ACTION=="add", SUBSYSTEM=="block", ENV{ID_BUS}=="usb", ENV{ID_FS_USAGE}=="filesystem", \
+	TAG+="systemd", ENV{SYSTEMD_WANTS}+="retro25-usb@%k.service"

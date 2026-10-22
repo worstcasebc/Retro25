@@ -1,0 +1,53 @@
+#!/bin/bash
+# SPDX-License-Identifier: GPL-3.0-or-later
+# retro25-usb — hängt USB-Datenträger wie bei MiSTer unter /media/usb0..5 ein.
+#
+# Aufruf (durch retro25-usb@<gerät>.service, ausgelöst von
+# 99-retro25-usb.rules):
+#     retro25-usb add sda1      einhängen unter dem ersten freien /media/usbN
+#     retro25-usb remove sda1   aushängen (systemd stoppt den Dienst beim Abziehen)
+#
+# Main sucht Spiele zuerst auf /media/usb0..5 (<Laufwerk>/C64 oder
+# <Laufwerk>/games/C64), dann unter /media/fat/games.
+# Lesen und schreiben (Disketten auf dem Stick lassen sich beschreiben);
+# Besitzer terasic. Bei FAT "flush": Schreibzugriffe gehen sofort auf den
+# Stick — Abziehen ist dann weniger riskant, aber nie während des Schreibens.
+# Die Einhängepunkte /media/usb0..5 legt install.sh an (Root ist schreibgeschützt).
+
+set -u
+dev="/dev/${2:?Gerät fehlt}"
+
+case "${1:-}" in
+add)
+	fs="$(blkid -o value -s TYPE "$dev" 2>/dev/null)"
+	case "$fs" in
+		vfat) opts="rw,noatime,flush,uid=1000,gid=1000,umask=022,utf8" ;;
+		ext4|ext3|ext2) opts="rw,noatime" ;;
+		*) echo "retro25-usb: $dev: Dateisystem '$fs' wird nicht unterstützt"; exit 0 ;;
+	esac
+	for n in 0 1 2 3 4 5; do
+		mp="/media/usb$n"
+		[ -d "$mp" ] || continue
+		mountpoint -q "$mp" && continue
+		if mount -t "$fs" -o "$opts" "$dev" "$mp"; then
+			echo "retro25-usb: $dev ($fs) -> $mp"
+			exit 0
+		fi
+		echo "retro25-usb: $dev ließ sich nicht einhängen"
+		exit 1
+	done
+	echo "retro25-usb: kein freier Einhängepunkt /media/usb0..5"
+	exit 1
+	;;
+remove)
+	# alle Einhängepunkte dieses Geräts lösen (lazy: auch wenn noch offen)
+	for mp in $(findmnt -rno TARGET -S "$dev" 2>/dev/null); do
+		umount -l "$mp" && echo "retro25-usb: $mp ausgehängt"
+	done
+	exit 0
+	;;
+*)
+	echo "Aufruf: retro25-usb add|remove <gerät>"
+	exit 2
+	;;
+esac

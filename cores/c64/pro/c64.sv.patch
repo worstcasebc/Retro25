@@ -1,0 +1,592 @@
+--- a/c64.sv
++++ b/c64.sv
+@@ -27,6 +27,22 @@ module emu
+ (
+ 	`include "sys/emu_ports.vh"
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire opl_en;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ezfl_save;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ext_iec_data;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ext_iec_clk;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire drive_iec_data;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire drive_iec_clk;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cass_rtc;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cart_ezfl;
+ 
+ wire [7:0]  drv_ddram_burstcnt;
+ wire [28:0] drv_ddram_addr;
+@@ -170,79 +186,97 @@ localparam CONF_STR = {
+ };
+ 
+ wire pll_locked;
++
++// Retro25: Benutzerport-Signale vor ihre erste Verwendung gezogen und als
++// logic deklariert — always_comb unten beschreibt sie (Quartus Pro).
++logic [7:0] pb_i;
++wire  [7:0] pb_o;
++logic       pa2_i;
++wire        pa2_o;
++wire        pc2_n_o;
++logic       flag2_n_i;
++logic       sp2_i, sp1_i;
++wire        sp2_o, sp1_o;
++logic       cnt2_i, cnt1_i;
++wire        cnt2_o, cnt1_o;
++logic [7:0] drive_par_i;
++logic       drive_stb_i;
++// emu-Ausgänge sind Netze (sys/emu_ports.vh): always_comb schreibt in
++// diese Variablen, zugewiesen wird unten.
++logic       uart_txd_c, uart_rts_c, uart_dtr_c, user_out0_c, user_out1_c;
+ wire clk_sys;
+ wire clk64;
+ wire clk48;
+ 
+-pll pll
++// Retro25: feste Agilex-IOPLL (cores/c64/ip/pll_c64) statt der fraktionalen
++// Cyclone-V-PLL. Nur PAL (Entscheidung P4): VCO 2837,5 MHz (50 * 227 / 4),
++// clk64 = 63,0556 MHz (C 45, 5,6 ppm neben MiSTers 63,0559), clk_sys = clk64/2,
++// clk48 = 48,09 MHz (OPL, +0,19 %). Umgestellt wird zur Laufzeit nichts — in
++// Retro25 stellt nur sys eine PLL um. Die OSD-Option NTSC schaltet deshalb
++// nur das VIC-Timing um, der Takt bleibt PAL.
++// clk64_sdram: clk64 mit +90 Grad für SDRAM_CLK (unten, über sdram_clk_ddio):
++// MiSTers invertierter Takt passt nicht zum 1,8-V-SDRAM des DE25 (Messungen
++// in cores/memtest/README.md).
++wire clk64_sdram;
++pll_c64 pll
+ (
+ 	.refclk(CLK_50M),
++	.rst(1'b0),
+ 	.outclk_0(clk48),
+ 	.outclk_1(clk64),
+ 	.outclk_2(clk_sys),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll),
++	.outclk_3(clk64_sdram),
+ 	.locked(pll_locked)
+ );
+ 
+-wire [63:0] reconfig_to_pll;
+-wire [63:0] reconfig_from_pll;
+-wire        cfg_waitrequest;
++wire        cfg_waitrequest = 1'b0;   // Retro25: keine PLL-Umstellung (siehe oben)
+ reg         cfg_write;
+ reg   [5:0] cfg_address;
+ reg  [31:0] cfg_data;
+ 
+-pll_cfg pll_cfg
+-(
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(0),
+-	.mgmt_waitrequest(cfg_waitrequest),
+-	.mgmt_read(0),
+-	.mgmt_readdata(),
+-	.mgmt_write(cfg_write),
+-	.mgmt_address(cfg_address),
+-	.mgmt_writedata(cfg_data),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll)
+-);
++// Retro25: kein pll_cfg — die Schreibfolge unten läuft ins Leere.
+ 
+ reg ntsc_r = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg ntscsw_ntscd = 0, ntscsw_ntscd2 = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [2:0] ntscsw_state = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [23:0] ntscsw_delay = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg ntscsw_osd_s1 = 0, ntscsw_osd_s2 = 0;
+ always @(posedge CLK_50M) begin
+-	reg ntscd = 0, ntscd2 = 0;
+-	reg [2:0] state = 0;
+-	reg [23:0] delay = 0;
+-	reg osd_s1 = 0, osd_s2 = 0;
+ 
+-	osd_s1 <= OSD_STATUS;
+-	osd_s2 <= osd_s1;
++	ntscsw_osd_s1 <= OSD_STATUS;
++	ntscsw_osd_s2 <= ntscsw_osd_s1;
+ 
+ 	// bringing ntsc_req into the CLK_50M domain
+-	ntscd  <= ntsc_req;
+-	ntscd2 <= ntscd;
++	ntscsw_ntscd  <= ntsc_req;
++	ntscsw_ntscd2 <= ntscsw_ntscd;
+ 
+ 	cfg_write <= 0;
+ 	close_osd <= 0;
+ 
+-	if(ntscd2 != ntsc_r) begin
+-	if(osd_s2 && delay < 24'd2500000) begin // 50ms pulse to close OSD
++	if(ntscsw_ntscd2 != ntsc_r) begin
++	if(ntscsw_osd_s2 && ntscsw_delay < 24'd2500000) begin // 50ms pulse to close OSD
+ 	// Close OSD so that PAL/NTSC switch induced reset does not
+ 	// blank screen, if PAUSE when in OSD is enabled
+ 			close_osd <= 1;
+-			delay <= delay + 1'd1;
+-			end else if (delay < 24'd7500000) begin // 150ms total delay
+-			delay <= delay + 1'd1;
++			ntscsw_delay <= ntscsw_delay + 1'd1;
++			end else if (ntscsw_delay < 24'd7500000) begin // 150ms total ntscsw_delay
++			ntscsw_delay <= ntscsw_delay + 1'd1;
+ 			end else begin
+-			state <= 1;
+-			ntsc_r <= ntscd2;
+-			delay <= 0;
++			ntscsw_state <= 1;
++			ntsc_r <= ntscsw_ntscd2;
++			ntscsw_delay <= 0;
+ 			end
+ 	end else begin
+-	delay <= 0;
++	ntscsw_delay <= 0;
+ 	end
+ 
+ 	if(!cfg_waitrequest) begin
+-		if(state) state<=state+1'd1;
+-		case(state)
++		if(ntscsw_state) ntscsw_state<=ntscsw_state+1'd1;
++		case(ntscsw_state)
+ 			1: begin
+ 					cfg_address <= 0;
+ 					cfg_data <= 0;
+@@ -274,10 +308,11 @@ reg reset_n;
+ reg reset_wait = 0;
+ reg ntsc_prev = 0;
+ 
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg rst_do_erase = 1;
+ always @(posedge clk_sys) begin
+ 	integer reset_counter;
+ 	reg old_download;
+-	reg do_erase = 1;
+ 
+ 	// Bringing ntsc_r back into clk_sys domain
+ 	ntsc_sys1 <= ntsc_r;
+@@ -289,27 +324,27 @@ always @(posedge clk_sys) begin
+ 	old_download <= ioctl_download;
+ 
+ 	if (RESET | status[0] | status[17] | buttons[1] | !pll_locked | (ntsc_prev != ntsc)) begin
+-		if(RESET) do_erase <= 1;
++		if(RESET) rst_do_erase <= 1;
+ 		reset_counter <= 100000;
+ 	end
+ 	else if(~old_download & ioctl_download & load_prg & ~status[50]) begin
+-		do_erase <= 1;
++		rst_do_erase <= 1;
+ 		reset_wait <= 1;
+ 		reset_counter <= 255;
+ 	end
+ 	else if (ioctl_download & (load_crt | load_rom)) begin
+-		do_erase <= 1;
++		rst_do_erase <= 1;
+ 		reset_counter <= 255;
+ 	end
+ 	else if ((ioctl_download || inj_meminit) & ~reset_wait);
+ 	else if (erasing) force_erase <= 0;
+ 	else if (!reset_counter) begin
+-		do_erase <= 0;
++		rst_do_erase <= 0;
+ 		if(reset_wait && c64_addr == 'hFFCF) reset_wait <= 0;
+ 	end
+ 	else begin
+ 		reset_counter <= reset_counter - 1;
+-		if (reset_counter == 100 && (~status[24] | do_erase)) force_erase <= 1;
++		if (reset_counter == 100 && (~status[24] | rst_do_erase)) force_erase <= 1;
+ 	end
+ end
+ 
+@@ -323,7 +358,7 @@ wire        ioctl_wr;
+ wire        ioctl_rd;
+ wire [24:0] ioctl_addr;
+ wire  [7:0] ioctl_data;
+-wire  [7:0] ioctl_din;
++reg   [7:0] ioctl_din;   // Retro25: reg (in always beschrieben, Quartus Pro)
+ wire  [7:0] ioctl_index;
+ wire        ioctl_download;
+ wire        ioctl_upload;
+@@ -478,23 +513,25 @@ cartridge cartridge
+ 	.nmi_ack(nmi_ack)
+ );
+ 
+-wire ezfl_save = status[61] | (status[62] & OSD_STATUS & ezfl_mod);
++assign ezfl_save = status[61] | (status[62] & OSD_STATUS & ezfl_mod);
+ reg  ezfl_mod = 0;
+ reg  ezfl_idx = 0;
+ reg  ezfl_save_en = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg sav_save_old = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg sav_ext_old = 0;
+ always @(posedge clk_sys) begin
+-	reg save_old = 0;
+-	reg ext_old = 0;
+ 
+ 	if(cart_mem_req) ezfl_mod <= 1;
+ 	if(ioctl_download && load_crt) ezfl_mod <= 0;
+ 	if(ioctl_upload) {ezfl_mod, ezfl_save_en} <= 0;
+ 	
+-	save_old <= ezfl_save;
+-	if(~save_old & ezfl_save) ezfl_idx <= ~status[61];
++	sav_save_old <= ezfl_save;
++	if(~sav_save_old & ezfl_save) ezfl_idx <= ~status[61];
+ 	
+-	ext_old <= ext_crt;
+-	if(~ext_old & ext_crt) ezfl_save_en <= 1;
++	sav_ext_old <= ext_crt;
++	if(~sav_ext_old & ext_crt) ezfl_save_en <= 1;
+ end
+ 
+ wire        dma_req;
+@@ -614,15 +651,16 @@ localparam TAP_ADDR = 25'h0400000;
+ localparam REU_ADDR = 25'h1000000;
+ localparam CRT_ADDR = 25'h0200000;
+ 
+-wire cart_ezfl = cart_attached && (cart_id == 32 || cart_id ==33);
++assign cart_ezfl = cart_attached && (cart_id == 32 || cart_id ==33);
+ reg ext_crt = 0;
+ 
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg        inj_old_st0 = 0;
+ always @(posedge clk_sys) begin
+ 	reg  [4:0] erase_to;
+ 	reg        old_download;
+ 	reg        erase_cram;
+ 	reg        io_cycleD;
+-	reg        old_st0 = 0;
+ 	reg        old_meminit;
+ 	reg [15:0] inj_end;
+ 	reg  [7:0] inj_meminit_data;
+@@ -771,8 +809,8 @@ always @(posedge clk_sys) begin
+ 	old_meminit <= inj_meminit;
+ 	start_strk  <= old_meminit & ~inj_meminit;
+ 	
+-	old_st0 <= status[17];
+-	if (~old_st0 & status[17]) cart_attached <= 0;
++	inj_old_st0 <= status[17];
++	if (~inj_old_st0 & status[17]) cart_attached <= 0;
+ 	
+ 	if (!erasing && force_erase) begin
+ 		erasing <= 1;
+@@ -795,10 +833,13 @@ end
+ reg        start_strk = 0;
+ reg        reset_keys = 0;
+ reg [10:0] key = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg  [3:0] kbd_act = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg        kbd_joy_finish = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [17:0] kbd_joy_last = 0;
+ always @(posedge clk_sys) begin
+-	reg  [3:0] act = 0;
+-	reg        joy_finish = 0;
+-	reg [17:0] joy_last = 0;
+ 	reg [17:0] joy_key;
+ 	int        to;
+ 
+@@ -813,24 +854,24 @@ always @(posedge clk_sys) begin
+ 				(joy[0] ? 18'h174 : joy[1] ? 18'h16B : joy[2] ? 18'h172 : joy[3] ? 18'h175  : 
+ 				 joy[4] ? 18'h05A : joy[5] ? 18'h029 : joy[6] ? 18'h076 : joy[7] ? 18'h2276 : 18'h0);
+ 	
+-	if(~reset_n) {joy_finish, act} <= 0;
++	if(~reset_n) {kbd_joy_finish, kbd_act} <= 0;
+ 
+ 	if(joy[9:8]) begin
+-		joy_finish <= 1;
+-		if(!joy[7:0] && joy_last) begin
+-			joy_last <= 0;
++		kbd_joy_finish <= 1;
++		if(!joy[7:0] && kbd_joy_last) begin
++			kbd_joy_last <= 0;
+ 			reset_keys <= 1;
+ 		end
+-		else if(!joy_last[8:0] && joy_key) begin
++		else if(!kbd_joy_last[8:0] && joy_key) begin
+ 			to <= to + 1'd1;
+-			if(joy_last[17:9] != joy_key[17:9]) begin
+-				joy_last[17:9] <= joy_key[17:9];
++			if(kbd_joy_last[17:9] != joy_key[17:9]) begin
++				kbd_joy_last[17:9] <= joy_key[17:9];
+ 				key <= joy_key[17:9];
+ 				key[9] <= 1;
+ 				key[10] <= ~key[10];
+ 			end
+-			else if(to > 640000 && joy_last[8:0] != joy_key[8:0]) begin
+-				joy_last[8:0] <= joy_key[8:0];
++			else if(to > 640000 && kbd_joy_last[8:0] != joy_key[8:0]) begin
++				kbd_joy_last[8:0] <= joy_key[8:0];
+ 				key <= joy_key[8:0];
+ 				key[9] <= 1;
+ 				key[10] <= ~key[10];
+@@ -840,29 +881,29 @@ always @(posedge clk_sys) begin
+ 			to <= 0;
+ 		end
+ 	end
+-	else if(joy_finish) begin
+-		joy_last   <= 0;
++	else if(kbd_joy_finish) begin
++		kbd_joy_last   <= 0;
+ 		key        <= 0;
+ 		key[10]    <= ps2_key[10];
+-		joy_finish <= 0;
++		kbd_joy_finish <= 0;
+ 		reset_keys <= 1;
+ 	end
+-	else if(act) begin
++	else if(kbd_act) begin
+ 		to <= to + 1;
+ 		if(to > 1280000) begin
+ 			to <= 0;
+-			act <= act + 1'd1;
+-			case(act)
++			kbd_act <= kbd_act + 1'd1;
++			case(kbd_act)
+ 				// PS/2 scan codes
+ 				 1: key <= 'h2d;  // R
+ 				 3: key <= 'h3c;  // U
+ 				 5: key <= 'h31;  // N
+ 				 7: key <= 'h5a;  // <RETURN>
+ 				 9: key <= 'h00;
+-				10: act <= 0;
++				10: kbd_act <= 0;
+ 			endcase
+-			key[9]  <= act[0];
+-			key[10] <= (act >= 9) ? ps2_key[10] : ~key[10];
++			key[9]  <= kbd_act[0];
++			key[10] <= (kbd_act >= 9) ? ps2_key[10] : ~key[10];
+ 		end
+ 	end
+ 	else begin
+@@ -870,13 +911,23 @@ always @(posedge clk_sys) begin
+ 		key <= {ps2_key[10], ps2_key[9] & disk_ready, ps2_key[8:0]};
+ 	end
+ 	if(start_strk & ~status[50]) begin
+-		act <= 1;
++		kbd_act <= 1;
+ 		key <= 0;
+ 	end
+ end
+ 
+ assign SDRAM_CKE  = 1;
+ 
++// Retro25: SDRAM-Takt = clk64 + 90 Grad, über das DDIO-Register im I/O-Block
++// unverändert zum Pin (din 2'b10), so wie Adressen und Daten durch dessen
++// Register laufen (FAST_*_REGISTER in sys_de25.tcl).
++sdram_clk_ddio sdram_clk_out
++(
++	.ck(clk64_sdram),
++	.din(2'b10),
++	.pad_out(SDRAM_CLK)
++);
++
+ wire [7:0] sdram_data;
+ sdram sdram
+ (
+@@ -887,7 +938,7 @@ sdram sdram
+ 	.sd_we(SDRAM_nWE),
+ 	.sd_ras(SDRAM_nRAS),
+ 	.sd_cas(SDRAM_nCAS),
+-	.sd_clk(SDRAM_CLK),
++	.sd_clk(),            // Retro25: SDRAM_CLK kommt von sdram_clk_ddio (unten)
+ 	.sd_dqm({SDRAM_DQMH,SDRAM_DQML}),
+ 
+ 	.clk(clk64),
+@@ -1060,11 +1111,10 @@ wire       c64_iec_clk;
+ wire       c64_iec_data;
+ wire       c64_iec_atn;
+ 
+-wire       drive_iec_clk  = drive_iec_clk_o  & ext_iec_clk;
+-wire       drive_iec_data = drive_iec_data_o & ext_iec_data;
++assign drive_iec_clk = drive_iec_clk_o  & ext_iec_clk;
++assign drive_iec_data = drive_iec_data_o & ext_iec_data;
+ 
+-wire [7:0] drive_par_i;
+-wire       drive_stb_i;
++// Retro25: drive_par_i/drive_stb_i oben deklariert
+ wire [7:0] drive_par_o;
+ wire       drive_stb_o;
+ wire       drive_iec_clk_o;
+@@ -1151,16 +1201,17 @@ iec_drive iec_drive
+ 	);
+ 
+ reg drive_ce;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++int drvce_sum = 0;
+ always @(posedge clk_sys) begin
+-	int sum = 0;
+ 	int msum;
+ 	
+ 	msum <= ntsc ? 32727264 : 31527954;
+ 
+ 	drive_ce <= 0;
+-	sum = sum + 16000000;
+-	if(sum >= msum) begin
+-		sum = sum - msum;
++	drvce_sum = drvce_sum + 16000000;
++	if(drvce_sum >= msum) begin
++		drvce_sum = drvce_sum - msum;
+ 		drive_ce <= 1;
+ 	end
+ end
+@@ -1168,9 +1219,10 @@ end
+ wire disk_parport = ~status[44];
+ 
+ reg disk_access;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++integer dacc_to = 0;
+ always @(posedge clk_sys) begin
+ 	reg c64_iec_clk_old, drive_iec_clk_old, drive_stb_i_old, drive_stb_o_old;
+-	integer to = 0;
+ 
+ 	c64_iec_clk_old <= c64_iec_clk;
+ 	drive_iec_clk_old <= drive_iec_clk;
+@@ -1181,15 +1233,15 @@ always @(posedge clk_sys) begin
+ 		(disk_parport && ((drive_stb_i_old != drive_stb_i) || (drive_stb_o_old != drive_stb_o))))
+ 	begin
+ 		disk_access <= 1;
+-		to <= 16000000; // 0.5s
++		dacc_to <= 16000000; // 0.5s
+ 	end
+-	else if(to) to <= to - 1;
++	else if(dacc_to) dacc_to <= dacc_to - 1;
+ 	else disk_access <= 0;
+ end
+ 
+ wire ext_iec_en   = status[25];
+-wire ext_iec_clk  = |snac_mode ? 1'b1 : (USER_IN[2] | ~ext_iec_en);
+-wire ext_iec_data = |snac_mode ? 1'b1 : (USER_IN[4] | ~ext_iec_en);
++assign ext_iec_clk = |snac_mode ? 1'b1 : (USER_IN[2] | ~ext_iec_en);
++assign ext_iec_data = |snac_mode ? 1'b1 : (USER_IN[4] | ~ext_iec_en);
+ 
+ assign USER_OUT[2] = |snac_mode ? 1'b1 : ((c64_iec_clk & drive_iec_clk_o)  | ~ext_iec_en);
+ assign USER_OUT[3] = |snac_mode ? 1'b1 : ((reset_n & ~status[6]) | ~ext_iec_en);
+@@ -1485,7 +1537,7 @@ video_mixer #(.GAMMA(1)) video_mixer
+ 	.VGA_DE(vga_de)
+ );
+ 
+-wire        opl_en = status[12];
++assign opl_en = status[12];
+ wire [15:0] opl_out;
+ wire  [7:0] opl_dout;
+ opl3 #(.OPLCLK(47291931)) opl_inst
+@@ -1655,15 +1707,16 @@ tape_subsystem tape
+ );
+ 
+ reg use_tape;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++integer uport_to = 0;
+ always @(posedge clk_sys) begin
+-	integer to = 0;
+ 
+-	if(to) to <= to - 1;
++	if(uport_to) uport_to <= uport_to - 1;
+ 	else use_tape <= status[36];
+ 
+ 	if(tap_loaded | ~cass_sense) begin
+ 		use_tape <= 1;
+-		to <= 128000000; //4s
++		uport_to <= 128000000; //4s
+ 	end
+ end
+ 
+@@ -1682,12 +1735,12 @@ ltc2308_tape #(.CLK_RATE(32000000)) ltc2308_tape
+ 
+ //------------- USER PORT -----------------
+ 
+-wire [7:0] pb_i, pb_o;
+-wire       pa2_i, pa2_o;
+-wire       pc2_n_o;
+-wire       flag2_n_i;
+-wire       sp2_i, sp2_o, sp1_o, sp1_i;
+-wire       cnt2_i, cnt2_o, cnt1_o, cnt1_i;
++// Retro25: Deklarationen oben (vor der ersten Verwendung)
++assign UART_TXD    = uart_txd_c;
++assign UART_RTS    = uart_rts_c;
++assign UART_DTR    = uart_dtr_c;
++assign USER_OUT[0] = user_out0_c;
++assign USER_OUT[1] = user_out1_c;
+ 
+ always_comb begin
+ 	pa2_i       = 1;
+@@ -1697,13 +1750,13 @@ always_comb begin
+ 	cnt1_i      = 1;
+ 	cnt2_i      = 1;
+ 	pb_i        = 8'hFF;
+-	UART_TXD    = 1;
+-	UART_RTS    = 0;
+-	UART_DTR    = 0;
++	uart_txd_c  = 1;
++	uart_rts_c  = 0;
++	uart_dtr_c  = 0;
+ 	drive_par_i = 8'hFF;
+ 	drive_stb_i = 1;
+-	USER_OUT[0] = 1;
+-	USER_OUT[1] = 1;
++	user_out0_c = 1;
++	user_out1_c = 1;
+ 
+ 	if(disk_parport & disk_access) begin
+ 		drive_par_i = pb_o;
+@@ -1712,24 +1765,24 @@ always_comb begin
+ 		flag2_n_i   = drive_stb_o;
+ 	end
+ 	else if(status[43]) begin
+-		UART_TXD  = pa2_o & uart_int;
++		uart_txd_c = pa2_o & uart_int;
+ 		flag2_n_i = uart_rxd;
+ 		sp2_i     = uart_rxd;
+ 		pb_i[0]   = uart_rxd;
+-		UART_RTS  = ~pb_o[1] & uart_int;
+-		UART_DTR  = ~pb_o[2] & uart_int;
++		uart_rts_c = ~pb_o[1] & uart_int;
++		uart_dtr_c = ~pb_o[2] & uart_int;
+ 		pb_i[4]   = ~uart_dsr;
+ 		pb_i[6]   = ~uart_cts;
+ 		pb_i[7]   = ~uart_dsr;
+ 
+-		USER_OUT[1] = pa2_o | uart_int;
++		user_out1_c = pa2_o | uart_int;
+ 
+ 		if(~status[51]) begin
+-			UART_TXD = pa2_o & sp1_o & uart_int;
++			uart_txd_c = pa2_o & sp1_o & uart_int;
+ 			pb_i[7]  = cnt2_o;
+ 			cnt2_i   = pb_o[7];
+ 
+-			USER_OUT[1] = (pa2_o & sp1_o) | uart_int;
++			user_out1_c = (pa2_o & sp1_o) | uart_int;
+ 		end
+ 	end
+ 	else begin
+@@ -1761,15 +1814,16 @@ rtcF83 #(16000000, 0) rtcF83
+ );
+ 
+ reg use_rtc = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [20:0] led_to = 0;
+ always @(posedge clk_sys) begin
+-	reg [20:0] to = 0;
+ 
+-	if(to) to <= to - 1'd1;
+-	use_rtc <= |to;
++	if(led_to) led_to <= led_to - 1'd1;
++	use_rtc <= |led_to;
+ 
+-	if(cass_write) to <= '1;
++	if(cass_write) led_to <= '1;
+ end
+ 
+-wire cass_rtc = ~(rtcF83_sda & use_rtc & cass_motor);
++assign cass_rtc = ~(rtcF83_sda & use_rtc & cass_motor);
+ 
+ endmodule

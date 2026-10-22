@@ -1,0 +1,59 @@
+--- a/menu.sv
++++ b/menu.sv
+@@ -77,7 +77,9 @@
+ 
+ ////////////////////   CLOCKS   ///////////////////
+ wire locked, clk_sys;
+-pll pll
++// Retro25: Agilex-IOPLL pll_menu (cores/menu/ip) statt der Cyclone-V-PLL;
++// der Name "pll" ist im DE25-Top schon vergeben (HPS-PLL).
++pll_menu pll
+ (
+ 	.refclk(CLK_50M),
+ 	.rst(0),
+@@ -116,7 +118,7 @@
+ reg  [15:0] cfg = 0;
+ 
+ always @(posedge clk_sys) begin
+-	reg [4:0] state = 0;
++	reg [4:0] state;   // Retro25: ohne Startwert (Quartus Pro, Warnung 16754)
+ 
+ 	sdram_rd <= 0;
+ 	sdram_we <= 0;
+@@ -217,14 +219,14 @@
+ 
+ reg        we;
+ reg [28:0] addr = 0;
++reg  [4:0] clr_cnt = 9;   // Retro25: aus dem always-Block geholt (Quartus Pro, 16754)
+ 
+ always @(posedge clk_sys) begin
+-	reg [4:0] cnt = 9;
+ 
+ 	if(~RESET & cfg[15] & ~ddr_pause) begin
+-		cnt <= cnt + 1'b1;
+-		we <= &cnt;
+-		if(cnt == 8) addr <= addr + 1'd1;
++		clr_cnt <= clr_cnt + 1'b1;
++		we <= &clr_cnt;
++		if(clr_cnt == 8) addr <= addr + 1'd1;
+ 	end
+ end
+ 
+@@ -306,12 +308,13 @@
+ assign midi_rx  = crossed ? USER_IN[6] : USER_IN[4];
+ 
+ always @(posedge CLK_AUDIO) begin : i2s_proc
+-	reg [15:0] i2s_buf = 0;
+-	reg  [4:0] i2s_cnt = 0;
++	// Retro25: ohne Startwerte (Quartus Pro, Warnung 16754); RESET löscht
++	reg [15:0] i2s_buf;
++	reg  [4:0] i2s_cnt;
+ 	reg        clk_sr;
+-	reg        i2s_clk = 0;
++	reg        i2s_clk;
+ 	reg        old_clk, old_ws;
+-	reg        i2s_next = 0;
++	reg        i2s_next;
+ 
+ 	// Debounce clock
+ 	clk_sr <= i2s_bclk;

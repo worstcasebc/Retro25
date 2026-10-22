@@ -1,0 +1,42 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# retro25-main.service — startet Main_MiSTer beim Booten (wie beim MiSTer).
+#
+# Installiert nach /etc/systemd/system/ (install.sh). Bedienung:
+#   sudo systemctl status retro25-main      läuft Main?
+#   sudo journalctl -u retro25-main -f      Ausgabe von Main mitlesen
+#   sudo systemctl stop retro25-main        vor einem Start von Hand
+#   sudo systemctl disable retro25-main     Autostart abschalten
+#
+# Start-Core: Den Kern lädt U-Boot (retro25/core.rbf auf der Boot-
+# Partition). Main erfährt seinen Pfad über RETRO25_CORE in
+# /etc/default/retro25 — beide müssen zusammenpassen.
+# Beim Core-Wechsel ersetzt Main sich selbst per execl (de25/fpga_io.cpp,
+# app_restart), die PID bleibt — systemd sieht das nicht als Ende.
+
+[Unit]
+Description=Retro25 Main_MiSTer (Menü, Eingabe, Core-Wechsel)
+After=systemd-modules-load.service local-fs.target
+# Nicht aufgeben, wenn Main mehrmals schnell hintereinander endet (z. B.
+# "FPGA is uninitialized", solange kein Retro25-Core geladen ist).
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+EnvironmentFile=-/etc/default/retro25
+WorkingDirectory=/media/fat
+# stdbuf: Zeilenpuffer, sonst erscheint Mains Ausgabe nur blockweise im
+# Journal (stdout ist dort eine Pipe, kein Terminal).
+ExecStart=/usr/bin/stdbuf -oL /media/fat/MiSTer $RETRO25_CORE
+# Im Journal als "MiSTer" statt "stdbuf" beschriften
+SyslogIdentifier=MiSTer
+# Main legt /dev/MiSTer_cmd bei jedem Start (auch nach jedem Core-Wechsel)
+# mit mkfifo(0666) an; ohne UMask=0000 würde daraus 0644. So darf auch der
+# Nutzer terasic Befehle schicken (echo "load_core …" bzw. "screenshot"),
+# z. B. für Tests aus der Ferne. Nebenwirkung: Mains Dateien (Configs,
+# Screenshots) sind für alle beschreibbar — auf dem Board unkritisch.
+UMask=0000
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

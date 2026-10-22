@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# retro25-usb@.service — hängt einen USB-Datenträger unter /media/usbN ein.
+# Gestartet von 99-retro25-usb.rules (Instanz = Gerät, z. B. sda1). BindsTo
+# an das Gerät: Wird der Stick abgezogen, stoppt systemd den Dienst und
+# hängt ihn aus. Als Dienst statt direkt in udev, weil udev keine
+# lang laufenden Aufrufe erlaubt und mount dort im eigenen Namensraum landet.
+
+[Unit]
+Description=Retro25: USB-Datenträger %i einhängen
+BindsTo=dev-%i.device
+After=dev-%i.device
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/sbin/retro25-usb add %i
+ExecStop=/usr/local/sbin/retro25-usb remove %i

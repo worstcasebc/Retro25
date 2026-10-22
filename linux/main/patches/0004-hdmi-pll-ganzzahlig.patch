@@ -1,0 +1,114 @@
+Retro25: HDMI-PLL-Rechnung ganzzahlig (Agilex-5-IOPLL, keine Fraktional-N).
+setPLL sucht N (1..5), M, C mit kleinster Abweichung statt M/K bei N = 1;
+N geht als eigenes Register hinaus. pll_request_on_integer liefert immer
+false: die Ausweichlogik für den fraktionalen Modus (vsync_adjust=2) entfällt.
+
+--- a/video.cpp
++++ b/video.cpp
+@@ -279,6 +279,11 @@
+ 
+ static bool pll_request_on_integer(double Fout)
+ {
++	// Retro25 (DE25): die Agilex-5-IOPLL ist immer ganzzahlig, es gibt
++	// keinen fraktionalen Modus, dem man ausweichen könnte.
++	(void)Fout;
++	return false;
++
+ 	uint32_t c, m;
+ 	double ko;
+ 
+@@ -294,57 +299,64 @@
+ 	return fabs(mk - round(mk)) < (mk * PLL_INT_GUARD_PPM / 1000000.0);
+ }
+ 
++// Retro25 (DE25): Die HDMI-PLL des Agilex 5 (HVIO-IOPLL) kann nur ganzzahlig
++// teilen: Fpix = 50 MHz * M / (N * C). Grenzen laut Agilex-5-Datenblatt und
++// Clocking-Handbuch: PFD 10..325 MHz (N 1..5 bei 50 MHz), VCO 600..3200 MHz,
++// M bis 320 (Ladungspumpen-Tabelle), C bis 510 (je 8 bit high/low).
++// Gesucht wird die kleinste Abweichung; bei Gleichstand gewinnt das kleinere
++// N (höhere PFD-Frequenz), danach der höhere VCO (beides: weniger Jitter). Die Register gehen weiter im
++// Cyclone-V-Format hinaus, das FPGA (pll_cfg_de25) übersetzt sie.
+ static void setPLL(double Fout, vmode_custom_t *v)
+ {
+ 	PROFILE_FUNCTION();
+ 
+-	double Fpix;
+-	double fvco, ko;
+-	uint32_t m, c;
+-
+ 	printf("Calculate PLL for %.4f MHz:\n", Fout);
+ 
+-	if (!findPLLpar(Fout, &c, &m, &ko))
++	uint32_t best_n = 1, best_m = 0, best_c = 0;
++	double best_err = 1e9;
++	for (uint32_t n = 1; n <= 5; n++)
+ 	{
+-		c = 1;
+-		while ((Fout*c) < 400) c++;
+-
+-		fvco = Fout*c;
+-		m = (uint32_t)(fvco / 50);
+-		ko = ((fvco / 50) - m);
+-
+-		//Make sure K is in allowed range.
+-		if (ko <= 0.05f)
++		for (uint32_t m = 1; m <= 320; m++)
+ 		{
+-			ko = 0;
+-		}
+-		else if (ko >= 0.95f)
+-		{
+-			m++;
+-			ko = 0;
++			double fvco = 50.0 * m / n;
++			if (fvco < 600.0 || fvco > 3200.0) continue;
++			uint32_t c = (uint32_t)(fvco / Fout + 0.5);
++			if (c < 2 || c > 510) continue;
++			double err = fabs(fvco / c - Fout);
++			// gleiche Abweichung: höherer VCO (weniger Jitter), N bleibt klein
++			bool better = (err < best_err - 1e-9) ||
++				(err < best_err + 1e-9 && n == best_n && m > best_m);
++			if (better)
++			{
++				best_err = err;
++				best_n = n; best_m = m; best_c = c;
++			}
+ 		}
+ 	}
+ 
+-	uint32_t k = ko ? (uint32_t)(ko * 4294967296) : 1;
+-
+-	fvco = ko + m;
+-	fvco *= 50.f;
+-	Fpix = fvco / c;
++	if (!best_m)
++	{
++		// außerhalb des Bereichs: 74,25 MHz wie die Startwerte der PLL
++		best_n = 5; best_m = 297; best_c = 40;
++	}
+ 
+-	printf("Fvco=%f, C=%d, M=%d, K=%f(%u) -> Fpix=%f\n", fvco, c, m, ko, k, Fpix);
++	double fvco = 50.0 * best_m / best_n;
++	double Fpix = fvco / best_c;
++	printf("Fvco=%f, N=%d, M=%d, C=%d -> Fpix=%f (%+.0f ppm)\n", fvco, best_n, best_m, best_c,
++		Fpix, (Fpix - Fout) / Fout * 1000000.0);
+ 
+ 	v->item[9]  = 4;
+-	v->item[10] = getPLLdiv(m);
++	v->item[10] = getPLLdiv(best_m);
+ 	v->item[11] = 3;
+-	v->item[12] = 0x10000;
++	v->item[12] = (best_n == 1) ? 0x10000 : getPLLdiv(best_n);
+ 	v->item[13] = 5;
+-	v->item[14] = getPLLdiv(c);
++	v->item[14] = getPLLdiv(best_c);
+ 	v->item[15] = 9;
+ 	v->item[16] = 2;
+ 	v->item[17] = 8;
+ 	v->item[18] = 7;
+ 	v->item[19] = 7;
+-	v->item[20] = k;
++	v->item[20] = 1;   // K: ganzzahlig
+ 
+ 	v->Fpix = Fpix;
+ }

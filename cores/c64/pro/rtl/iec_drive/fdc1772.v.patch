@@ -1,0 +1,52 @@
+--- a/rtl/iec_drive/fdc1772.v
++++ b/rtl/iec_drive/fdc1772.v
+@@ -59,6 +59,10 @@ module fdc1772 (
+ 	output     [7:0] track_out,   // track for OSD
+ 	output           we_out       // we for OSD
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire fd_motor;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire fd_any;
+ 
+ assign track_out = track;
+ assign we_out = ((cmd[7:5] == 3'b101 || cmd[7:4] == 4'b1111) && busy) || (sd_state == SD_WRITE);
+@@ -259,6 +263,8 @@ wire       fdn_sector_hdr[FD_NUM];
+ wire       fdn_sector_data[FD_NUM];
+ wire       fdn_dclk[FD_NUM];
+ 
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++reg step_in, step_out;
+ generate
+ 	genvar i;
+ 	
+@@ -307,7 +313,7 @@ always begin
+ 	for(i = FD_NUM-1; i >= 0; i = i - 1) if(!floppy_drive[i]) fdn = i[WIDX:0];
+ end
+ 
+-wire       fd_any         = ~&floppy_drive;
++assign fd_any = ~&floppy_drive;
+ 
+ wire       fd_index       = fd_any ? fdn_index[fdn]       : 1'b0;
+ wire       fd_ready       = fd_any ? fdn_ready[fdn]       : 1'b0;
+@@ -339,10 +345,9 @@ localparam MOTOR_IDLE_COUNTER = 4'd10;
+ reg [3:0] motor_timeout_index /* verilator public */;
+ reg indexD;
+ reg busy /* verilator public */;
+-reg step_in, step_out;
+ reg [3:0] motor_spin_up_sequence /* verilator public */;
+ 
+-wire fd_motor = EXT_MOTOR ? floppy_motor : motor_on;
++assign fd_motor = EXT_MOTOR ? floppy_motor : motor_on;
+ 
+ // consider spin up done either if the motor is not supposed to spin at all or
+ // if it's supposed to run and has left the spin up sequence
+@@ -1060,7 +1065,7 @@ module fdc1772_dpram #(parameter DATAWIDTH=8, ADDRWIDTH=9)
+ 	output reg [DATAWIDTH-1:0] q_b
+ );
+ 
+-reg [DATAWIDTH-1:0] ram[0:(1<<ADDRWIDTH)-1];
++(* ramstyle = "no_rw_check" *) reg [DATAWIDTH-1:0] ram[0:(1<<ADDRWIDTH)-1];   // Retro25: Agilex 5, Info 276009
+ 
+ always @(posedge clock) begin
+ 	if(wren_a) begin

@@ -1,0 +1,23 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+// Overlay, mit dem Main_MiSTer (de25/fpga_io.cpp) einen Core lädt.
+//
+// Main schreibt den Core nach /run/retro25-fw/retro25/main.core.rbf (der Kernel
+// sucht Firmware zuerst in /run/retro25-fw, Parameter von firmware_class), legt
+// /sys/kernel/config/device-tree/overlays/retro25 an und schreibt dort
+// "retro25/main.dtbo" nach "path". Der Kernel wendet das Overlay auf
+// /fpga-region an; der FPGA-Manager lädt dabei die Datei aus firmware-name.
+// Wie in P0 (p0/linux/p0_switch.py), nur mit festem Dateinamen.
+// install.sh übersetzt diese Datei mit dtc nach /lib/firmware/retro25/main.dtbo.
+
+/dts-v1/;
+/plugin/;
+
+/ {
+	fragment@0 {
+		target-path = "/fpga-region";
+		__overlay__ {
+			firmware-name = "retro25/main.core.rbf";
+			config-complete-timeout-us = <30000000>;
+		};
+	};
+};

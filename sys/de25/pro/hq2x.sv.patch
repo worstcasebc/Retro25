@@ -1,0 +1,16 @@
+--- vendor/mister/hq2x.sv
++++ de25/pro/hq2x.sv
+@@ -1,3 +1,4 @@
++// DE25 (Quartus Pro): Blend.Result als output reg (siehe unten).
+ //
+ //
+ // Copyright (c) 2012-2013 Ludvig Strigeus
+@@ -306,7 +307,7 @@ module Blend
+ 	input  [23:0] D,
+ 	input  [23:0] F,
+ 	input  [23:0] H,
+-	output [23:0] Result
++	output reg [23:0] Result   // DE25 (Quartus Pro): reg, in always beschrieben
+ );
+ 
+ 	localparam BLEND1 = 7'b110_10_00; // (A * 12 + B * 4        ) >> 4

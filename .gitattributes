@@ -1,0 +1,17 @@
+# Skripte laufen (auch) auf dem Board unter Linux: immer LF.
+*.sh  text eol=lf
+*.py  text eol=lf
+*.dts text eol=lf
+# Windows-Stapeldateien: CRLF.
+*.bat text eol=crlf
+# Fremdcode byte-genau lassen (keine Zeilenende-Umwandlung).
+sys/vendor/** -text
+cores/*/vendor/** -text
+# Gepatchte MiSTer-Dateien: Diffs genau so lassen, wie sie sind.
+sys/de25/pro/*.patch -text
+sys/de25/pro/*.sv -text
+linux/vendor/** -text
+# Main_MiSTer-Port: wird auf dem Board (Linux) gebaut und gepatcht — LF.
+linux/main/** text eol=lf
+# Systemdateien des Boards (Skripte, fstab, udev, systemd): LF.
+linux/system/** text eol=lf

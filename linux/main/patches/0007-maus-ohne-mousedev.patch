@@ -1,0 +1,40 @@
+Retro25: Mausbewegung ohne mousedev. Der Terasic-Kernel ist ohne
+CONFIG_INPUT_MOUSEDEV gebaut, /dev/input/mouseN fehlt; Main las die Bewegung
+nur dort, die Tasten kamen über evdev an. Ohne mouseN nimmt Main REL_X/REL_Y/
+REL_WHEEL jetzt direkt aus den event-Geräten.
+
+--- a/input.cpp	2026-10-19 15:00:47.997613700 +0200
++++ b/input.cpp	2026-10-19 15:01:11.503423300 +0200
+@@ -2024,6 +2024,7 @@
+ static int mouse_x = 0;
+ static int mouse_y = 0;
+ static int mouse_w = 0;
++static bool have_mousedev = false; // Retro25: gibt es /dev/input/mouseN?
+ static int mouse_emu = 0;
+ static int kbd_mouse_emu = 0;
+ static int mouse_sniper = 0;
+@@ -5193,6 +5194,7 @@
+ 						pool[n].fd = fd;
+ 						pool[n].events = POLLIN;
+ 						input[n].mouse = !strncmp(de->d_name, "mouse", 5);
++						if (input[n].mouse) have_mousedev = true;
+ 
+ 						char uniq[32] = {};
+ 						if (!input[n].mouse)
+@@ -5887,6 +5889,16 @@
+ 									}
+ 								}
+ 
++								// Retro25: Der Terasic-Kernel hat kein mousedev (CONFIG_INPUT_MOUSEDEV),
++								// /dev/input/mouseN fehlt. Dann die Bewegung direkt aus evdev nehmen,
++								// mit den Vorzeichen, die mousedev liefern würde (Y und Rad negiert).
++								if (!have_mousedev && ev.type == EV_REL)
++								{
++									if (ev.code == REL_X) send_mouse_with_throttle(i, ev.value, 0, 0);
++									else if (ev.code == REL_Y) send_mouse_with_throttle(i, 0, -ev.value, 0);
++									else if (ev.code == REL_WHEEL) send_mouse_with_throttle(i, 0, 0, -ev.value);
++								}
++
+ 								if (is_menu() && !video_fb_state())
+ 								{
+ 									/*

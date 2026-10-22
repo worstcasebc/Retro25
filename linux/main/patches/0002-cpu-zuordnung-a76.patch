@@ -1,0 +1,53 @@
+Retro25: Main und seinen Hilfsthread auf die schnellen Kerne legen.
+Agilex 5: CPU 0/1 = Cortex-A55, CPU 2/3 = Cortex-A76. MiSTer (Cyclone V)
+legt Main auf CPU 1 und offload auf CPU 0; hier Main auf 3, offload auf 2.
+
+--- a/main.cpp
++++ b/main.cpp
+@@ -39,12 +39,14 @@
+ 
+ int main(int argc, char *argv[])
+ {
++	// Retro25: auf dem DE25-Nano sind Kern 0/1 Cortex-A55, 2/3 Cortex-A76 —
++	// Main auf den schnellen Kern 3, die Hilfsarbeiten (offload) auf Kern 2.
+ 	// Always pin main worker process to core #1 as core #0 is the
+ 	// hardware interrupt handler in Linux.  This reduces idle latency
+ 	// in the main loop by about 6-7x.
+ 	cpu_set_t set;
+ 	CPU_ZERO(&set);
+-	CPU_SET(1, &set);
++	CPU_SET(3, &set);
+ 	sched_setaffinity(0, sizeof(set), &set);
+ 
+ 	offload_start();
+--- a/menu.cpp
++++ b/menu.cpp
+@@ -7745,7 +7745,7 @@
+ 				pclose(script_pipe);
+ 				cpu_set_t set;
+ 				CPU_ZERO(&set);
+-				CPU_SET(1, &set);
++				CPU_SET(3, &set); // Retro25: Kern von Main (main.cpp)
+ 				sched_setaffinity(0, sizeof(set), &set);
+ 				script_finished=true;
+ 				OsdWrite(OsdGetSize() - 1, "             OK", menusub == 0, 0);
+@@ -7766,7 +7766,7 @@
+ 				else { printf("close_pipe_async: pthread_create failed\n"); pclose(p); }
+ 				cpu_set_t set;
+ 				CPU_ZERO(&set);
+-				CPU_SET(1, &set);
++				CPU_SET(3, &set); // Retro25: Kern von Main (main.cpp)
+ 				sched_setaffinity(0, sizeof(set), &set);
+ 				script_finished = true;
+ 			};
+--- a/offload.cpp
++++ b/offload.cpp
+@@ -80,7 +80,7 @@
+ 	// Set affinity to core #0 since main runs on core #1
+ 	cpu_set_t set;
+ 	CPU_ZERO(&set);
+-	CPU_SET(0, &set);
++	CPU_SET(2, &set); // Retro25: zweiter Cortex-A76 (main.cpp)
+ 	pthread_attr_setaffinity_np(&attr, sizeof(set), &set);
+ 
+ 	pthread_create(&s_thread_handle, &attr, worker_thread, nullptr);

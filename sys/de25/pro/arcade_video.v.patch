@@ -1,0 +1,76 @@
+--- vendor/mister/arcade_video.v
++++ de25/pro/arcade_video.v
+@@ -1,3 +1,4 @@
++// DE25 (Quartus Pro): Register mit Startwert aus dem always-Block geholt (16754).
+ //============================================================================
+ //
+ //  Copyright (C) 2017-2020 Sorgelig
+@@ -264,27 +265,28 @@ reg  [2:0] fb_en = 0;
+ reg [11:0] hsz = 320, vsz = 240;
+ reg [11:0] bwidth;
+ reg [22:0] bufsize;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [11:0] sz_hcnt = 0, sz_vcnt = 0;
+ always @(posedge CLK_VIDEO) begin
+-	reg [11:0] hcnt = 0, vcnt = 0;
+ 	reg old_vs, old_de;
+ 
+ 	if(CE_PIXEL) begin
+ 		old_vs <= VGA_VS;
+ 		old_de <= VGA_DE;
+ 
+-		hcnt <= hcnt + 1'd1;
++		sz_hcnt <= sz_hcnt + 1'd1;
+ 		if(~old_de & VGA_DE) begin
+-			hcnt <= 1;
+-			vcnt <= vcnt + 1'd1;
++			sz_hcnt <= 1;
++			sz_vcnt <= sz_vcnt + 1'd1;
+ 		end
+ 		if(old_de & ~VGA_DE) begin
+-			hsz <= hcnt;
+-			if( do_flip ) bwidth <= hcnt + 2'd3;
++			hsz <= sz_hcnt;
++			if( do_flip ) bwidth <= sz_hcnt + 2'd3;
+ 		end
+ 		if(~old_vs & VGA_VS) begin
+-			vsz <= vcnt;
+-			if( !do_flip ) bwidth <= vcnt + 2'd3;
+-			vcnt <= 0;
++			vsz <= sz_vcnt;
++			if( !do_flip ) bwidth <= sz_vcnt + 2'd3;
++			sz_vcnt <= 0;
+ 			fb_en <= {fb_en[1:0], ~no_rotate | flip};
+ 		end
+ 		if(old_vs & ~VGA_VS) bufsize <= (do_flip ? vsz : hsz ) * stride;
+@@ -296,8 +298,9 @@ wire [13:0] stride = {bwidth[11:2], 4'd0};
+ reg [22:0] ram_addr, next_addr;
+ reg [31:0] ram_data;
+ reg        ram_wr;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [13:0] rot_hcnt = 0;
+ always @(posedge CLK_VIDEO) begin
+-	reg [13:0] hcnt = 0;
+ 	reg old_vs, old_de;
+ 
+ 	ram_wr <= 0;
+@@ -309,7 +312,7 @@ always @(posedge CLK_VIDEO) begin
+ 			next_addr <=
+ 				do_flip    ? bufsize-3'd4 :
+ 				rotate_ccw ? (bufsize - stride) : {vsz-1'd1, 2'b00};
+-			hcnt <= rotate_ccw ? 3'd4 : {vsz-2'd2, 2'b00};
++			rot_hcnt <= rotate_ccw ? 3'd4 : {vsz-2'd2, 2'b00};
+ 		end
+ 		if(VGA_DE) begin
+ 			ram_wr <= 1;
+@@ -320,8 +323,8 @@ always @(posedge CLK_VIDEO) begin
+ 				rotate_ccw ? (next_addr - stride) : (next_addr + stride);
+ 		end
+ 		if(old_de & ~VGA_DE & ~do_flip) begin
+-			next_addr <= rotate_ccw ? (bufsize - stride + hcnt) : hcnt;
+-			hcnt <= rotate_ccw ? (hcnt + 3'd4) : (hcnt - 3'd4);
++			next_addr <= rotate_ccw ? (bufsize - stride + rot_hcnt) : rot_hcnt;
++			rot_hcnt <= rotate_ccw ? (rot_hcnt + 3'd4) : (rot_hcnt - 3'd4);
+ 		end
+ 	end
+ end

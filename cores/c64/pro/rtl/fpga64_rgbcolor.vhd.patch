@@ -1,0 +1,77 @@
+--- a/rtl/fpga64_rgbcolor.vhd
++++ b/rtl/fpga64_rgbcolor.vhd
+@@ -53,7 +53,7 @@ begin
+ 			when X"C" => r <= X"7b"; g <= X"7b"; b <= X"7b";
+ 			when X"D" => r <= X"a9"; g <= X"ff"; b <= X"9f";
+ 			when X"E" => r <= X"70"; g <= X"6d"; b <= X"eb";
+-			when X"F" => r <= X"b2"; g <= X"b2"; b <= X"b2";
++			when others => r <= X"b2"; g <= X"b2"; b <= X"b2";
+ 			end case;
+ 		when "001" =>
+ 			case index is
+@@ -72,7 +72,7 @@ begin
+ 			when X"C" => r <= X"7b"; g <= X"7b"; b <= X"7b";
+ 			when X"D" => r <= X"9f"; g <= X"ef"; b <= X"93";
+ 			when X"E" => r <= X"6d"; g <= X"6a"; b <= X"ef";
+-			when X"F" => r <= X"b2"; g <= X"b2"; b <= X"b2";
++			when others => r <= X"b2"; g <= X"b2"; b <= X"b2";
+ 			end case;
+ 		when "010" =>
+ 			case index is
+@@ -91,7 +91,7 @@ begin
+ 			when X"C" => r <= X"6c"; g <= X"6c"; b <= X"6c";
+ 			when X"D" => r <= X"9a"; g <= X"d2"; b <= X"84";
+ 			when X"E" => r <= X"6c"; g <= X"5e"; b <= X"b5";
+-			when X"F" => r <= X"95"; g <= X"95"; b <= X"95";
++			when others => r <= X"95"; g <= X"95"; b <= X"95";
+ 			end case;
+ 		when "011" =>
+ 			case index is
+@@ -110,7 +110,7 @@ begin
+ 			when X"C" => r <= X"6b"; g <= X"6b"; b <= X"6b";
+ 			when X"D" => r <= X"8f"; g <= X"c2"; b <= X"71";
+ 			when X"E" => r <= X"67"; g <= X"5d"; b <= X"b6";
+-			when X"F" => r <= X"8f"; g <= X"8f"; b <= X"8f";
++			when others => r <= X"8f"; g <= X"8f"; b <= X"8f";
+ 			end case;
+ 		when "100" =>
+ 			case index is
+@@ -129,7 +129,7 @@ begin
+ 			when X"C" => r <= X"80"; g <= X"80"; b <= X"80";
+ 			when X"D" => r <= X"8c"; g <= X"e8"; b <= X"8e";
+ 			when X"E" => r <= X"7b"; g <= X"6c"; b <= X"f0";
+-			when X"F" => r <= X"c2"; g <= X"c2"; b <= X"c2";
++			when others => r <= X"c2"; g <= X"c2"; b <= X"c2";
+ 			end case;
+ 		when "101" =>
+ 			case index is
+@@ -148,7 +148,7 @@ begin
+ 			when X"C" => r <= X"76"; g <= X"76"; b <= X"76";
+ 			when X"D" => r <= X"8c"; g <= X"e8"; b <= X"8e";
+ 			when X"E" => r <= X"71"; g <= X"62"; b <= X"e6";
+-			when X"F" => r <= X"a3"; g <= X"a3"; b <= X"a3";
++			when others => r <= X"a3"; g <= X"a3"; b <= X"a3";
+ 			end case;
+ 		when "110" =>
+ 			case index is
+@@ -167,9 +167,9 @@ begin
+ 			when X"C" => r <= X"76"; g <= X"76"; b <= X"76";
+ 			when X"D" => r <= X"8d"; g <= X"e9"; b <= X"89";
+ 			when X"E" => r <= X"66"; g <= X"69"; b <= X"e1";
+-			when X"F" => r <= X"a3"; g <= X"a3"; b <= X"a3";
++			when others => r <= X"a3"; g <= X"a3"; b <= X"a3";
+ 			end case;
+-		when "111" =>
++		when others =>   -- Retro25: "111" (Quartus Pro)
+ 			case index is
+ 			when X"0" => r <= X"00"; g <= X"00"; b <= X"00";
+ 			when X"1" => r <= X"ff"; g <= X"ff"; b <= X"ff";
+@@ -186,7 +186,7 @@ begin
+ 			when X"C" => r <= X"83"; g <= X"83"; b <= X"83";
+ 			when X"D" => r <= X"af"; g <= X"f8"; b <= X"a6";
+ 			when X"E" => r <= X"7f"; g <= X"7d"; b <= X"f4";
+-			when X"F" => r <= X"ba"; g <= X"ba"; b <= X"ba";
++			when others => r <= X"ba"; g <= X"ba"; b <= X"ba";
+ 			end case;
+ 		end case;
+ 	end process;

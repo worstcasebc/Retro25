@@ -1,0 +1,41 @@
+--- vendor/mister/audio_out.sv
++++ de25/pro/audio_out.sv
+@@ -1,3 +1,7 @@
++// DE25 (Quartus Pro): Startwerte lokaler Register entfernt - mit Startwert
++// behandelt Pro sie als automatisch und setzt sie bei jedem Durchlauf zurueck
++// (Warnung 16754, "should be declared as automatic or static"). Ohne Startwert
++// sind sie statisch wie unter Quartus Standard; Einschaltwert ist ohnehin 0.
+ //============================================================================
+ //
+ //  MiSTer Audio mixing & filtering
+@@ -137,8 +141,8 @@
+ 
+ reg sample_ce;
+ always @(posedge clk) begin
+-	reg [8:0] div = 0;
+-	reg [1:0] add = 0;
++	reg [8:0] div;
++	reg [1:0] add;
+ 
+ 	div <= div + add;
+ 	if(!div) begin
+@@ -151,7 +155,7 @@
+ 
+ reg flt_ce;
+ always @(posedge clk) begin
+-	reg [31:0] cnt = 0;
++	reg [31:0] cnt;
+ 
+ 	flt_ce = 0;
+ 	cnt = cnt + {flt_rate[30:0],1'b0};
+@@ -175,8 +179,8 @@
+ 
+ reg a_en1 = 0, a_en2 = 0;
+ always @(posedge clk, posedge reset) begin
+-	reg  [1:0] dly1 = 0;
+-	reg [14:0] dly2 = 0;
++	reg  [1:0] dly1;
++	reg [14:0] dly2;
+ 
+ 	if(reset) begin
+ 		dly1 <= 0;

@@ -1,0 +1,43 @@
+--- a/rtl/sid/sid_voice.sv
++++ b/rtl/sid/sid_voice.sv
+@@ -41,6 +41,12 @@ wire test_ctrl     = control[3];
+ wire ringmod_ctrl  = control[2];
+ wire sync_ctrl     = control[1];
+ 
++// Declarations (moved up: used below before their original position)
++wire        [7:0] envelope;
++reg        [23:0] oscillator;
++reg         [7:0] wave_out;
++reg signed [21:0] dca_out;
++
+ // Signal Assignments
+ assign osc_msb_out = oscillator[23];
+ assign voice_out   = dca_out;
+@@ -48,7 +54,6 @@ assign osc_out     = wave_out;
+ assign env_out     = envelope;
+ 
+ // Envelope Instantiation
+-wire [7:0] envelope;
+ sid_envelope adsr
+ (
+ 	.clock(clock),
+@@ -61,7 +66,6 @@ sid_envelope adsr
+ );
+ 
+ // Phase Accumulating Oscillator
+-reg  [23:0] oscillator;
+ reg         osc_msb_in_prv;
+ always @(posedge clock) begin
+ 	reg test_delay;
+@@ -171,11 +175,9 @@ sid_dac #(.BITS (8)) envelope_dac
+ );
+ 
+ // for OSC3 readback
+-reg [7:0] wave_out;
+ always @(posedge clock) if(ce_1m) wave_out <= norm[11:4] | comb;
+ 
+ // DAC with floating input simulation
+-reg signed [21:0] dca_out;
+ always @(posedge clock) begin
+ 	reg        [23:0] keep_cnt;
+ 	reg signed  [8:0] env_dac;

@@ -1,0 +1,73 @@
+--- a/rtl/iec_drive/c1541_logic.sv
++++ b/rtl/iec_drive/c1541_logic.sv
+@@ -48,6 +48,14 @@ module c1541_logic
+ 	output       act			   // activity LED
+ );
+ 
++wire [23:0] cpu_a;
++wire  [7:0] cpu_do;
++wire        cpu_rw;
++wire  [7:0] ram_do, extram_do, uc1_do, uc3_do;
++wire        uc1_irq, uc3_irq;
++wire        extram_cs;
++wire        soe;
++
+ assign rom_addr = cpu_a[14:0];
+ 
+ //same decoder as on real HW
+@@ -66,9 +74,6 @@ wire  [7:0] cpu_di =
+ 	 rom_cs    ? rom_data :
+ 	 8'hFF;
+ 
+-wire [23:0] cpu_a;
+-wire  [7:0] cpu_do;
+-wire        cpu_rw;
+ wire        cpu_irq_n = ~(uc1_irq | uc3_irq);
+ wire        cpu_so_n = byte_n | ~soe;
+ 
+@@ -89,9 +94,8 @@ T65 cpu
+ 	.DO(cpu_do)
+ );
+ 
+-wire extram_cs = ext_en && (cpu_a[15:13] == 'b100);
++assign extram_cs = ext_en && (cpu_a[15:13] == 'b100);
+ 
+-wire [7:0] extram_do;
+ iecdrv_mem #(8,13) extram
+ (
+ 	.clock_a(clk),
+@@ -104,7 +108,6 @@ iecdrv_mem #(8,13) extram
+ 	.q_b(extram_do)
+ );
+ 
+-wire [7:0] ram_do;
+ iecdrv_mem #(8,11) ram
+ (
+ 	.clock_a(clk),
+@@ -118,8 +121,6 @@ iecdrv_mem #(8,11) ram
+ );
+ 
+ // UC1 (VIA6522) signals
+-wire [7:0] uc1_do;
+-wire       uc1_irq;
+ wire [7:0] uc1_pa_o;
+ wire [7:0] uc1_pa_oe;
+ wire       uc1_ca2_o;
+@@ -177,8 +178,6 @@ iecdrv_via6522 uc1
+ 
+ 
+ // UC3 (VIA6522) signals
+-wire [7:0] uc3_do;
+-wire       uc3_irq;
+ wire [7:0] uc3_pa_o;
+ wire [7:0] uc3_pa_oe;
+ wire       uc3_ca2_o;
+@@ -190,7 +189,7 @@ wire       uc3_cb1_oe;
+ wire       uc3_cb2_o;
+ wire       uc3_cb2_oe;
+ 
+-wire       soe  = uc3_ca2_o | ~uc3_ca2_oe;
++assign     soe  = uc3_ca2_o | ~uc3_ca2_oe;
+ assign     dout = uc3_pa_o  | ~uc3_pa_oe;
+ assign     mode = uc3_cb2_o | ~uc3_cb2_oe;
+ 

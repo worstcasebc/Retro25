@@ -1,0 +1,33 @@
+--- vendor/mister/video_mixer.sv
++++ de25/pro/video_mixer.sv
+@@ -1,3 +1,4 @@
++// DE25 (Quartus Pro): R_in/G_in/B_in auf Modulebene (siehe unten).
+ //
+ //
+ // Copyright (c) 2017,2021 Alexey Melnikov
+@@ -88,15 +89,19 @@ always @(posedge CLK_VIDEO) begin
+ 	frz  <= frz1;
+ end
+ 
++// DE25 (Quartus Pro): R_in/G_in/B_in auf Modulebene deklariert — im
++// generate-Block deklarierte Signale sind außerhalb nicht sichtbar. Breite
++// in beiden Zweigen DWIDTH_SD+1 (8 bit mit GAMMA, sonst DWIDTH+1).
++wire [DWIDTH_SD:0] R_in, G_in, B_in;
+ generate
+ 	if(GAMMA && HALF_DEPTH) begin
+-		wire [7:0] R_in  = frz ? 8'd0 : {R,R};
+-		wire [7:0] G_in  = frz ? 8'd0 : {G,G};
+-		wire [7:0] B_in  = frz ? 8'd0 : {B,B};
++		assign R_in = frz ? 8'd0 : {R,R};
++		assign G_in = frz ? 8'd0 : {G,G};
++		assign B_in = frz ? 8'd0 : {B,B};
+ 	end else begin
+-		wire [DWIDTH:0] R_in = frz ? 1'd0 : R;
+-		wire [DWIDTH:0] G_in = frz ? 1'd0 : G;
+-		wire [DWIDTH:0] B_in = frz ? 1'd0 : B;
++		assign R_in = frz ? 1'd0 : R;
++		assign G_in = frz ? 1'd0 : G;
++		assign B_in = frz ? 1'd0 : B;
+ 	end
+ endgenerate
+ 

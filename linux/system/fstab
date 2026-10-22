@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Retro25: /etc/fstab (linux/system/install.sh).
+#
+# Root (mmcblk0p2) schreibgeschützt: Ein harter Reset trifft dann keinen
+# laufenden Schreibvorgang auf dem System. Der Kernel hängt es beim Start noch
+# rw ein (root=… rw in der Startzeile), systemd-remount-fs schaltet es kurz
+# darauf auf ro. Wartung (apt, install.sh): retro25-rw, danach retro25-ro.
+/dev/mmcblk0p2     /           ext4   ro,noatime  0  1
+
+# Datenpartition mmcblk0p3 (ext4, Label retro25data): Cores, Main-Konfiguration,
+# Spielstände. nofail: fehlt sie, startet das System trotzdem (dann liegt
+# /media/fat wieder als Ordner auf dem Root). Wartezeit 60 s: mit 10 s lief sie
+# am 2026-10-22 nach einem harten Neustart ab, obwohl die Partition da war
+# (by-label-Link kam zu spät) -> Main startete nicht, HDMI blieb aus.
+LABEL=retro25data  /media/fat  ext4   defaults,noatime,nofail,x-systemd.device-timeout=60s  0  2
+
+# Was im Betrieb geschrieben wird, liegt im RAM und ist nach einem Neustart
+# weg (Rechte und Unterordner: /etc/tmpfiles.d/retro25.conf).
+tmpfs  /tmp                       tmpfs  mode=1777,nosuid,nodev,size=256M  0  0
+tmpfs  /var/tmp                   tmpfs  mode=1777,nosuid,nodev,size=64M   0  0
+tmpfs  /var/log                   tmpfs  mode=0755,nosuid,nodev,size=64M   0  0
+tmpfs  /var/lib/NetworkManager    tmpfs  mode=0700,nosuid,nodev,size=4M    0  0
+tmpfs  /var/lib/systemd/timesync  tmpfs  mode=0755,nosuid,nodev,size=1M    0  0
+tmpfs  /var/lib/logrotate         tmpfs  mode=0755,nosuid,nodev,size=1M    0  0
+# PulseAudio der Sitzung von terasic (Uid 1000) will Lautstärken speichern;
+# Retro25 braucht es nicht (Ton übers FPGA), nur die Meldungen sollen weg.
+tmpfs  /home/terasic/.config/pulse  tmpfs  mode=0700,uid=1000,gid=1000,nosuid,nodev,size=1M,nofail  0  0

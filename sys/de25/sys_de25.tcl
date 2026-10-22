@@ -1,0 +1,511 @@
+# sys_de25.tcl — gemeinsame Einstellungen aller Core-Projekte (Retro25).
+# Wird von tools/make_core_qsf.py in jede Core-.qsf übernommen; {SYS} ist der
+# Pfad zu sys/ relativ zum Quartus-Projektordner.
+# Herkunft: Gerät/Konfiguration/HPS/Pins wie p0 (C64-DE25 + HPS-first),
+# HDMI aus C64-DE25, CLOCK1_50 und SDRAM aus Terasics golden_top.qsf
+# (DRAM_* auf MiSTers SDRAM_*-Namen umbenannt; DRAM_CS_n[1] = SDRAM_nCS2).
+
+# --- Gerät und Konfiguration ---------------------------------------------------
+set_global_assignment -name BOARD default
+set_global_assignment -name FAMILY "Agilex 5"
+set_global_assignment -name DEVICE A5EB013BB23BE4SCS
+set_global_assignment -name USE_CONF_DONE SDM_IO16
+set_global_assignment -name USE_HPS_COLD_RESET SDM_IO11
+set_global_assignment -name STRATIXV_CONFIGURATION_SCHEME "ACTIVE SERIAL X4"
+set_global_assignment -name ACTIVE_SERIAL_CLOCK AS_FREQ_125MHZ
+set_global_assignment -name DEVICE_INITIALIZATION_CLOCK OSC_CLK_1_125MHZ
+set_global_assignment -name POWER_APPLY_THERMAL_MARGIN ADDITIONAL
+set_global_assignment -name HPS_INITIALIZATION "HPS FIRST"
+set_global_assignment -name PWRMGT_VOLTAGE_OUTPUT_FORMAT "LINEAR FORMAT"
+set_global_assignment -name PWRMGT_LINEAR_FORMAT_N "-12"
+set_global_assignment -name TOP_LEVEL_ENTITY sys_top_de25
+# MiSTer-Quellen nutzen SystemVerilog-Schreibweisen auch in .v-Dateien
+# (z. B. Bereich [5]); Quartus Standard war da großzügiger als Pro.
+set_global_assignment -name VERILOG_INPUT_VERSION SYSTEMVERILOG_2005
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+
+# --- Quellen sys ---------------------------------------------------------------
+set_global_assignment -name VERILOG_FILE {SYS}/de25/sys_top_de25.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/hps_gp_bridge.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/sysmem_de25.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/f2s_halt_de25.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/avl_burst_4k.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/hdmi_config.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/i2c_write.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/sync_2ff.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/video_debug.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/avl_slow_cdc.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/pll_cfg_de25.v
+set_global_assignment -name VERILOG_FILE {SYS}/de25/i2c_master_de25.v
+# osd.v: für Quartus Pro angepasste Kopie (Diff: sys/de25/pro/osd.v.patch)
+set_global_assignment -name VERILOG_FILE {SYS}/de25/pro/osd.v
+set_global_assignment -name VHDL_FILE {SYS}/vendor/mister/ascal.vhd
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/shadowmask.sv
+# ddr_svc: für Quartus Pro angepasste Kopie (Diff: sys/de25/pro/ddr_svc.sv.patch)
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/ddr_svc.sv
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/scanlines.v
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/math.sv
+# audio_out.sv: für Quartus Pro angepasste Kopie (Diff: sys/de25/pro/audio_out.sv.patch)
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/audio_out.sv
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/iir_filter.v
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/i2s.v
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/spdif.v
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/sigma_delta_dac.v
+# hps_io: für Quartus Pro angepasste Kopie (Diff: sys/de25/pro/hps_io.sv.patch)
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/hps_io.sv
+# Hilfsmodule, die MiSTer-Cores selbst instanziieren (bei MiSTer in sys.qip):
+# Videoaufbereitung, Kassetten-ADC, SD-Karten-Emulation (erst mit dem C64, P4)
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/video_mixer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/video_freak.sv
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/video_freezer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/video_cleaner.sv
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/gamma_corr.sv
+set_global_assignment -name VERILOG_FILE {SYS}/vendor/mister/scandoubler.v
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/de25/pro/hq2x.sv
+set_global_assignment -name VERILOG_FILE {SYS}/de25/pro/arcade_video.v
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/ltc2308.sv
+set_global_assignment -name SYSTEMVERILOG_FILE {SYS}/vendor/mister/sd_card.sv
+set_global_assignment -name IP_FILE {SYS}/de25/ip/pll_audio.ip
+set_global_assignment -name IP_FILE {SYS}/de25/ip/pll_hdmi_de25.ip
+set_global_assignment -name SEARCH_PATH {SYS}/include
+# P1 ohne Scaler: set_global_assignment -name VERILOG_MACRO "MISTER_DEBUG_NOHDMI=1"
+set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_ALSA=1"
+set_global_assignment -name VERILOG_MACRO "MISTER_DISABLE_YC=1"
+
+# --- HPS-System (Terasic GHRD + Brücken aus C64-DE25; tools/fetch_hps.py) -------
+# Ohne ocm, JTAG-Debug-Master (jtag_subsys) und ACE5-Lite-Übersetzer:
+# entfernt von sys/de25/hps_slim.tcl (P5, Platz für den z486).
+set_global_assignment -name IP_SEARCH_PATHS "{SYS}/hps/custom_ip/**/*"
+set_global_assignment -name QSYS_FILE {SYS}/hps/qsys_top.qsys
+set_global_assignment -name QSYS_FILE {SYS}/hps/hps_subsys/hps_subsys.qsys
+set_global_assignment -name QSYS_FILE {SYS}/hps/peripheral_subsys/peripheral_subsys.qsys
+set_global_assignment -name IP_FILE {SYS}/hps/ip/pll.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/dipsw_pio.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/rst_in.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/periph_rst_in.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/sysid.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/pb_cpu_0.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/led_pio.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/user_rst_clkgate_0.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/button_pio.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/clk_100.ip
+set_global_assignment -name IP_FILE {SYS}/hps/hps_subsys/ip/hps_subsys/agilex_hps.ip
+set_global_assignment -name IP_FILE {SYS}/hps/hps_subsys/ip/hps_subsys/f2sdram_adapter.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/periph_clk.ip
+set_global_assignment -name IP_FILE {SYS}/hps/hps_subsys/ip/qsys_top/emif_io96b_hps.ip
+# DDR-Ports für sysmem (P3): von sys/de25/hps_f2sdram_ports.tcl angelegt
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_vbuf.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_vbuf_clkbr.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_ram1.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_ram1_clkbr.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_ram2.ip
+set_global_assignment -name IP_FILE {SYS}/hps/ip/qsys_top/qsys_top_f2s_ram2_clkbr.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/peripheral_subsys_c64_bridge.ip
+set_global_assignment -name IP_FILE {SYS}/hps/peripheral_subsys/ip/peripheral_subsys/peripheral_subsys_disk_bridge.ip
+
+# --- Pins ----------------------------------------------------------------------
+set_location_assignment PIN_DJ35 -to CLOCK0_50
+
+# pll_audio hängt an CLOCK0_50 (HSIO) und wird damit eine IO96B-PLL. Sie
+# darf nicht in die Bank des HPS-Speichers (X63_Y53), sonst ändert sich der
+# HPS IO hash (harte Bedingung, alle Cores gleich).
+set_location_assignment IOPLL_X63_Y0_N0 -to "pll_audio|pll_audio|tennm_ph2_iopll"
+set_instance_assignment -name IO_STANDARD "1.1 V" -to CLOCK0_50
+set_location_assignment PIN_C8  -to KEY[0]
+set_location_assignment PIN_C11 -to KEY[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to KEY[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to KEY[1]
+set_location_assignment PIN_DK24 -to SW[0]
+set_location_assignment PIN_DD24 -to SW[1]
+set_location_assignment PIN_DD27 -to SW[2]
+set_location_assignment PIN_DF27 -to SW[3]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to SW[0]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to SW[1]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to SW[2]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to SW[3]
+set_location_assignment PIN_DF35 -to LEDR[0]
+set_location_assignment PIN_DJ32 -to LEDR[1]
+set_location_assignment PIN_DN22 -to LEDR[2]
+set_location_assignment PIN_DP23 -to LEDR[3]
+set_location_assignment PIN_DN25 -to LEDR[4]
+set_location_assignment PIN_DP25 -to LEDR[5]
+set_location_assignment PIN_DJ27 -to LEDR[6]
+set_location_assignment PIN_DP30 -to LEDR[7]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[0]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[1]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[2]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[3]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[4]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[5]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[6]
+set_instance_assignment -name IO_STANDARD "1.1 V" -to LEDR[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to CLOCK2_50
+set_location_assignment PIN_BF23 -to CLOCK2_50
+set_instance_assignment -name IO_STANDARD "1.1-V TRUE DIFFERENTIAL SIGNALING" -to LPDDR4A_REFCLK_p
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CS_n
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[0]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[1]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[2]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[3]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[4]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CA[5]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_CK
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_CKE
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_CK_n
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DM[0]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DM[1]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DM[2]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DM[3]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[0]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[1]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[2]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[3]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[4]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[5]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[6]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[7]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[8]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[9]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[10]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[11]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[12]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[13]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[14]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[15]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[16]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[17]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[18]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[19]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[20]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[21]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[22]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[23]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[24]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[25]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[26]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[27]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[28]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[29]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[30]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_DQ[31]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS[1]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS[2]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS[3]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS_n[0]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS_n[1]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS_n[2]
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.1-V LVSTL" -to LPDDR4A_DQS_n[3]
+set_instance_assignment -name IO_STANDARD "1.1-V LVSTL" -to LPDDR4A_RESET_n
+set_instance_assignment -name IO_STANDARD "1.1-V" -to LPDDR4A_RZQ
+set_location_assignment PIN_B55 -to LPDDR4A_REFCLK_p
+set_location_assignment PIN_B58 -to LPDDR4A_CS_n
+set_location_assignment PIN_B66 -to LPDDR4A_CA[0]
+set_location_assignment PIN_A68 -to LPDDR4A_CA[1]
+set_location_assignment PIN_B68 -to LPDDR4A_CA[2]
+set_location_assignment PIN_A70 -to LPDDR4A_CA[3]
+set_location_assignment PIN_B63 -to LPDDR4A_CA[4]
+set_location_assignment PIN_A66 -to LPDDR4A_CA[5]
+set_location_assignment PIN_J42 -to LPDDR4A_CK
+set_location_assignment PIN_A61 -to LPDDR4A_CKE
+set_location_assignment PIN_G42 -to LPDDR4A_CK_n
+set_location_assignment PIN_J59 -to LPDDR4A_DM[0]
+set_location_assignment PIN_T59 -to LPDDR4A_DM[1]
+set_location_assignment PIN_J27 -to LPDDR4A_DM[2]
+set_location_assignment PIN_A25 -to LPDDR4A_DM[3]
+set_location_assignment PIN_T62 -to LPDDR4A_DQ[0]
+set_location_assignment PIN_T56 -to LPDDR4A_DQ[1]
+set_location_assignment PIN_G56 -to LPDDR4A_DQ[2]
+set_location_assignment PIN_E56 -to LPDDR4A_DQ[3]
+set_location_assignment PIN_G65 -to LPDDR4A_DQ[4]
+set_location_assignment PIN_J65 -to LPDDR4A_DQ[5]
+set_location_assignment PIN_M56 -to LPDDR4A_DQ[6]
+set_location_assignment PIN_M62 -to LPDDR4A_DQ[7]
+set_location_assignment PIN_W62 -to LPDDR4A_DQ[8]
+set_location_assignment PIN_M65 -to LPDDR4A_DQ[9]
+set_location_assignment PIN_M51 -to LPDDR4A_DQ[10]
+set_location_assignment PIN_T51 -to LPDDR4A_DQ[11]
+set_location_assignment PIN_AB48 -to LPDDR4A_DQ[12]
+set_location_assignment PIN_W48 -to LPDDR4A_DQ[13]
+set_location_assignment PIN_T65 -to LPDDR4A_DQ[14]
+set_location_assignment PIN_AB62 -to LPDDR4A_DQ[15]
+set_location_assignment PIN_G24 -to LPDDR4A_DQ[16]
+set_location_assignment PIN_E24 -to LPDDR4A_DQ[17]
+set_location_assignment PIN_J35 -to LPDDR4A_DQ[18]
+set_location_assignment PIN_T32 -to LPDDR4A_DQ[19]
+set_location_assignment PIN_M32 -to LPDDR4A_DQ[20]
+set_location_assignment PIN_T24 -to LPDDR4A_DQ[21]
+set_location_assignment PIN_G35 -to LPDDR4A_DQ[22]
+set_location_assignment PIN_M24 -to LPDDR4A_DQ[23]
+set_location_assignment PIN_A22 -to LPDDR4A_DQ[24]
+set_location_assignment PIN_A23 -to LPDDR4A_DQ[25]
+set_location_assignment PIN_A33 -to LPDDR4A_DQ[26]
+set_location_assignment PIN_B33 -to LPDDR4A_DQ[27]
+set_location_assignment PIN_B30 -to LPDDR4A_DQ[28]
+set_location_assignment PIN_A36 -to LPDDR4A_DQ[29]
+set_location_assignment PIN_A20 -to LPDDR4A_DQ[30]
+set_location_assignment PIN_B22 -to LPDDR4A_DQ[31]
+set_location_assignment PIN_G62 -to LPDDR4A_DQS[0]
+set_location_assignment PIN_AB56 -to LPDDR4A_DQS[1]
+set_location_assignment PIN_G32 -to LPDDR4A_DQS[2]
+set_location_assignment PIN_B28 -to LPDDR4A_DQS[3]
+set_location_assignment PIN_E62 -to LPDDR4A_DQS_n[0]
+set_location_assignment PIN_W56 -to LPDDR4A_DQS_n[1]
+set_location_assignment PIN_E32 -to LPDDR4A_DQS_n[2]
+set_location_assignment PIN_A30 -to LPDDR4A_DQS_n[3]
+set_location_assignment PIN_M48 -to LPDDR4A_RESET_n
+set_location_assignment PIN_T48 -to LPDDR4A_RZQ
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_CLK_25
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_MDC
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_MDIO
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_CLK
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_CTL
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_DATA[0]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_DATA[1]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_DATA[2]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_RX_DATA[3]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_CLK
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_CTL
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_DATA[0]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_DATA[1]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_DATA[2]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_ENET_TX_DATA[3]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_GSENSOR_I2C_EN
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_GSENSOR_INT
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_I2C_SCL
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_I2C_SDA
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_KEY
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_LED
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_CLK
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_CMD
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_DATA[0]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_DATA[1]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_DATA[2]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_SD_DATA[3]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_UART_RX
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_UART_TX
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_CLK
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[0]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[1]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[2]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[3]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[4]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[5]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[6]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DATA[7]
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_DIR
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_NXT
+set_instance_assignment -name IO_STANDARD "1.8-V" -to HPS_USB_STP
+set_location_assignment PIN_AN67 -to HPS_CLK_25
+set_location_assignment PIN_D71 -to HPS_ENET_MDC
+set_location_assignment PIN_C74 -to HPS_ENET_MDIO
+set_location_assignment PIN_BL75 -to HPS_ENET_RX_CLK
+set_location_assignment PIN_AP74 -to HPS_ENET_RX_CTL
+set_location_assignment PIN_BD74 -to HPS_ENET_RX_DATA[0]
+set_location_assignment PIN_AN71 -to HPS_ENET_RX_DATA[1]
+set_location_assignment PIN_AJ74 -to HPS_ENET_RX_DATA[2]
+set_location_assignment PIN_AJ75 -to HPS_ENET_RX_DATA[3]
+set_location_assignment PIN_BP75 -to HPS_ENET_TX_CLK
+set_location_assignment PIN_BL74 -to HPS_ENET_TX_CTL
+set_location_assignment PIN_BG74 -to HPS_ENET_TX_DATA[0]
+set_location_assignment PIN_AP75 -to HPS_ENET_TX_DATA[1]
+set_location_assignment PIN_BD75 -to HPS_ENET_TX_DATA[2]
+set_location_assignment PIN_AM74 -to HPS_ENET_TX_DATA[3]
+set_location_assignment PIN_P75 -to HPS_GSENSOR_I2C_EN
+set_location_assignment PIN_Y75 -to HPS_GSENSOR_INT
+set_location_assignment PIN_N72 -to HPS_I2C_SCL
+set_location_assignment PIN_L75 -to HPS_I2C_SDA
+set_location_assignment PIN_F75 -to HPS_KEY
+set_location_assignment PIN_AD71 -to HPS_LED
+set_location_assignment PIN_AC74 -to HPS_SD_CLK
+set_location_assignment PIN_AK69 -to HPS_SD_CMD
+set_location_assignment PIN_AF75 -to HPS_SD_DATA[0]
+set_location_assignment PIN_AC75 -to HPS_SD_DATA[1]
+set_location_assignment PIN_AN64 -to HPS_SD_DATA[2]
+set_location_assignment PIN_Y74 -to HPS_SD_DATA[3]
+set_location_assignment PIN_AD72 -to HPS_UART_RX
+set_location_assignment PIN_N71 -to HPS_UART_TX
+set_location_assignment PIN_BC64 -to HPS_USB_CLK
+set_location_assignment PIN_AN72 -to HPS_USB_DATA[0]
+set_location_assignment PIN_AY69 -to HPS_USB_DATA[1]
+set_location_assignment PIN_BC71 -to HPS_USB_DATA[2]
+set_location_assignment PIN_AU74 -to HPS_USB_DATA[3]
+set_location_assignment PIN_AY71 -to HPS_USB_DATA[4]
+set_location_assignment PIN_AU75 -to HPS_USB_DATA[5]
+set_location_assignment PIN_BC72 -to HPS_USB_DATA[6]
+set_location_assignment PIN_BP74 -to HPS_USB_DATA[7]
+set_location_assignment PIN_AY67 -to HPS_USB_DIR
+set_location_assignment PIN_BA75 -to HPS_USB_NXT
+set_location_assignment PIN_BC67 -to HPS_USB_STP
+set_location_assignment PIN_DJ24 -to HDMI_TX_CLK
+set_instance_assignment -name IO_STANDARD "1.1 V" -to HDMI_TX_CLK
+set_location_assignment PIN_BR11 -to HDMI_TX_HS
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_HS
+set_location_assignment PIN_BR14 -to HDMI_TX_VS
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_VS
+set_location_assignment PIN_CJ2 -to HDMI_TX_DE
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_DE
+set_location_assignment PIN_BT1 -to HDMI_I2C_SCL
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_I2C_SCL
+set_location_assignment PIN_BW2 -to HDMI_I2C_SDA
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_I2C_SDA
+set_location_assignment PIN_CF2 -to HDMI_TX_INT
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_INT
+set_location_assignment PIN_AV19 -to HDMI_TX_D[0]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[0]
+set_location_assignment PIN_AT11 -to HDMI_TX_D[1]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[1]
+set_location_assignment PIN_BE11 -to HDMI_TX_D[2]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[2]
+set_location_assignment PIN_AV14 -to HDMI_TX_D[3]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[3]
+set_location_assignment PIN_AT19 -to HDMI_TX_D[4]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[4]
+set_location_assignment PIN_AT14 -to HDMI_TX_D[5]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[5]
+set_location_assignment PIN_AV16 -to HDMI_TX_D[6]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[6]
+set_location_assignment PIN_AV11 -to HDMI_TX_D[7]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[7]
+set_location_assignment PIN_BH11 -to HDMI_TX_D[8]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[8]
+set_location_assignment PIN_BE14 -to HDMI_TX_D[9]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[9]
+set_location_assignment PIN_BE19 -to HDMI_TX_D[10]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[10]
+set_location_assignment PIN_BH14 -to HDMI_TX_D[11]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[11]
+set_location_assignment PIN_BV6 -to HDMI_TX_D[12]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[12]
+set_location_assignment PIN_BJ23 -to HDMI_TX_D[13]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[13]
+set_location_assignment PIN_BV4 -to HDMI_TX_D[14]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[14]
+set_location_assignment PIN_BU23 -to HDMI_TX_D[15]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[15]
+set_location_assignment PIN_BH16 -to HDMI_TX_D[16]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[16]
+set_location_assignment PIN_DA1 -to HDMI_TX_D[17]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[17]
+set_location_assignment PIN_BH19 -to HDMI_TX_D[18]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[18]
+set_location_assignment PIN_CP2 -to HDMI_TX_D[19]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[19]
+set_location_assignment PIN_CM1 -to HDMI_TX_D[20]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[20]
+set_location_assignment PIN_DA2 -to HDMI_TX_D[21]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[21]
+set_location_assignment PIN_CP1 -to HDMI_TX_D[22]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[22]
+set_location_assignment PIN_CU2 -to HDMI_TX_D[23]
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_TX_D[23]
+set_location_assignment PIN_CF1 -to HDMI_MCLK
+set_location_assignment PIN_BW1 -to HDMI_SCLK
+set_location_assignment PIN_BR6 -to HDMI_LRCLK
+set_location_assignment PIN_CB2 -to HDMI_I2S
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_MCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_SCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_LRCLK
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to HDMI_I2S
+set_instance_assignment -name IO_STANDARD "3.3-V LVCMOS" -to CLOCK1_50
+set_location_assignment PIN_V16  -to CLOCK1_50
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_CLK
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_CKE
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[0]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[1]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[2]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[3]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[4]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[5]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[6]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[7]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[8]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[9]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[10]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[11]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_A[12]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_BA[0]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_BA[1]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[0]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[1]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[2]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[3]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[4]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[5]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[6]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[7]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[8]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[9]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[10]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[11]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[12]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[13]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[14]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQ[15]
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQML
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_DQMH
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_nCS
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_nCS2
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_nWE
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_nCAS
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to SDRAM_nRAS
+set_location_assignment PIN_R11  -to SDRAM_CLK
+set_location_assignment PIN_AE8  -to SDRAM_CKE
+set_location_assignment PIN_AC1  -to SDRAM_A[0]
+set_location_assignment PIN_AH6  -to SDRAM_A[1]
+set_location_assignment PIN_AC2  -to SDRAM_A[2]
+set_location_assignment PIN_R8   -to SDRAM_A[3]
+set_location_assignment PIN_AE11 -to SDRAM_A[4]
+set_location_assignment PIN_AH14 -to SDRAM_A[5]
+set_location_assignment PIN_V4   -to SDRAM_A[6]
+set_location_assignment PIN_AG26 -to SDRAM_A[7]
+set_location_assignment PIN_AG23 -to SDRAM_A[8]
+set_location_assignment PIN_V11  -to SDRAM_A[9]
+set_location_assignment PIN_BE8  -to SDRAM_A[10]
+set_location_assignment PIN_R6   -to SDRAM_A[11]
+set_location_assignment PIN_AH11 -to SDRAM_A[12]
+set_location_assignment PIN_AT6  -to SDRAM_BA[0]
+set_location_assignment PIN_AV4  -to SDRAM_BA[1]
+set_location_assignment PIN_AU1  -to SDRAM_DQ[0]
+set_location_assignment PIN_AJ1  -to SDRAM_DQ[1]
+set_location_assignment PIN_BA1  -to SDRAM_DQ[2]
+set_location_assignment PIN_AP1  -to SDRAM_DQ[3]
+set_location_assignment PIN_AM2  -to SDRAM_DQ[4]
+set_location_assignment PIN_BL1  -to SDRAM_DQ[5]
+set_location_assignment PIN_AJ2  -to SDRAM_DQ[6]
+set_location_assignment PIN_AP2  -to SDRAM_DQ[7]
+set_location_assignment PIN_BH4  -to SDRAM_DQ[8]
+set_location_assignment PIN_AH4  -to SDRAM_DQ[9]
+set_location_assignment PIN_BH6  -to SDRAM_DQ[10]
+set_location_assignment PIN_AU2  -to SDRAM_DQ[11]
+set_location_assignment PIN_BE6  -to SDRAM_DQ[12]
+set_location_assignment PIN_BD2  -to SDRAM_DQ[13]
+set_location_assignment PIN_BG2  -to SDRAM_DQ[14]
+set_location_assignment PIN_BL2  -to SDRAM_DQ[15]
+set_location_assignment PIN_BD1  -to SDRAM_DQML
+set_location_assignment PIN_AT8  -to SDRAM_DQMH
+set_location_assignment PIN_AF1  -to SDRAM_nCS
+set_location_assignment PIN_AE14 -to SDRAM_nCS2
+set_location_assignment PIN_AV6  -to SDRAM_nWE
+set_location_assignment PIN_AE6  -to SDRAM_nCAS
+set_location_assignment PIN_V6   -to SDRAM_nRAS
+
+# --- Ausgangsregister im I/O-Block für das HDMI-Video (siehe sys_top_de25.sdc) --
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_D[*]
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_DE
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_HS
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to HDMI_TX_VS
+
+# --- I/O-Register für das SDRAM (wie MiSTer sys.tcl) -----------------------------
+# MiSTer-Cores verlassen sich darauf, dass Adresse, Befehle und Daten im
+# I/O-Block registriert werden: dann ist die Laufzeit Register→Pin kurz und
+# für alle Bits gleich, eine .sdc mit I/O-Timing gibt es bei MiSTer nicht.
+# Ohne diese Zuweisungen liefen sie über das Fabric (einige ns, je Bit
+# verschieden) — der Memtest fiel ab 100 MHz massiv durch (P4).
+set_instance_assignment -name FAST_OUTPUT_REGISTER ON -to SDRAM_*
+set_instance_assignment -name FAST_OUTPUT_ENABLE_REGISTER ON -to SDRAM_DQ[*]
+set_instance_assignment -name FAST_INPUT_REGISTER ON -to SDRAM_DQ[*]
+set_instance_assignment -name ALLOW_SYNCH_CTRL_USAGE OFF -to *|SDRAM_*
+
+# --- Timing: zuletzt, damit die Takte aller IPs schon bekannt sind --------------
+set_global_assignment -name SDC_FILE {SYS}/de25/sys_top_de25.sdc

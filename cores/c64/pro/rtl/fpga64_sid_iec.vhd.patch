@@ -1,0 +1,11 @@
+--- a/rtl/fpga64_sid_iec.vhd
++++ b/rtl/fpga64_sid_iec.vhd
+@@ -856,7 +856,7 @@ begin
+ 					when "00" => turbo_m <= "010";
+ 					when "01" => turbo_m <= "110";
+ 					when "10" => turbo_m <= "111";
+-					when "11" => turbo_m <= "111"; -- unused
++					when others => turbo_m <= "111"; -- unused; Retro25: "11" (Quartus Pro)
+ 				end case;
+ 			end if;
+ 		end if;

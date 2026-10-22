@@ -1,0 +1,51 @@
+--- a/rtl/iec_drive/c1541_multi.sv
++++ b/rtl/iec_drive/c1541_multi.sv
+@@ -40,7 +40,7 @@ module c1541_multi #(parameter PARPORT=1,DUALROM=1,DRIVES=2)
+ 	// parallel bus
+ 	input   [7:0] par_data_i,
+ 	input         par_stb_i,
+-	output  [7:0] par_data_o,
++	output logic  [7:0] par_data_o,   // Retro25: logic (always_comb, Quartus Pro)
+ 	output        par_stb_o,
+ 
+ 	//clk_sys ports
+@@ -115,10 +115,12 @@ always @(posedge clk_sys) if (rom_wr & |rom_data & ~&rom_data) {rom_32k_i,rom_16
+ reg [1:0] rom_sz;
+ always @(posedge clk) rom_sz <= {rom_32k_i,rom_32k_i|rom_16k_i}; // support for 8K/16K/32K ROM
+ 
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++reg  [14:0] mem_a;
+ wire [7:0] rom_do;
+ generate
+ 	if(PARPORT) begin
+-		iecdrv_mem #(8,15,"rtl/iec_drive/c1541_dolphin.mif") rom
++		iecdrv_mem #(8,15,"rtl/iec_drive/c1541_dolphin.hex") rom
+ 		(
+ 			.clock_a(clk_sys),
+ 			.address_a(rom_addr),
+@@ -131,7 +133,7 @@ generate
+ 		);
+ 	end
+ 	else if(DUALROM) begin
+-		iecdrv_mem #(8,14,"rtl/iec_drive/c1541_rom.mif") rom
++		iecdrv_mem #(8,14,"rtl/iec_drive/c1541_rom.hex") rom
+ 		(
+ 			.clock_a(clk_sys),
+ 			.address_a(rom_addr[13:0]),
+@@ -149,7 +151,7 @@ generate
+ endgenerate
+ 
+ wire [7:0] romstd_do;
+-iecdrv_mem #(8,14,"rtl/iec_drive/c1541_rom.mif") romstd
++iecdrv_mem #(8,14,"rtl/iec_drive/c1541_rom.hex") romstd
+ (
+ 	.clock_a(clk_sys),
+ 	.address_a(rom_addr[13:0]),
+@@ -161,7 +163,6 @@ iecdrv_mem #(8,14,"rtl/iec_drive/c1541_rom.mif") romstd
+ 	.q_b(romstd_do)
+ );
+ 
+-reg  [14:0] mem_a;
+ wire [14:0] drv_addr[NDR];
+ reg   [7:0] drv_data[4];
+ always @(posedge clk) begin

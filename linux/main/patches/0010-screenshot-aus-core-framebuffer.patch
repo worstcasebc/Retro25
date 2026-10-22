@@ -1,0 +1,163 @@
+Retro25: Screenshot im Framebuffer-Modus eines Cores (MISTER_FB, z. B. z486
+in SVGA-Modi). Der Puffer des Scalers enthält dann nur den VGA-Eingang des
+Cores (Streifen). Jetzt liest Main Format, Größe, Basis und Zeilenlänge per
+UIO_GET_FB_PAR, bei 8 bpp die Palette aus der Schattenkopie in sys_top
+(neuer UIO-Befehl 0x4E), und rechnet das Bild aus dem DDR in RGB um.
+
+--- a/scaler.cpp	2026-10-22 14:50:28.620662300 +0200
++++ b/scaler.cpp	2026-10-22 16:31:01.978278800 +0200
+@@ -28,6 +28,8 @@
+ #include "scaler.h"
+ #include "lib/imlib2/Imlib2.h"
+ #include "shmem.h"
++#include "spi.h"
++#include "user_io.h"
+ #include "file_io.h"
+ #include "menu.h"
+ 
+@@ -536,6 +538,95 @@
+     screenshot_pending_atomic = false;
+ };
+ 
++// Retro25: Screenshot aus dem Framebuffer des Cores (MISTER_FB, z. B. z486 in
++// SVGA-Modi). Der Puffer des Scalers enthält dann nur den VGA-Eingang des
++// Cores, das Bild liegt im DDR. Parameter aus UIO_GET_FB_PAR (Format, Größe,
++// Basis, Zeilenlänge), die Palette bei 8 bpp aus der Schattenkopie in sys_top
++// (UIO 0x4E). Pixel entpackt wie ascal (shift_opix, Bit 4 = R/B tauschen).
++// Liefert false, wenn kein Core-Framebuffer aktiv ist.
++#define UIO_GET_FB_PAL 0x4E   // Retro25: Core-Palette lesen (sys_top_de25)
++
++static bool fb_core_screenshot(int *w, int *h)
++{
++	uint16_t p[8];
++	spi_uio_cmd_cont(UIO_GET_FB_PAR);
++	for (int i = 0; i < 8; i++) p[i] = spi_w(0);
++	DisableIO();
++
++	uint16_t fmt = p[2];
++	if (!(fmt & 0x40) || (fmt & 0x80)) return false;   // kein Core-FB (oder Linux-FB)
++	int width = p[3] & 0xFFF, height = p[4] & 0xFFF;
++	uint32_t base = p[5] | ((uint32_t)p[6] << 16);
++	int stride = p[7] & 0x3FFF;
++	int bpp = ((fmt & 7) == 3) ? 1 : ((fmt & 7) == 4) ? 2 : ((fmt & 7) == 6) ? 4 : 3;
++	if (!width || !height || stride < width * bpp) return false;
++	if ((size_t)width * height * 4 > sizeof(screenshot_outputbuf)) return false;
++
++	uint32_t pal[256] = {};
++	uint16_t pal_ack = 0;   // sys_top: 0x8000 | Anzahl Paletten-Schreibzugriffe
++	if (bpp == 1)
++	{
++		pal_ack = spi_uio_cmd_cont(UIO_GET_FB_PAL);
++		for (int i = 0; i < 256; i++)
++		{
++			uint32_t gb = spi_w(0);
++			uint32_t r = spi_w(0) & 0xFF;
++			pal[i] = (r << 16) | gb;
++		}
++		DisableIO();
++	}
++
++	size_t len = (size_t)stride * height;
++	uint8_t *raw = (uint8_t *)malloc(len);
++	if (!raw) return false;
++	if (!shmem_get(base, len, raw))
++	{
++		free(raw);
++		return false;
++	}
++
++	uint32_t *out = (uint32_t *)screenshot_outputbuf;
++	for (int y = 0; y < height; y++)
++	{
++		const uint8_t *s = raw + (size_t)y * stride;
++		for (int x = 0; x < width; x++, s += bpp)
++		{
++			uint32_t r, g, b, v;
++			switch (fmt & 0xF)
++			{
++			case 0x3: case 0xB:   // 8 bpp, Palette
++				v = pal[s[0]];
++				r = (v >> 16) & 0xFF; g = (v >> 8) & 0xFF; b = v & 0xFF;
++				break;
++			case 0x4:             // 16 bpp 565
++				v = s[0] | (s[1] << 8);
++				r = v & 0x1F; g = (v >> 5) & 0x3F; b = v >> 11;
++				r = (r << 3) | (r >> 2); g = (g << 2) | (g >> 4); b = (b << 3) | (b >> 2);
++				break;
++			case 0xC:             // 16 bpp 1555
++				v = s[0] | (s[1] << 8);
++				r = v & 0x1F; g = (v >> 5) & 0x1F; b = (v >> 10) & 0x1F;
++				r = (r << 3) | (r >> 2); g = (g << 3) | (g >> 2); b = (b << 3) | (b >> 2);
++				break;
++			default:              // 24/32 bpp
++				r = s[0]; g = s[1]; b = s[2];
++				break;
++			}
++			if (bpp > 1 && (fmt & 0x10)) { v = r; r = b; b = v; }
++			out[(size_t)y * width + x] = 0xFF000000 | (r << 16) | (g << 8) | b;
++		}
++	}
++	int pal_nz = 0;
++	for (int i = 0; i < 256; i++) pal_nz += pal[i] != 0;
++	printf("Screenshot aus dem Core-Framebuffer: %dx%d, Format %02X, Basis %08X, Zeile %d, "
++	       "Palette %d/256 belegt (Antwort %04X)\n",
++	       width, height, fmt & 0x3F, base, stride, pal_nz, pal_ack);
++	free(raw);
++	*w = width;
++	*h = height;
++	return true;
++}
++
+ void do_screenshot(char* imgname)
+ {
+ 	#ifdef PROFILING
+@@ -545,8 +636,10 @@
+ 	screenshot_pending_atomic = true;
+ 	screenshot_requested = false;
+ 
+-	mister_scaler *ms = mister_scaler_init();
+-	if (ms == NULL)
++	int fb_w = 0, fb_h = 0;
++	bool fb_shot = fb_core_screenshot(&fb_w, &fb_h);   // Retro25
++	mister_scaler *ms = fb_shot ? NULL : mister_scaler_init();
++	if (!fb_shot && ms == NULL)
+ 	{
+ 		printf("problem with scaler, maybe not a new enough version\n");
+ 		Info("Scaler not compatible");
+@@ -562,15 +655,15 @@
+ 
+ 	char filename[1024];
+ 
+-	int base_width = ms->width;
+-	int base_height = ms->height;
+-	int scaled_width = ms->output_width;
+-	int scaled_height = ms->output_height;
++	int base_width = fb_shot ? fb_w : ms->width;
++	int base_height = fb_shot ? fb_h : ms->height;
++	int scaled_width = fb_shot ? fb_w : ms->output_width;
++	int scaled_height = fb_shot ? fb_h : ms->output_height;
+ 
+     size_t needed = (size_t)base_width * (size_t)base_height * 4;
+     
+     if (needed > sizeof(screenshot_outputbuf))
+-    { mister_scaler_free(ms);
++    { if (ms) mister_scaler_free(ms);
+ 		screenshot_pending_atomic = false;
+ 		screenshot_rescale = 0;
+ 		return; 
+@@ -590,13 +683,13 @@
+         extension = ".png";
+     }
+ 
+-    mister_scaler_read(ms, screenshot_outputbuf);
++    if (ms) mister_scaler_read(ms, screenshot_outputbuf);
+     FileGenerateScreenshotName(basename, filename, extension, 1024);
+ 
+     free(imgname);
+ 	imgname = NULL;
+ 	
+-    mister_scaler_free(ms);
++    if (ms) mister_scaler_free(ms);
+ 
+ 	if (video_get_rotated())
+ 	{

@@ -1,0 +1,17 @@
+--- a/rtl/cartridge.v
++++ b/rtl/cartridge.v
+@@ -141,10 +141,11 @@ reg  ezrom_en;
+ // 0018 - EXROM line status
+ // 0019 - GAME line status
+ 
++// Retro25: aus dem always-Block geholt (Quartus Pro, 16754)
++reg        init_n = 0;
++reg        allow_freeze = 0;
++reg        saved_d6 = 0;
+ always @(posedge clk32) begin
+-	reg        init_n = 0;
+-	reg        allow_freeze = 0;
+-	reg        saved_d6 = 0;
+ 	reg [15:0] count;
+ 	reg        count_ena;
+ 	reg [15:0] old_id;

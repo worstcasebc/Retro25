@@ -1,0 +1,145 @@
+Retro25: Festplatten- und Disketten-Images ohne O_SYNC. Mit O_SYNC wartete
+jeder IDE-Schreibbefehl auf den Datenträger; Stick und SD-Karte schaffen so
+nur ~150 Schreibvorgänge/s (Windows 95 schrieb mit ~40 KB/s, die Installation
+dauerte Stunden). Jetzt puffert Linux die Daten, Main ruft fsync() auf, sobald
+1 s lang nichts mehr geschrieben wurde, und vor dem Wechsel eines Images.
+
+--- a/ide.cpp	2026-10-20 08:31:39.637770700 +0200
++++ b/ide.cpp	2026-10-20 08:32:07.121038000 +0200
+@@ -11,6 +11,7 @@
+ #include <string>
+ #include <sstream>
+ #include <sys/stat.h>
++#include <unistd.h>
+ 
+ #include "support/x86/x86.h"
+ #include "support/vhd/vhdcfg.h"
+@@ -111,8 +112,65 @@
+ 	return req;
+ }
+ 
++// Retro25: Images ohne O_SYNC. Mit O_SYNC wartete jeder IDE-Schreibbefehl
++// (oft nur ein Sektor) auf den Datenträger: Stick und SD-Karte schaffen so
++// ~150 Schreibvorgänge/s, Windows 95 schrieb mit ~40 KB/s. Jetzt sammelt
++// Linux die Daten; ide_img_sync_poll() schreibt sie per fsync() auf den
++// Datenträger, sobald 1 s lang nichts mehr geschrieben wurde.
++#define IMG_SYNC_MAX 8
++static fileTYPE *img_sync_file[IMG_SYNC_MAX] = {};
++static bool img_dirty = false;
++static unsigned long img_sync_timer = 0;
++
++static void img_sync_file_now(fileTYPE *f)
++{
++	if (f->filp && !fflush(f->filp)) fsync(fileno(f->filp));
++}
++
++static void img_sync_forget(fileTYPE *f)
++{
++	for (int i = 0; i < IMG_SYNC_MAX; i++)
++	{
++		if (img_sync_file[i] == f)
++		{
++			img_sync_file_now(f);
++			img_sync_file[i] = 0;
++		}
++	}
++}
++
++static void img_sync_track(fileTYPE *f)
++{
++	for (int i = 0; i < IMG_SYNC_MAX; i++)
++	{
++		if (!img_sync_file[i])
++		{
++			img_sync_file[i] = f;
++			return;
++		}
++	}
++	printf("ide_img_mount: no sync slot for %s\n", f->path);
++}
++
++void ide_img_written()
++{
++	img_dirty = true;
++	img_sync_timer = GetTimer(1000);
++}
++
++void ide_img_sync_poll()
++{
++	if (!img_dirty || !CheckTimer(img_sync_timer)) return;
++	img_dirty = false;
++	for (int i = 0; i < IMG_SYNC_MAX; i++)
++	{
++		if (img_sync_file[i]) img_sync_file_now(img_sync_file[i]);
++	}
++}
++
+ int ide_img_mount(fileTYPE *f, const char *name, int rw)
+ {
++	img_sync_forget(f);
+ 	FileClose(f);
+ 	int writable = 0, ret = 0;
+ 
+@@ -126,9 +184,13 @@
+ 		}
+ 		else {
+ 			writable = rw && FileCanWrite(name);
+-			ret = FileOpenEx(f, name, writable ? (O_RDWR | O_SYNC) : O_RDONLY);
++			ret = FileOpenEx(f, name, writable ? O_RDWR : O_RDONLY);
+ 			if (!ret) printf("Failed to open file %s\n", name);
+-			else strcpy(f->path, name);
++			else
++			{
++				strcpy(f->path, name);
++				if (writable) img_sync_track(f);
++			}
+ 		}
+ 	}
+ 
+@@ -888,6 +950,7 @@
+ 		else
+ 		{
+ 			if (!ide->null) ide->null = (lba < ide->drive[ide->regs.drv].offset) ? 0 : (FileWriteAdv(ide->drive[ide->regs.drv].f, ide_buf, cnt * 512, -1) <= 0);
++			ide_img_written();
+ 			lba += cnt;
+ 			ide->regs.sector_count -= cnt;
+ 			put_lba(ide, lba);
+--- a/ide.h	2026-10-20 08:31:39.668098300 +0200
++++ b/ide.h	2026-10-20 08:32:09.781671900 +0200
+@@ -150,6 +150,8 @@
+ 
+ uint16_t ide_check();
+ int ide_img_mount(fileTYPE *f, const char *name, int rw);
++void ide_img_written();   // Retro25: Image beschrieben (fsync folgt)
++void ide_img_sync_poll(); // Retro25: fsync nach 1 s ohne Schreiben
+ void ide_img_set(uint32_t drvnum, fileTYPE *f, int cd, int sectors = 0, int heads = 0, int offset = 0, int type = 0);
+ int ide_is_placeholder(int num);
+ void ide_reset(uint8_t hotswap[4]);
+--- a/support/x86/x86.cpp	2026-10-20 08:31:45.480803100 +0200
++++ b/support/x86/x86.cpp	2026-10-20 08:32:14.260941800 +0200
+@@ -386,6 +386,7 @@
+ static uint32_t img_write(fileTYPE *f, uint32_t lba, void *buf, uint32_t cnt)
+ {
+ 	if (!FileSeekLBA(f, lba)) return 0;
++	ide_img_written();
+ 	return FileWriteAdv(f, buf, cnt * 512);
+ }
+ 
+@@ -766,6 +767,7 @@
+ void x86_poll(int only_ide)
+ {
+ 	if(!only_ide) x86_share_poll();
++	ide_img_sync_poll();
+ 
+ 	uint16_t sd_req = ide_check();
+ 	if (sd_req)
+--- a/user_io.cpp	2026-10-20 08:31:39.691188100 +0200
++++ b/user_io.cpp	2026-10-20 08:32:16.784887700 +0200
+@@ -3320,6 +3320,7 @@
+ 		uint16_t sd_req = ide_check();
+ 		ide_io(0, sd_req & 7);
+ 		ide_io(1, (sd_req >> 3) & 7);
++		ide_img_sync_poll();
+ 		if (sd_req & 0x0100) ide_cdda_send_sector();
+ 		UpdateDriveStatus();
+ 

@@ -1,0 +1,80 @@
+--- a/rtl/sdram.v
++++ b/rtl/sdram.v
+@@ -24,7 +24,7 @@ module sdram (
+ 
+ 	// interface to the MT48LC16M16 chip
+ 	output reg [12:0]	sd_addr,    // 13 bit multiplexed address bus
+-	inout  reg [15:0]	sd_data,
++	inout  wire [15:0]	sd_data,   // Retro25: wire + Tri-State unten (Quartus Pro)
+ 	output reg [ 1:0]	sd_ba,      // two banks
+ 	output 				sd_cs,      // a single chip select
+ 	output 				sd_we,      // write enable
+@@ -116,15 +116,25 @@ assign sd_dqm = sd_addr[12:11];
+ reg bt;
+ reg [15:0] dout_r;
+ 
++// Retro25: Quartus Pro erlaubt keine prozedurale Zuweisung an einen inout-
++// Port: Daten- und Freigaberegister, Tri-State hier. Das Datenregister wird
++// in jedem Takt geladen (ohne Clock-Enable), sonst passt es nicht mit dem
++// Freigaberegister in die I/O-Zelle (beide teilen sich dort ein Enable);
++// am Pin wirkt es nur, solange dq_oe gesetzt ist.
++reg  [7:0] wrdata;
++reg [15:0] dq_out;
++reg        dq_oe = 1'b0;
++assign sd_data = dq_oe ? dq_out : 16'bZ;
++
+ assign dout = bt ? dout_r[15:8] : dout_r[7:0];
+ 
+ always @(posedge clk) begin
+ 	reg [8:0] caddr;
+-	reg [7:0] wrdata;
+ 	reg       wr;
+ 
+ 	sd_cmd  <= CMD_NOP;
+-	sd_data <= 16'bZ;
++	dq_oe   <= 1'b0;
++	dq_out  <= {wrdata, wrdata};
+ 
+ 	if(q == STATE_READ) dout_r <= sd_data;
+ 
+@@ -154,36 +164,15 @@ always @(posedge clk) begin
+ 			wrdata  <= din;
+ 		end
+ 		if(q == STATE_CMD_CONT) begin
+-			if(wr) sd_data <= {wrdata, wrdata};
++			if(wr) dq_oe <= 1'b1;
+ 			sd_cmd  <= wr ? CMD_WRITE : CMD_READ;
+ 			sd_addr <= {~bt & wr, bt & wr, 2'b10, caddr};
+ 		end
+ 	end
+ end
+ 
+-altddio_out
+-#(
+-	.extend_oe_disable("OFF"),
+-	.intended_device_family("Cyclone V"),
+-	.invert_output("OFF"),
+-	.lpm_hint("UNUSED"),
+-	.lpm_type("altddio_out"),
+-	.oe_reg("UNREGISTERED"),
+-	.power_up_high("OFF"),
+-	.width(1)
+-)
+-sdramclk_ddr
+-(
+-	.datain_h(1'b0),
+-	.datain_l(1'b1),
+-	.outclock(clk),
+-	.dataout(sd_clk),
+-	.aclr(1'b0),
+-	.aset(1'b0),
+-	.oe(1'b1),
+-	.outclocken(1'b1),
+-	.sclr(1'b0),
+-	.sset(1'b0)
+-);
++// Retro25: altddio_out gibt es auf Agilex 5 nicht; SDRAM_CLK erzeugt c64.sv
++// (PLL-Ausgang mit +90 Grad über sdram_clk_ddio). Ausgang unbenutzt.
++assign sd_clk = 1'b0;
+ 
+ endmodule

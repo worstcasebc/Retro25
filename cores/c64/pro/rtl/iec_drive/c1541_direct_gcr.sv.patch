@@ -1,0 +1,25 @@
+--- a/rtl/iec_drive/c1541_direct_gcr.sv
++++ b/rtl/iec_drive/c1541_direct_gcr.sv
+@@ -131,10 +131,7 @@ reg               wbl_dir;
+ // use len_valid as proxy for empty (half) tracks
+ wire [12:0] track_new_adj = (track_new > 'd6000) ? track_new : len_valid;
+ wire [12:0] track_len_adj = (track_len > 'd6000) ? track_len : len_valid;
+-wire [13:0] recip = rec[track_len_adj-6000];
+-wire buff_do_adj = (track_len > 'd6000) ? buff_do : buff_addr[0];
+-
+-// precalc reciprocals for track_len_adj = 6000 .. 8047
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
+ reg  [13:0] rec[0:2191] = '{default:0};
+ initial begin
+ 	integer i;
+@@ -142,6 +139,10 @@ initial begin
+ 		rec[i] = 14'((1 << 26) / (i + 6000));
+ 	end
+ end
++wire [13:0] recip = rec[track_len_adj-6000];
++wire buff_do_adj = (track_len > 'd6000) ? buff_do : buff_addr[0];
++
++// precalc reciprocals for track_len_adj = 6000 .. 8047
+ 
+ always @(posedge clk) begin
+ 	buff_we <= 0;

@@ -1,0 +1,36 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# retro25-switch-hook — läuft vor ("pre") und nach ("post") jedem Core-Wechsel.
+#
+# Aufrufer: Main_MiSTer (linux/main/de25/fpga_io.cpp), als root.
+# Installiert nach /usr/local/bin/retro25-switch-hook (install.sh).
+#
+# Grund (P0): Der USB-WLAN-Stick (RT5370, rt2800usb) verliert beim Neuladen des
+# FPGA die Verbindung und erholt sich nur durch einen Neustart. Ist das
+# Funknetz während des Ladens aus, ist er 3–4 s nach dem Einschalten wieder
+# online. Den Treiber NIE entladen (modprobe -r): im hängenden Zustand führt
+# das zum Kernel-Absturz.
+# Das Skript schaltet WLAN nur wieder ein, wenn es vorher an war.
+
+STATE=/run/retro25-wifi-was-on
+
+case "$1" in
+pre)
+	rm -f "$STATE"
+	if command -v nmcli >/dev/null 2>&1 && [ "$(nmcli radio wifi 2>/dev/null)" = "enabled" ]; then
+		touch "$STATE"
+		nmcli radio wifi off
+	fi
+	;;
+post)
+	if [ -e "$STATE" ]; then
+		rm -f "$STATE"
+		nmcli radio wifi on
+	fi
+	;;
+*)
+	echo "Aufruf: $0 pre|post" >&2
+	exit 1
+	;;
+esac
+exit 0

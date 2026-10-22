@@ -1,0 +1,104 @@
+--- vendor/mister/hps_io.sv
++++ de25/pro/hps_io.sv
+@@ -193,6 +193,18 @@
+ assign HPS_BUS[32]   = io_wide;
+ assign HPS_BUS[15:0] = EXT_BUS[32] ? EXT_BUS[15:0] : fp_enable ? fp_dout : io_dout;
+ 
++// DE25 (Quartus Pro): Diese Signale standen im generate-Block "if(PS2DIV)"
++// weiter unten, werden aber außerhalb benutzt. Quartus Standard sieht darüber
++// hinweg, Quartus Pro nicht — daher hier auf Modulebene.
++reg  [7:0] kbd_data;
++reg        kbd_we;
++wire [8:0] kbd_data_host;
++reg        kbd_rd;
++reg  [7:0] mouse_data;
++reg        mouse_we;
++wire [8:0] mouse_data_host;
++reg        mouse_rd;
++
+ reg [15:0] cfg;
+ assign buttons = cfg[1:0];
+ //cfg[2] - vga_scaler handled in sys_top
+@@ -266,16 +278,20 @@
+ always@(posedge clk_sys) begin : uio_block
+ 	reg [15:0] cmd;
+ 	reg  [2:0] b_wr;
++// DE25 (Quartus Pro): Startwerte lokaler Register entfernt - mit Startwert
++// behandelt Pro sie als automatisch und setzt sie bei jedem Durchlauf zurueck
++// (Warnung 16754, "should be declared as automatic or static"). Ohne Startwert
++// sind sie statisch wie unter Quartus Standard; Einschaltwert ist ohnehin 0.
+ 	reg  [3:0] stick_idx;
+ 	reg  [3:0] pdsp_idx;
+-	reg        ps2skip = 0;
+-	reg  [3:0] stflg = 0;
++	reg        ps2skip;
++	reg  [3:0] stflg;
+ 	reg[127:0] status_req;
+-	reg        old_status_set = 0;
+-	reg        old_upload_req = 0;
+-	reg        upload_req = 0;
+-	reg        old_info = 0;
+-	reg  [7:0] info_n = 0;
++	reg        old_status_set;
++	reg        old_upload_req;
++	reg        upload_req;
++	reg        old_info;
++	reg  [7:0] info_n;
+ 	reg [15:0] tmp1;
+ 	reg  [7:0] tmp2;
+ 	reg  [3:0] sdn_r;
+@@ -559,11 +575,6 @@
+ 			end
+ 		end
+ 
+-		reg  [7:0] kbd_data;
+-		reg        kbd_we;
+-		wire [8:0] kbd_data_host;
+-		reg        kbd_rd;
+-
+ 		ps2_device keyboard
+ 		(
+ 			.clk_sys(clk_sys),
+@@ -582,11 +593,6 @@
+ 			.rd(kbd_rd)
+ 		);
+ 
+-		reg  [7:0] mouse_data;
+-		reg        mouse_we;
+-		wire [8:0] mouse_data_host;
+-		reg        mouse_rd;
+-
+ 		ps2_device mouse
+ 		(
+ 			.clk_sys(clk_sys),
+@@ -610,6 +616,8 @@
+ 		assign ps2_kbd_data_out = 0;
+ 		assign ps2_mouse_clk_out = 0;
+ 		assign ps2_mouse_data_out = 0;
++		assign kbd_data_host = 0;     // DE25: siehe oben
++		assign mouse_data_host = 0;
+ 	end
+ endgenerate
+ 
+@@ -916,9 +924,9 @@
+ 	reg [7:0] pcnt;
+ 	reg [7:0] de_v;
+ 	reg [15:0] de_h;
+-	reg old_vs = 0, old_hs = 0, old_hs_vclk = 0, old_de = 0, old_de_vclk = 0, old_de1 = 0, old_vmode = 0;
+-	reg [3:0] resto = 0;
+-	reg calch = 0;
++	reg old_vs, old_hs, old_hs_vclk, old_de, old_de_vclk, old_de1, old_vmode;
++	reg [3:0] resto;
++	reg calch;
+ 
+ 	if(resto == 1) vid_fclks <= vid_fclks + 1'd1;
+ 	if(calch & de) ccnt <= ccnt + 1;
+@@ -980,7 +988,7 @@
+ always @(posedge clk_100) begin
+ 	integer vtime, htime, hcnt;
+ 	reg old_vs, old_hs, old_vs2, old_hs2, old_de, old_de2;
+-	reg calch = 0;
++	reg calch;
+ 
+ 	old_vs <= vs;
+ 	old_hs <= hs;

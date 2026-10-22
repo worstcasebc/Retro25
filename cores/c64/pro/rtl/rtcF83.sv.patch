@@ -1,0 +1,144 @@
+--- a/rtl/rtcF83.sv
++++ b/rtl/rtcF83.sv
+@@ -47,20 +47,24 @@ wire [7:0] hrh  = (hr >= 12) ? (hr - 8'd12) : hr;
+ wire [5:0] hr12 = (!hrh) ? 6'h12 : (hrh == 11) ? 6'h11 : (hrh == 10) ? 6'h10 : hrh[5:0];
+ wire       pm   = (hr >= 12);
+ 
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg  [3:0] rtc_cnt = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [10:0] rtc_bcnt = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg        rtc_flg = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [31:0] rtc_seccnt = 1;
+ always @(posedge clk) begin
+ 	reg  [1:0] sda_sr, scl_sr;
+ 	reg        old_sda, old_scl;
+ 	reg        sda, scl;
+ 	reg  [7:0] tmp;
+-	reg  [3:0] cnt = 0;
+-	reg [10:0] bcnt = 0;
+ 	reg        ack;
+ 	reg        i2c_rw;
+ 	reg  [7:0] ptr;
+ 	reg  [7:0] data[256];
+ 	reg  [7:0] tm[17];
+-	reg        flg = 0;
+-	reg [31:0] seccnt = 1;
+ 	reg  [7:0] scl_d;
+ 	reg  [7:0] sda_d;
+ 	reg  [7:0] bt;
+@@ -70,7 +74,7 @@ always @(posedge clk) begin
+ 	if(reset) begin
+ 		sda_o <= 1;
+ 		ptr <= 0;
+-		cnt <= 0;
++		rtc_cnt <= 0;
+ 	end
+ 	else begin
+ 		sda_sr <= {sda_sr[0],sda_i};
+@@ -85,64 +89,64 @@ always @(posedge clk) begin
+ 
+ 		//start
+ 		if(old_scl & scl & old_sda & ~sda) begin
+-			cnt <= 9;
+-			bcnt <= 0;
++			rtc_cnt <= 9;
++			rtc_bcnt <= 0;
+ 			ack <= 0;
+ 			i2c_rw <= 0;
+ 		end
+ 
+ 		//stop
+ 		if(old_scl & scl & ~old_sda & sda) begin
+-			cnt <= 0;
++			rtc_cnt <= 0;
+ 		end
+ 
+ 		//data latch
+-		if(~old_scl && scl && cnt) begin
++		if(~old_scl && scl && rtc_cnt) begin
+ 			tmp <= {tmp[6:0], sda};
+-			cnt <= cnt - 1'd1;
++			rtc_cnt <= rtc_cnt - 1'd1;
+ 		end
+ 
+-		if(!cnt) sda_o <= 1;
++		if(!rtc_cnt) sda_o <= 1;
+ 
+ 		//data set
+ 		if(old_scl && ~scl) begin
+ 			sda_o <= 1;
+-			if(cnt == 1) begin
+-				if(!bcnt) begin
++			if(rtc_cnt == 1) begin
++				if(!rtc_bcnt) begin
+ 					if(tmp[7:1] == 'h50) begin
+ 						sda_o <= 0;
+ 						ack <= 1;
+ 						i2c_rw <= tmp[0];
+-						bcnt <= bcnt + 1'd1;
+-						cnt <= 10;
++						rtc_bcnt <= rtc_bcnt + 1'd1;
++						rtc_cnt <= 10;
+ 					end
+ 					else begin
+ 						// wrong address, stop
+-						cnt <= 0;
++						rtc_cnt <= 0;
+ 					end
+ 				end
+ 				else if(ack) begin
+ 					ptr <= ptr + 1'd1;
+ 					if(~i2c_rw) begin
+-						if(bcnt == 1) ptr <= tmp;
++						if(rtc_bcnt == 1) ptr <= tmp;
+ 						if(ptr<=16) tm[ptr] <= tmp;
+ 						else if(HAS_RAM) data[ptr] <= tmp;
+ 					end
+-					if(~&bcnt) bcnt <= bcnt + 1'd1;
++					if(~&rtc_bcnt) rtc_bcnt <= rtc_bcnt + 1'd1;
+ 					sda_o <= 0;
+-					cnt <= 10;
++					rtc_cnt <= 10;
+ 				end
+ 			end
+-			else if(i2c_rw && ack && cnt) begin
+-				sda_o <= (ptr<=16) ? tm[ptr][cnt[2:0] - 2'd2] : bt[cnt[2:0] - 2'd2];
++			else if(i2c_rw && ack && rtc_cnt) begin
++				sda_o <= (ptr<=16) ? tm[ptr][rtc_cnt[2:0] - 2'd2] : bt[rtc_cnt[2:0] - 2'd2];
+ 			end
+ 		end
+ 	end
+ 
+ 	if(ce) begin
+-		seccnt <= seccnt + 1;
+-		if(seccnt >= CLOCK_RATE/100) begin
+-			seccnt <= 1;
++		rtc_seccnt <= rtc_seccnt + 1;
++		if(rtc_seccnt >= CLOCK_RATE/100) begin
++			rtc_seccnt <= 1;
+ 			if(!tm[CTL][7]) begin
+ 				if (tm[FSEC][3:0] != 9) tm[FSEC][3:0] <= tm[FSEC][3:0] + 1'd1;
+ 				else begin
+@@ -208,8 +212,8 @@ always @(posedge clk) begin
+ 		end
+ 	end
+ 
+-	flg <= RTC[64];
+-	if (flg != RTC[64]) begin
++	rtc_flg <= RTC[64];
++	if (rtc_flg != RTC[64]) begin
+ 		tm[CTL]  <= 0;
+ 		tm[FSEC] <= 0;
+ 		tm[SEC]  <= RTC[6:0];
+@@ -218,7 +222,7 @@ always @(posedge clk) begin
+ 		tm[DATE] <= {year[1:0],RTC[29:24]};
+ 		tm[MON]  <= {RTC[50:48],RTC[36:32]};
+ 		tm[YEAR] <= year;
+-		seccnt   <= 1;
++		rtc_seccnt   <= 1;
+ 	end
+ end
+ 

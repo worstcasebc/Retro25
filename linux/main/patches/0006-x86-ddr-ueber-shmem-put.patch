@@ -1,0 +1,55 @@
+Retro25: x86 (ao486/z486) – BIOS-ROMs und Speicherfüllung über shmem_put in
+den DDR statt memset/Dateiladen direkt in die /dev/mem-Abbildung. Auf dem
+DE25 ist das Fenster nur als Device-Speicher abbildbar; Main stürzte beim
+Start des z486 mit SIGBUS ab (wie bei der C64-Diskette, Patch 0005).
+
+--- a/support/x86/x86.cpp	2026-10-18 18:22:48.814519700 +0200
++++ b/support/x86/x86.cpp	2026-10-18 18:22:58.354134400 +0200
+@@ -298,15 +298,20 @@
+ 	DisableIO();
+ }
+ 
++// Retro25 (DE25): Das DDR-Fenster ist per /dev/mem nur als Device-Speicher
++// abbildbar; memset/memcpy (DC ZVA, nicht ausgerichtete Zugriffe) lösen dort
++// SIGBUS aus. Daher in normalem Speicher aufbauen und per shmem_put
++// (ausgerichtete Zugriffe) übertragen — wie Patch 0005 beim C64.
+ static int mem_set(uint32_t offset, uint8_t fill_byte, uint32_t size)
+ {
+-	void *buf = shmem_map(SHMEM_ADDR + offset, size);
++	void *buf = malloc(size);
+ 	if (!buf) return 0;
+ 
+ 	memset(buf, fill_byte, size);
+-	shmem_unmap(buf, size);
++	int ok = shmem_put(SHMEM_ADDR + offset, size, buf);
++	free(buf);
+ 
+-	return 1;
++	return ok;
+ }
+ 
+ static int load_rom(const char* name, uint32_t mem_offset)
+@@ -318,19 +323,19 @@
+ 
+ 	uint32_t size = f.size;
+ 
+-	void *buf = shmem_map(SHMEM_ADDR + mem_offset, size);
++	void *buf = calloc(1, size);   // Retro25: wie mem_set, über shmem_put
+ 	if (!buf)
+ 	{
+ 		FileClose(&f);
+ 		return 0;
+ 	}
+ 
+-	memset(buf, 0, size);
+ 	FileReadAdv(&f, buf, size);
+-	shmem_unmap(buf, size);
++	int ok = shmem_put(SHMEM_ADDR + mem_offset, size, buf);
++	free(buf);
+ 
+ 	FileClose(&f);
+-	return 1;
++	return ok;
+ }
+ 
+ #define FDD_TYPE_NONE 0

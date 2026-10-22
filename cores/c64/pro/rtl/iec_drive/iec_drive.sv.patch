@@ -1,0 +1,42 @@
+--- a/rtl/iec_drive/iec_drive.sv
++++ b/rtl/iec_drive/iec_drive.sv
+@@ -26,8 +26,8 @@ module iec_drive #(parameter PARPORT=1,DUALROM=1,DRIVES=2)
+ 	input         drive_wobble,
+ 
+ 	output  [N:0] led,
+-	output wire [7:0] out_track[NDR],
+-	output wire [N:0] out_we,
++	output logic [7:0] out_track[NDR],   // Retro25: logic (always_comb, Quartus Pro)
++	output logic [N:0] out_we,
+ 	output        disk_ready,
+ 
+ 	input         iec_atn_i,
+@@ -45,14 +45,14 @@ module iec_drive #(parameter PARPORT=1,DUALROM=1,DRIVES=2)
+ 	//clk_sys ports
+ 	input         clk_sys,
+ 
+-	output [31:0] sd_lba[NDR],
+-	output  [5:0] sd_blk_cnt[NDR],
+-	output  [N:0] sd_rd,
+-	output  [N:0] sd_wr,
++	output logic [31:0] sd_lba[NDR],      // Retro25: logic (always_comb, Quartus Pro)
++	output logic  [5:0] sd_blk_cnt[NDR],
++	output logic  [N:0] sd_rd,
++	output logic  [N:0] sd_wr,
+ 	input   [N:0] sd_ack,
+ 	input  [13:0] sd_buff_addr,
+ 	input   [7:0] sd_buff_dout,
+-	output  [7:0] sd_buff_din[NDR],
++	output logic  [7:0] sd_buff_din[NDR],   // Retro25: logic (Quartus Pro)
+ 	input         sd_buff_wr,
+ 
+ 	input  [15:0] rom_addr,
+@@ -176,7 +176,7 @@ wire  [7:0] c1581_sd_buff_dout[NDR];
+ wire [31:0] c1581_sd_lba[NDR];
+ wire  [N:0] c1581_sd_rd, c1581_sd_wr;
+ 
+-c1581_multi #(.PARPORT(PARPORT), .DUALROM(DUALROM), .DRIVES(DRIVES)) c1581
++c1581_multi #(.PARPORT(0), .DUALROM(0), .DRIVES(DRIVES)) c1581   // Retro25: ein ROM (M20K)
+ (
+ 	.clk(clk),
+ 	.reset(reset | ~dtype[1]),

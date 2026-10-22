@@ -1,0 +1,38 @@
+Retro25: Gemeinsamer Ordner (x86_share) auf dem DE25. Das DDR-Fenster ist nur
+als Device-Speicher abbildbar; process_request() arbeitete direkt darin (nicht
+ausgerichtete Felder, memcpy) -> SIGBUS. Jetzt wird der MISTERFS-Rahmen mit
+shmem_get in normalen Speicher geholt, dort bearbeitet und die Antwort mit
+shmem_put zurückgeschrieben, danach die Quittung (wie Patch 0005/0006).
+
+--- a/support/x86/x86_share.cpp	2026-10-22 08:55:36.150565900 +0200
++++ b/support/x86/x86_share.cpp	2026-10-22 08:55:46.505441100 +0200
+@@ -51,6 +51,7 @@
+ #define REQUEST_BUFFER  4
+ #define HDRLEN          8
+ #define DATA_BUFFER     (REQUEST_BUFFER+66)
++#define SHARE_FRAME     1096   // Retro25: Rahmen von MISTERFS (FRAMESIZE 1090), auf 8 gerundet
+ 
+ //#define DEBUG
+ 
+@@ -1186,8 +1187,19 @@
+ 
+ 			if (((req_id >> 16) & 0xFFFF) == 0xA55A && ((req_id + 77) & 0xFF) == ((req_id >> 8) & 0xFF))
+ 			{
+-				process_request(shmem + REQUEST_BUFFER);
+-				*(uint16_t*)(shmem + REQUEST_FLG + 2) = (uint16_t)req_id;
++				// Retro25 (DE25): Das DDR-Fenster ist nur als Device-Speicher
++				// abbildbar; process_request() greift mit nicht ausgerichteten
++				// Feldern und memcpy zu -> SIGBUS. Daher den Rahmen (MISTERFS:
++				// höchstens 1090 Byte) ausgerichtet in normalen Speicher holen,
++				// dort bearbeiten und die Antwort zurückschreiben.
++				static uint8_t frame[SHARE_FRAME] __attribute__((aligned(8)));
++				shmem_get(SHMEM_ADDR + REQUEST_BUFFER, SHARE_FRAME, frame);
++				int reslen = process_request(frame);
++				uint32_t n = HDRLEN + (reslen > 0 ? reslen : 0);
++				if (n > SHARE_FRAME) n = SHARE_FRAME;
++				shmem_put(SHMEM_ADDR + REQUEST_BUFFER, n, frame);
++				__sync_synchronize();   // Antwort vor der Quittung
++				*(volatile uint16_t*)(shmem + REQUEST_FLG + 2) = (uint16_t)req_id;
+ 			}
+ 		}
+ 	}

@@ -1,0 +1,13 @@
+--- vendor/mister/ddr_svc.sv
++++ de25/pro/ddr_svc.sv
+@@ -34,7 +34,9 @@
+ 	output  [7:0] ram_byteenable,
+ 	output reg    ram_write,
+ 
+-	output  [7:0] ram_bcnt,
++	// DE25 (Quartus Pro): "reg" ergaenzt - ram_bcnt wird unten in always
++	// beschrieben; Quartus Standard sieht darueber hinweg, Quartus Pro nicht.
++	output reg [7:0] ram_bcnt,
+ 
+ 	input  [31:3] ch0_addr,
+ 	input   [7:0] ch0_burst,

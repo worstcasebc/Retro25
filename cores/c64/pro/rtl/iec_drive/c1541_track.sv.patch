@@ -1,0 +1,119 @@
+--- a/rtl/iec_drive/c1541_track.sv
++++ b/rtl/iec_drive/c1541_track.sv
+@@ -228,41 +228,46 @@ assign busy_flushing = (|dirty_tracks) || sd_state || ((dma_state != IDLE) && bg
+ // DMA Control FSM
+ // -----------------------------------------------------------------------------
+ 
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg [6:0]  trk_cur_track = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg trk_update     = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg trk_old_change = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg trk_old_save_track = 0;
++// Retro25: aus dem always-Block geholt (Quartus Pro setzt dort Register mit Startwert in jedem Takt zurück, 16754)
++reg trk_old_ack = 0;
+ always @(posedge clk) begin
+     reg [31:0] cur_track_offset; // G64 image track offset in bytes
+-	reg [6:0]  cur_track = 0;
+ 	reg [6:0]  track_new;
+-	reg update     = 0;
+-	reg old_change = 0;
+-	reg old_save_track = 0;
+-	reg old_ack = 0;
+ 
+ 	track_new <= track_s;
+ 
+-	old_change <= change_s;
+-	if(~old_change & change_s) begin
+-		update <= 1;
++	trk_old_change <= change_s;
++	if(~trk_old_change & change_s) begin
++		trk_update <= 1;
+ 		dirty_tracks <= 0;
+ 	end
+ 
+-	old_ack <= sd_ack;
++	trk_old_ack <= sd_ack;
+ 	if(sd_ack) {sd_rd,sd_wr} <= 0;
+ 
+ 	if (reset_s) begin
+ 		dma_state <= IDLE;
+ 		sd_state  <= 0;
+ 		bg_state  <= 0;
+-		cur_track <= '1; // out-of-band value, not yet initialized
+-		update    <= 1;
++		trk_cur_track <= '1; // out-of-band value, not yet initialized
++		trk_update    <= 1;
+ 		dma_ptr   <= 0;
+ 		sd_rd     <= 0;
+ 		sd_wr     <= 0;
+-		old_save_track <= save_track_s;
++		trk_old_save_track <= save_track_s;
+ 		dirty_tracks   <= 0;
+ 		scan_track     <= 0;
+ 	end else begin
+ 		if (sd_state) begin
+-			if(old_ack && ~sd_ack) begin
++			if(trk_old_ack && ~sd_ack) begin
+ 				sd_state <= 0;
+ 			end
+ 		end
+@@ -277,19 +282,19 @@ always @(posedge clk) begin
+ 			// Priority 2: Foreground Track Change (track_new updated or image mounted)
+ 			// Priority 3: Background SD Flush (dirty_tracks queue not empty)
+ 			IDLE: begin
+-				if (old_save_track != save_track_s) begin
+-					old_save_track <= save_track_s;
+-					if (~&cur_track[6:1]) begin
+-						// Don't save until cur_track initalized
++				if (trk_old_save_track != save_track_s) begin
++					trk_old_save_track <= save_track_s;
++					if (~&trk_cur_track[6:1]) begin
++						// Don't save until trk_cur_track initalized
+ 						// and don't save if no G64 offset
+ 						if (cur_track_offset != 0) begin
+ 							bg_state <= 0;
+ 							dma_state <= PREP_DDRAM_WRITE;
+ 						end
+ 					end
+-				end else if ((cur_track != track_new) || update) begin
+-					cur_track <= track_new;
+-					update    <= 0;
++				end else if ((trk_cur_track != track_new) || trk_update) begin
++					trk_cur_track <= track_new;
++					trk_update    <= 0;
+ 					dma_ptr   <= 0;
+ 					bg_state  <= 0;
+ 					// G64 header stores track offset table at $C
+@@ -327,7 +332,7 @@ always @(posedge clk) begin
+ 						bg_track_offset  <= ((12 + bg_track * 4) & 4) ?
+ 										    DDRAM_DOUT[63:32] : DDRAM_DOUT[31:0];
+ 					end else begin
+-						cur_track_offset <= ((12 + cur_track * 4) & 4) ?
++						cur_track_offset <= ((12 + trk_cur_track * 4) & 4) ?
+ 											DDRAM_DOUT[63:32] : DDRAM_DOUT[31:0];
+ 					end
+ 					dma_state <= START_DMA;
+@@ -399,9 +404,9 @@ always @(posedge clk) begin
+ 						dma_state <= IDLE;
+ 						bg_state <= 0;
+ 						// Safety Check: If the user mounted a new disk during dma,
+-						// `update` will be 1, to not write to the new mount instead
++						// `trk_update` will be 1, to not write to the new mount instead
+ 						// of the old, discard the data and do NOT trigger sd_wr
+-						if (!update) begin
++						if (!trk_update) begin
+ 							lba      <= {25'd0, bg_track};
+ 							sd_wr    <= 1;
+ 							sd_state <= 1;
+@@ -494,7 +499,7 @@ always @(posedge clk) begin
+ 					if (dma_ptr + (16'd8 - {13'd0, dma_align}) >= dma_total_len) begin
+ 						dma_state <= IDLE;
+ 						// Mark track as dirty so the background FSM will flush it to SD later
+-						if (!update) dirty_tracks[cur_track] <= 1'b1;
++						if (!trk_update) dirty_tracks[trk_cur_track] <= 1'b1;
+ 					end else begin
+ 						// Loop back to fetch the next word from BRAM
+ 						dma_state <= WAIT_STATE_1_BUFF;

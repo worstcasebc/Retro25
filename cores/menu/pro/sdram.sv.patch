@@ -1,0 +1,104 @@
+--- a/sdram.sv
++++ b/sdram.sv
+@@ -32,10 +32,10 @@ module sdram
+    input             clk,         // clock ~100MHz
+                                   //
+                                   // SDRAM_* - signals to the MT48LC16M16 chip
+-   inout  reg [15:0] SDRAM_DQ,    // 16 bit bidirectional data bus
++   inout  wire [15:0] SDRAM_DQ,   // Retro25: wire + Tri-State unten (Quartus Pro)    // 16 bit bidirectional data bus
+    output reg [12:0] SDRAM_A,     // 13 bit multiplexed address bus
+-   output reg        SDRAM_DQML,  // two byte masks
+-   output reg        SDRAM_DQMH,  // 
++   output wire       SDRAM_DQML,  // two byte masks
++   output wire       SDRAM_DQMH,  // 
+    output reg  [1:0] SDRAM_BA,    // two banks
+    output            SDRAM_nCS,   // a single chip select
+    output            SDRAM_nWE,   // write enable
+@@ -63,6 +63,15 @@ assign SDRAM_nWE  = command[0];
+ assign SDRAM_CKE  = 1;
+ assign {SDRAM_DQMH,SDRAM_DQML} = SDRAM_A[12:11];
+ 
++// Retro25: Quartus Pro erlaubt keine prozedurale Zuweisung an einen inout-
++// Port. Gleiches Verhalten: Datenregister + Freigaberegister, Tri-State hier.
++// preserve: Das Menü schreibt nur wenige feste Werte; ohne das Attribut legt
++// die Synthese gleiche Bits zusammen bzw. entfernt konstante — die I/O-Zelle
++// jedes Pins braucht aber ihr eigenes Datenregister (sonst Fehler 24873).
++(* preserve *) reg [15:0] dq_out;
++reg        dq_oe = 0;
++assign SDRAM_DQ = dq_oe ? dq_out : 16'bZ;
++
+ assign dout       = save_addr[0] ? {data[7:0],     data[15:8]}     : {data[15:8],     data[7:0]};
+ 
+ // no burst configured
+@@ -105,6 +114,11 @@ typedef enum
+ 	STATE_IDLE_4, STATE_IDLE_5, STATE_IDLE_6, STATE_IDLE_7
+ } state_t;
+ 
++// Retro25: Zustand und save_we aus dem always-Block geholt — Quartus Pro
++// setzt dort deklarierte Register mit Startwert bei jedem Takt zurück (16754).
++reg     save_we = 1;
++state_t state = STATE_STARTUP;
++
+ always @(posedge clk) begin
+ 	reg old_we, old_rd;
+ 	reg [CAS_LATENCY:0] data_ready_delay;
+@@ -113,11 +127,12 @@ always @(posedge clk) begin
+ 	reg  [1:0] new_wtbt;
+ 	reg        new_we;
+ 	reg        new_rd;
+-	reg        save_we = 1;
+-
+-	state_t state = STATE_STARTUP;
+ 
+-	SDRAM_DQ <= 16'bZ;
++	dq_oe <= 1'b0;
++	// Retro25: Datenregister ohne Clock-Enable (in jedem Takt geladen), damit es
++	// mit dq_oe in die I/O-Zelle passt (FAST_OUTPUT_REGISTER, beide teilen sich
++	// dort ein Enable). Am Pin wirkt dq_out nur, wenn dq_oe gesetzt ist.
++	dq_out <= new_wtbt ? new_data : {new_data[7:0], new_data[7:0]};
+ 	command <= CMD_NOP;
+ 	refresh_count  <= refresh_count+1'b1;
+ 
+@@ -251,7 +266,7 @@ always @(posedge clk) begin
+ 		STATE_WRITE: begin
+ 			state       <= STATE_IDLE_5;
+ 			command     <= CMD_WRITE;
+-			SDRAM_DQ    <= new_wtbt ? new_data : {new_data[7:0], new_data[7:0]};
++			dq_oe       <= 1'b1;
+ 			ready       <= 1;
+ 		end
+ 	endcase
+@@ -268,29 +283,9 @@ always @(posedge clk) begin
+ 	if(rd & ~old_rd) {ready, new_rd} <= {1'b0, 1'b1};
+ end
+ 
+-altddio_out
+-#(
+-	.extend_oe_disable("OFF"),
+-	.intended_device_family("Cyclone V"),
+-	.invert_output("OFF"),
+-	.lpm_hint("UNUSED"),
+-	.lpm_type("altddio_out"),
+-	.oe_reg("UNREGISTERED"),
+-	.power_up_high("OFF"),
+-	.width(1)
+-)
+-sdramclk_ddr
+-(
+-	.datain_h(1'b0),
+-	.datain_l(1'b1),
+-	.outclock(clk),
+-	.dataout(SDRAM_CLK),
+-	.aclr(1'b0),
+-	.aset(1'b0),
+-	.oe(1'b1),
+-	.outclocken(1'b1),
+-	.sclr(1'b0),
+-	.sset(1'b0)
+-);
++// Retro25: altddio_out (Cyclone V) gibt es unter Quartus Pro/Agilex so nicht.
++// datain_h = 0, datain_l = 1 heißt: SDRAM_CLK = invertierter clk. Der Takt
++// geht hier direkt (invertiert) an den Pin, wie der HDMI-Takt in sys_top_de25.
++assign SDRAM_CLK = ~clk;
+ 
+ endmodule

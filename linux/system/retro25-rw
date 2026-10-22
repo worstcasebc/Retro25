@@ -1,0 +1,30 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-3.0-or-later
+# retro25-rw / retro25-ro — Root-Dateisystem für Wartung beschreibbar machen
+# bzw. wieder schützen (linux/system/install.sh legt beide Namen an).
+#     sudo retro25-rw     apt, install.sh, Dateien ändern …
+#     sudo retro25-ro     danach wieder schreibgeschützt
+# Ein Neustart schaltet ohnehin auf ro (/etc/fstab).
+set -e
+[ "$(id -u)" = 0 ] || { echo "Bitte mit sudo starten."; exit 1; }
+case "$(basename "$0")" in
+retro25-rw)
+	mount -o remount,rw /
+	echo "Root ist beschreibbar - danach: sudo retro25-ro"
+	;;
+retro25-ro)
+	sync
+	if mount -o remount,ro / 2>/dev/null; then
+		echo "Root ist schreibgeschützt"
+	else
+		echo "Umschalten auf ro fehlgeschlagen - diese Prozesse schreiben noch aufs Root:"
+		retro25-rw-offen || true
+		echo "Spätestens der nächste Neustart schaltet auf ro."
+		exit 1
+	fi
+	;;
+*)
+	echo "Aufruf als retro25-rw oder retro25-ro"
+	exit 1
+	;;
+esac

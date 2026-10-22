@@ -1,0 +1,22 @@
+--- a/rtl/opl3/opl3fm.sv
++++ b/rtl/opl3/opl3fm.sv
+@@ -186,7 +186,10 @@ always @(posedge clk) CE <= !CE;
+ 
+ endmodule
+ 
+-module opl3_mem
++/* Retro25: opl3_mem steht in cores/c64/rtl/opl3_mem.v (zwei 8-bit-Bänke statt
++   eines Speichers mit zwei Portbreiten, siehe dort); das Original ist
++   stillgelegt.
++module opl3_mem_original
+ #(
+ 	parameter
+ 		DATA_WIDTH1    = 8,
+@@ -223,6 +226,7 @@ always@(posedge clk) if(we2) ram[addr2] = data_in2;
+ always@(posedge clk) data_out2 <= ram[addr2];
+ 
+ endmodule
++*/
+ 
+ module opl3_fifo
+ (

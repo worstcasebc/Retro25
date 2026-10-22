@@ -1,0 +1,54 @@
+--- a/rtl/mos6526.v
++++ b/rtl/mos6526.v
+@@ -132,25 +132,6 @@ always @(posedge clk) begin
+   if (phi2_p) pa_out <= pra | ~ddra;
+ end
+ 
+-// Port B Output
+-always @(posedge clk) begin
+-  if (!res_n) begin
+-    prb  <= 8'h00;
+-    ddrb <= 8'h00;
+-  end
+-  else if (wr)
+-    case (rs)
+-      4'h1: prb  <= db_in;
+-      4'h3: ddrb <= db_in;
+-      default: ;
+-    endcase
+-  if (phi2_p) begin
+-    pb_out[7]   <= crb[1] ? (crb[2] ? timerBff ^ timerBoverflow : timerBoverflow) : prb[7] | ~ddrb[7];
+-    pb_out[6]   <= cra[1] ? (cra[2] ? timerAff ^ timerAoverflow : timerAoverflow) : prb[6] | ~ddrb[6];
+-    pb_out[5:0] <= prb[5:0] | ~ddrb[5:0];
+-  end
+-end
+-
+ // FLAG Input
+ always @(posedge clk) begin
+ 	reg old_flag, flag;
+@@ -330,6 +311,25 @@ always @(posedge clk) begin
+   end
+ end
+ 
++// Port B Output (moved below the timers it reads)
++always @(posedge clk) begin
++  if (!res_n) begin
++    prb  <= 8'h00;
++    ddrb <= 8'h00;
++  end
++  else if (wr)
++    case (rs)
++      4'h1: prb  <= db_in;
++      4'h3: ddrb <= db_in;
++      default: ;
++    endcase
++  if (phi2_p) begin
++    pb_out[7]   <= crb[1] ? (crb[2] ? timerBff ^ timerBoverflow : timerBoverflow) : prb[7] | ~ddrb[7];
++    pb_out[6]   <= cra[1] ? (cra[2] ? timerAff ^ timerAoverflow : timerAoverflow) : prb[6] | ~ddrb[6];
++    pb_out[5:0] <= prb[5:0] | ~ddrb[5:0];
++  end
++end
++
+ // Time of Day
+ always @(posedge clk) begin
+   if (!res_n) begin

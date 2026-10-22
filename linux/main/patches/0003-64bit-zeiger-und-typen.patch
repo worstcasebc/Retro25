@@ -1,0 +1,40 @@
+Retro25: drei Stellen, die nur auf 32-bit-ARM richtig übersetzen.
+DiskImage.cpp wandelt Zeiger in 'unsigned' (auf aarch64 Fehler: Zeiger
+sind 8 Byte); scpfile.cpp vergleicht 'long long' mit int64_t, das auf
+aarch64 'long' ist (std::max braucht gleiche Typen); input.cpp liest mit
+sscanf(%n) in ein uninitialisiertes size_t — auf aarch64 bleiben dessen
+obere 4 Byte zufällig, die Einstellung controller_deadzone griffe nie.
+
+--- a/DiskImage.cpp
++++ b/DiskImage.cpp
+@@ -2821,7 +2821,7 @@
+ 			td0_src = end_packed_data;
+ 		}
+ 	}
+-	size = unsigned(td0_dst) - unsigned(data);
++	size = td0_dst - data; // Retro25: Zeigerdifferenz statt 32-bit-Casts (aarch64)
+ 	delete[] snbuf;
+ 	return true;
+ }
+--- a/input.cpp
++++ b/input.cpp
+@@ -2860,7 +2860,7 @@
+ 		if (!cfg_line || !strlen(cfg_line)) break;
+ 
+ 		uint32_t cfg_vidpid, cfg_deadzone;
+-		size_t scan_pos;
++		size_t scan_pos = 0; // Retro25: %n schreibt nur 4 Byte, auf aarch64 ist size_t 8 Byte gro�
+ 		char vp;
+ 
+ 		if ((sscanf(cfg_line, cfg_format, cfg_uid, &cfg_deadzone, &scan_pos) < 2) ||
+--- a/support/minimig/scpfile.cpp
++++ b/support/minimig/scpfile.cpp
+@@ -300,7 +300,7 @@
+ 			const int64_t t = (uint64_t)value * m_fluxMultiplier;
+ 			m_timeRemainingInRevolution -= t;
+ 			m_lastTime += t;
+-			m_fluxDelayStillWaiting = std::max(1LL,m_lastTime);			
++			m_fluxDelayStillWaiting = std::max<int64_t>(1,m_lastTime); // Retro25: int64_t ist auf aarch64 long			
+ 			m_lastTime = 0;			
+ 		}
+ 	} 

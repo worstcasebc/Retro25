@@ -1,0 +1,19 @@
+--- a/rtl/fpga64_buslogic.vhd
++++ b/rtl/fpga64_buslogic.vhd
+@@ -189,12 +189,12 @@ begin
+ 		q => romData_c64jap
+ 	);
+ 
+-	romData <= romData_c64jap when c64jap_ena = '1' else
+-				  romData_c64std when c64std_ena = '1' else
+-				  romData_c64gs  when c64gs_ena  = '1' else
++	-- Retro25: C64GS und japanisch lesen aus dem Standard-ROM (keine eigenen
++	-- ROM-Dateien; spart 18 M20K, die Synthese entfernt die unbenutzten ROMs)
++	romData <= romData_c64std when (c64jap_ena or c64std_ena or c64gs_ena) = '1' else
+ 				  romData_c64;
+ 
+-	charData <= charData_jap when c64jap_ena = '1' else charData_std;
++	charData <= charData_std;   -- Retro25: kein japanischer Zeichensatz (siehe oben)
+ 
+ 	process(clk)
+ 	begin

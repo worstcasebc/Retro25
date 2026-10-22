@@ -1,0 +1,73 @@
+# Simulation
+tb/build/
+
+# Python / Editor
+__pycache__/
+.vscode/
+
+# ROMs (Urheberrecht) — nur README bleibt im Repo
+roms/*
+!roms/README.md
+
+# P0-Projekt: nur die eigenen Dateien einchecken. Alles andere ist Erzeugnis
+# oder stammt aus Terasics GHRD und darf nicht weitergegeben werden
+# (holen mit tools/fetch_hps.py).
+p0/quartus/**
+!p0/quartus/*.qpf
+!p0/quartus/*.qsf
+!p0/quartus/*.sdc
+!p0/quartus/*.bat
+!p0/quartus/ip/
+!p0/quartus/ip/pll_c64.ip
+
+# HPS-System für alle Cores (Terasic-GHRD, nicht weitergeben; tools/fetch_hps.py)
+sys/hps/
+
+# Core-Projekte: nur .qsf/.qpf (erzeugt von tools/make_core_qsf.py) einchecken
+cores/*/quartus/**
+!cores/*/quartus/*.qsf
+!cores/*/quartus/*.qpf
+cores/*/ip/*/
+# Phasen-Varianten des SDRAM-Tests: nur die .ip-Dateien (ip-deploy-Ausgabe sonst generiert)
+!cores/sdram486test/ip/*/
+cores/sdram486test/ip/*/*
+!cores/sdram486test/ip/*/pll_486.ip
+sys/de25/ip/*/
+
+# Main_MiSTer-Bau (linux/main/build.sh)
+linux/main/build/
+cores/c64/test/out/
+
+# Probeprojekte (P5/Z2): nur Projektdateien einchecken
+cores/*/probe/**
+!cores/*/probe/*.qsf
+!cores/*/probe/*.qpf
+!cores/*/probe/*.sdc
+
+# Fremdcode — aus Lizenzgründen nicht im Repository; tools/setup.py holt ihn
+# aus festen Commits der Originale (je ein fetch-Skript) und erzeugt die
+# angepassten Kopien aus den Patches.
+cores/*/vendor/
+sys/vendor/
+linux/vendor/
+# angepasste Kopien: entstehen aus vendor/ + .patch (tools/apply_patches.py)
+cores/c64/pro/**
+!cores/c64/pro/**/
+!cores/c64/pro/**/*.patch
+cores/menu/pro/**
+!cores/menu/pro/**/
+!cores/menu/pro/**/*.patch
+cores/memtest/pro/**
+!cores/memtest/pro/**/
+!cores/memtest/pro/**/*.patch
+sys/de25/pro/**
+!sys/de25/pro/**/
+!sys/de25/pro/**/*.patch
+# z486: z486_MiSTer hat keine Lizenz, die CPU nur für .sv/.svh/.py/.md —
+# auch keine Patches mit Kontext daraus; cores/z486/make_pro.py erzeugt pro/
+cores/z486/pro/
+# Kopie von sys/vendor/mister/emu_ports.vh (tools/setup.py)
+sys/include/
+
+# Arbeitsanweisungen fuer Claude Code (nur lokal)
+CLAUDE.md

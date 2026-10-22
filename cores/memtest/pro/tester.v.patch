@@ -1,0 +1,15 @@
+--- a/tester.v
++++ b/tester.v
+@@ -136,9 +136,11 @@ end
+ 
+ // FSM controller
+ reg sdram_rst_n = 0;
++// Retro25: Startwert aus dem always-Block geholt — Quartus Pro setzte reset_req
++// sonst in jedem Takt auf 1, der Test liefe nie an (Warnung 16754).
++reg        reset_req = 1;
+ always @(posedge clk) begin
+ 	reg        check_in_progress; // when 1 - enables errors checking
+-	reg        reset_req = 1;
+ 	reg [31:0] rst_cnt;
+ 
+ 	if (check_in_progress & dram_ready & (dram_rdat!=rnd_out)) failcount <= failcount + 1;

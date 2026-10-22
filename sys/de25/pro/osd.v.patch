@@ -1,0 +1,28 @@
+--- vendor/mister/osd.v
++++ de25/pro/osd.v
+@@ -1,3 +1,7 @@
++// DE25 (Quartus Pro): Startwerte lokaler Register entfernt - mit Startwert
++// behandelt Pro sie als automatisch und setzt sie bei jedem Durchlauf zurueck
++// (Warnung 16754, "should be declared as automatic or static"). Ohne Startwert
++// sind sie statisch wie unter Quartus Standard; Einschaltwert ist ohnehin 0.
+ // A simple OSD implementation. Can be hooked up between a cores
+ // VGA output and the physical VGA pins
+ 
+@@ -51,7 +55,7 @@
+ 	reg  [7:0] cmd;
+ 	reg        has_cmd;
+ 	reg        old_strobe;
+-	reg        highres = 0;
++	reg        highres;
+ 
+ 	osd_t <= rot[0] ? OSD_WIDTH : (OSD_HEIGHT<<1);
+ 	osd_h <= rot[0] ? (info ? infow : OSD_WIDTH) : info ? infoh : (OSD_HEIGHT<<highres);
+@@ -101,7 +105,7 @@
+ 
+ (* direct_enable *) reg ce_pix;
+ always @(posedge clk_video) begin
+-	reg [21:0] cnt = 0;
++	reg [21:0] cnt;
+ 	reg [21:0] pixsz, pixcnt;
+ 	reg deD;
+ 

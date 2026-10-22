@@ -1,0 +1,118 @@
+--- a/memtest.sv
++++ b/memtest.sv
+@@ -90,12 +90,33 @@ hps_io #(.CONF_STR(CONF_STR)) hps_io
+ ///////////////////////////////////////////////////////////////////
+ wire clk_ram, locked;
+ 
+-pll pll
++// Retro25: feste Agilex-IOPLL statt der zur Laufzeit umstellbaren Cyclone-V-
++// PLL (Regel in Retro25: nur sys stellt zur Laufzeit eine PLL um — zwei
++// umgestellte HVIO-PLLs stören sich). 64 MHz wie clk64 des C64; die Tasten
++// zum Umstellen und der Automatikmodus wirken nicht mehr.
++//
++// SDRAM-Takt: zweiter PLL-Ausgang, 64 MHz mit +90 Grad, über das DDIO-
++// Register im I/O-Block unverändert zum Pin (din 2'b10) — so laufen Takt und
++// Adressen/Daten (FAST_*_REGISTER in sys_de25.tcl) gleich weit durch den
++// I/O-Block. MiSTers invertierter Takt (180 Grad) passt hier nicht: Mit dem
++// 1,8-V-SDRAM des DE25 kommen die Lesedaten später als bei MiSTer. Gemessen
++// bei 64 MHz (P4): 45/90/135 Grad fehlerfrei, 0/180/270 Grad fast jeder
++// Lesewert falsch (Details in ../README.md).
++wire clk_sdram;
++pll_memtest pll
+ (
+-	.*,
+ 	.refclk(CLK_50M),
+-	.rst(pll_reset | RESET),
+-	.outclk_0(clk_ram)
++	.rst(RESET),
++	.outclk_0(clk_ram),
++	.outclk_1(clk_sdram),
++	.locked(locked)
++);
++
++sdram_clk_ddio sdramclk_ddr
++(
++	.ck(clk_sdram),
++	.din(2'b10),        // din[1] bei clk high, din[0] bei clk low: Takt 1:1
++	.pad_out(SDRAM_CLK)
+ );
+ 
+ wire        mgmt_waitrequest;
+@@ -105,14 +126,9 @@ reg  [31:0] mgmt_writedata;
+ wire [63:0] reconfig_to_pll;
+ wire [63:0] reconfig_from_pll;
+ 
+-pll_cfg pll_cfg
+-(
+-	.*,
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(RESET),
+-	.mgmt_read(0),
+-	.mgmt_readdata()
+-);
++// Retro25: keine PLL-Umstellung (siehe oben); die Schreibfolge unten läuft
++// ins Leere und ist sofort fertig.
++assign mgmt_waitrequest = 1'b0;
+ 
+ reg recfg = 0;
+ reg pll_reset = 0;
+@@ -190,11 +206,14 @@ reg  [15:0] mins = 0;
+ reg  [15:0] secs = 0;
+ reg         auto = 0;
+ 
++// Retro25: aus dem always-Block geholt — dort setzt Quartus Pro Register mit
++// Startwert in jedem Takt zurück (Warnung 16754).
++reg  [7:0] state = 0;
++integer    min = 0, sec = 0;
++reg        old_stb = 0;
++reg [15:0] old_joy = 0;
++
+ always @(posedge CLK_50M) begin
+-	reg  [7:0] state = 0;
+-	integer    min = 0, sec = 0;
+-	reg        old_stb = 0;
+-	reg [15:0] old_joy = 0;
+ 
+ 	mgmt_write <= 0;
+ 
+@@ -326,7 +345,7 @@ always @(posedge CLK_50M) begin
+ 		end
+ 	end
+ 
+-	if(auto && (failcount && passcount) && !recfg && pos < 63) begin
++	if(1'b0 && auto && (failcount && passcount) && !recfg && pos < 63) begin   // Retro25: feste PLL
+ 		recfg <= 1;
+ 		pos <= pos + 1'd1;
+ 	end
+@@ -364,7 +383,7 @@ tester my_memtst
+ 	.chip(sdram_chip),
+ 	.passcount(passcount),
+ 	.failcount(failcount),
+-	.DRAM_CLK(SDRAM_CLK),
++	.DRAM_CLK(),          // Retro25: SDRAM_CLK kommt oben vom PLL-Ausgang
+ 	.DRAM_DQ(SDRAM_DQ),
+ 	.DRAM_ADDR(SDRAM_A),
+ 	.DRAM_LDQM(SDRAM_DQML),
+@@ -381,10 +400,11 @@ tester my_memtst
+ ///////////////////////////////////////////////////////////////////
+ wire videoclk;
+ 
+-vpll vpll
++// Retro25: feste Agilex-IOPLL (27 MHz) statt der Cyclone-V-vpll
++pll_memtest_vid vpll
+ (
+ 	.refclk(CLK_50M),
+-	.rst(0),
++	.rst(1'b0),
+ 	.outclk_0(videoclk)
+ );
+ 
+@@ -399,7 +419,7 @@ vgaout showrez
+ 	.rez2(failcount),
+ 	.rez3((sdram_sz == 3) ? ~sdram_chip : 2'b00),
+ 	.bg(6'b000001),
+-	.freq(16'hF000 | cfg_param[{pos, 2'd0}][11:0]),
++	.freq(16'hF064),   // Retro25: feste Frequenz anzeigen (BCD)
+ 	.elapsed(mins),
+ 	.mark(8'h80 >> {~auto, secs[2:0]}),
+ 	.ce(CE_PIXEL),
