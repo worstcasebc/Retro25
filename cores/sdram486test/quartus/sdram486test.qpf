@@ -19,21 +19,29 @@
 #
 # Quartus Prime
 # Version 26.1.0 Build 110 03/26/2026 SC Pro Edition
-# Date created = 17:07:26  October 18, 2026
+# Date created = 12:36:24  November 01, 2026
 #
 # -------------------------------------------------------------------------- #
 
 QUARTUS_VERSION = "26.1"
-DATE = "17:07:26  October 18, 2026"
+DATE = "12:36:24  November 01, 2026"
 
 # Revisions
 
-PROJECT_REVISION = "sdram486test_p315"
-PROJECT_REVISION = "sdram486test_p270"
-PROJECT_REVISION = "sdram486test_p225"
-PROJECT_REVISION = "sdram486test_p180"
-PROJECT_REVISION = "sdram486test_p135"
-PROJECT_REVISION = "sdram486test_p045"
-PROJECT_REVISION = "sdram486test_p000"
-PROJECT_REVISION = "sdram486test_p090"
+PROJECT_REVISION = "sdram486test_g107_p315"
+PROJECT_REVISION = "sdram486test_g107_p270"
+PROJECT_REVISION = "sdram486test_g107_p225"
+PROJECT_REVISION = "sdram486test_g107_p180"
+PROJECT_REVISION = "sdram486test_g107_p000"
+PROJECT_REVISION = "sdram486test_g107_p135"
+PROJECT_REVISION = "sdram486test_g107_p045"
+PROJECT_REVISION = "sdram486test_g107_p090"
 PROJECT_REVISION = "sdram486test"
+PROJECT_REVISION = "sdram486test_p000"
+PROJECT_REVISION = "sdram486test_p045"
+PROJECT_REVISION = "sdram486test_p090"
+PROJECT_REVISION = "sdram486test_p135"
+PROJECT_REVISION = "sdram486test_p180"
+PROJECT_REVISION = "sdram486test_p225"
+PROJECT_REVISION = "sdram486test_p270"
+PROJECT_REVISION = "sdram486test_p315"

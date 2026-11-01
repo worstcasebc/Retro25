@@ -61,6 +61,12 @@ assign BUTTONS   = 0;
 `ifndef PHASE_BCD
 `define PHASE_BCD 16'hF000
 `endif
+// Timing-Parameter des Controllers (FREQ). Vorgabe 85 MHz wie der z486.
+// Genesis-Varianten (make_variants.py --g107): Takt 107,386 MHz, aber
+// FREQ = 100 MHz -> CL2, tRCD/tRP 2, tRC 6 wie Genesis_MiSTer.
+`ifndef TESTER_FREQ
+`define TESTER_FREQ 85_000_000
+`endif
 
 wire [31:0] status;
 wire  [1:0] buttons;
@@ -154,7 +160,7 @@ always @(posedge clk_ram) begin
 end
 
 wire [31:0] passcount, failcount;
-tester486 #(.FREQ(85_000_000)) my_memtst
+tester486 #(.FREQ(`TESTER_FREQ)) my_memtst
 (
 	.clk(clk_ram),
 	.rst_n(~reset),

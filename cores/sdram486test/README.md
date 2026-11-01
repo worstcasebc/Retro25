@@ -62,3 +62,27 @@ inside the window (≥ 45° = 1.5 ns margin to both edges) and the same phase
 as for the C64 (`sdram_clk_ddio`), i.e. one setting for all cores.
 Note: with 2.5 min per phase, "error-free" is only a rough indication; 90°
 additionally ran for 10 min.
+
+## Results on the board (107.386 MHz, CL2, tRCD/tRP 2, tRC 6) — MegaDrive
+
+MegaDrive_MiSTer clocks its SDRAM at 107.386 MHz with CL2 and tRCD 2.
+`make_variants.py --g107` builds revisions `sdram486test_g107_pNNN`: PLL
+M 189, N 4, C 22 (exactly 4725/44 MHz) and `TESTER_FREQ = 100 MHz`, so the
+controller picks CL2, tRCD/tRP 2, tRC 6 (`FAST_GRADE`) — the MegaDrive
+timing; refresh comes a little more often than needed (2026-11-01, ~55 s
+per phase, 9 passes of 128 MB each):
+
+| SDRAM_CLK phase | Result (errors, hex) |
+|---|---|
+| 315° | error-free |
+| 0° | error-free |
+| 45° | error-free |
+| 90° | error-free |
+| 135° | error-free |
+| 180° | 0x3990 errors |
+| 225° | 0x12000000 = every dword wrong |
+| 270° | 0x12000000 = every dword wrong |
+
+Window 315°…135°, chosen for the MegaDrive: **45°** (center). Compared to
+85 MHz the window moves towards earlier phases — the same fixed delay is a
+larger angle at a shorter period.
