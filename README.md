@@ -5,12 +5,12 @@ Retro25 brings the [MiSTer](https://github.com/MiSTer-devel) framework to the
 MiSTer, Linux loads different FPGA cores at runtime, selected from the
 menu (F12). Ported so far: the `sys/` framework (HDMI, OSD, scaler, audio,
 `hps_io`), the Linux program Main_MiSTer (now aarch64) and three
-cores: Menu, **C64** and **z486** (486 PC).
+cores: Menu, **C64**, **z486** (486 PC) and **NES**.
 
 > A one-person learning project, not an official MiSTer port. Everything here
 > ran on exactly one board; expect rough edges.
 
-## Status (2026-10-22)
+## Status (2026-11-01)
 
 | Part | Status |
 |---|---|
@@ -20,6 +20,7 @@ cores: Menu, **C64** and **z486** (486 PC).
 | Menu core, core selection via F12 | ✔ |
 | **C64** (C64_MiSTer): BASIC, PRG, D64 read/write, CRT, TAP, SID, joysticks | ✔ → [`cores/c64/README.md`](cores/c64/README.md) |
 | **z486** (z486_MiSTer): FreeDOS, Windows 95, Doom, Quake, SVGA, x87, Sound Blaster | ✔ → [`cores/z486/README.md`](cores/z486/README.md) |
+| **NES** (NES_MiSTer, NTSC only): games with sound and gamepad | ✔ → [`cores/nes/README.md`](cores/nes/README.md) |
 | Read-only Linux root (SD card survives hard resets) | ✔ |
 | `vsync_adjust=2`, `direct_video`, ALSA output, MIDI | open |
 
@@ -59,7 +60,7 @@ Not included is everything we may not or should not redistribute:
 
 | Part | Why not | Where from |
 |---|---|---|
-| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
+| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
 | z486_MiSTer | no license file; microcode explicitly not Apache-2.0 | `tools/setup.py` |
 | Terasic GHRD (HPS system, bootloader SPL) | Terasic permits use, not redistribution | Terasic resource package, `tools/fetch_hps.py` |
 | C64 and 1541 ROMs | copyrighted | obtain yourself → `roms/` |
@@ -116,7 +117,7 @@ Resources), two downloads:
 > python tools\setup.py
 ```
 
-`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest and z486
+`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES and z486
 (each at a fixed commit, via `git`), plus the z486 boot ROMs and FreeDOS test disk,
 and generates the adapted copies. At the end it lists what is still missing.
 `python tools\setup.py --check` lets you check this at any time.
@@ -164,6 +165,9 @@ Put the C64 ROMs into `roms/` first (file names in
 
 > python tools\make_core_qsf.py z486
 > Q:\tools\build_core.bat z486                 :: ~20 min
+
+> python tools\make_core_qsf.py nes
+> Q:\tools\build_core.bat nes                  :: ~25 min
 ```
 
 Result: `cores\<core>\quartus\output_files\<core>.core.rbf`.
@@ -263,6 +267,7 @@ the data partition so that it remains writable even with a read-only root.
 > scp cores\menu\quartus\output_files\menu.core.rbf terasic@<board-ip>:~/retro25/
 > scp cores\c64\quartus\output_files\c64.core.rbf terasic@<board-ip>:~/retro25/
 > scp cores\z486\quartus\output_files\z486.core.rbf terasic@<board-ip>:~/retro25/
+> scp cores\nes\quartus\output_files\nes.core.rbf terasic@<board-ip>:~/retro25/
 > python tools\build_main.py --deploy terasic@<board-ip>
 ```
 
@@ -315,12 +320,12 @@ Check after logging in:
 
 ```
 $ cd ~/retro25
-$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf
+$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf
 ```
 
 This sets up: Main under `/media/fat/MiSTer`, `MiSTer.ini`, the menu as
-`/media/fat/menu.rbf`, the other cores as `/media/fat/_Retro25/C64.rbf`
-and `Z486.rbf`, the overlay for loading cores, and the service **`retro25-main`**,
+`/media/fat/menu.rbf`, the other cores as `/media/fat/_Retro25/C64.rbf`,
+`Z486.rbf` and `NES.rbf`, the overlay for loading cores, and the service **`retro25-main`**,
 which runs Main at every boot. The menu appears on the HDMI monitor;
 **F12** opens the core selection.
 
@@ -329,6 +334,7 @@ which runs Main at every boot. The menu appears on the HDMI monitor;
 | Core | Where | What |
 |---|---|---|
 | C64 | `/media/fat/games/C64/` | `.d64`, `.prg`, `.crt`, `.tap` (ROMs are already in the core) |
+| NES | `/media/fat/games/NES/` | `.nes` (your own cartridge dumps) |
 | z486 | `/media/fat/games/Z486/` | `boot0.rom`, `boot1.rom` (**required**, from `roms\z486\`), `freedos.vhd`, your own `.vhd`/`.img`/`.iso` |
 
 ```
@@ -440,8 +446,13 @@ The disk number is shown by `Get-CimInstance Win32_DiskDrive`
   warnings **16788** (implicit net loses its assignment) and **16754**
   (register with initial value). The table of pitfalls is in
   [`sys/de25/README.md`](sys/de25/README.md).
-- After changing third-party code in `pro/`: regenerate the patches and check with
+- After changing third-party code in `pro/`: regenerate the patches
+  (`python tools\apply_patches.py --make <file>`) and check with
   `python tools\apply_patches.py --check`.
+- Porting another MiSTer core: `python tools\port_core.py <core> scan`
+  lists the usual problems, `fix13386` and `fiximplicit` fix most of them
+  automatically. Step-by-step guide (German):
+  [`docs/core-portieren.md`](docs/core-portieren.md).
 
 ---
 

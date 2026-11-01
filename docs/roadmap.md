@@ -155,7 +155,8 @@ Super Mario Bros läuft mit Ton und Gamepad. Aufwand: viele Quartus-Pro-
 Fallen (13386, implizite Netze, Paket-Import je Datei, TDP-RAM mit zwei
 Takten geht auf Agilex 5 nicht), per Skript aus dem Synthesebericht
 behoben; Main-Patch 0011 (Savestates über `shmem_put`). Details
-`cores/nes/README.md`. Nächster Schritt N5: Port-Werkzeug und Anleitung.
+`cores/nes/README.md`. N5 (Port-Werkzeug `tools/port_core.py` mit
+Selbsttest, Anleitung `docs/core-portieren.md`) erledigt 2026-11-01.
 
 ## Größte Risiken
 
