@@ -63,7 +63,7 @@ Not included is everything we may not or should not redistribute:
 | z486_MiSTer | no license file; microcode explicitly not Apache-2.0 | `tools/setup.py` |
 | Terasic GHRD (HPS system, bootloader SPL) | Terasic permits use, not redistribution | Terasic resource package, `tools/fetch_hps.py` |
 | C64 and 1541 ROMs | copyrighted | obtain yourself → `roms/` |
-| Built bitstreams (`.rbf`, `.jic`) | contain ROMs or the z486 microcode | build yourself |
+| Built bitstreams (`.rbf`, `.jic`) | contain ROMs, the z486 microcode or FPGA64 (see below) | build yourself |
 
 Instead, the repository contains our own parts (`sys/de25/`, `linux/`,
 `tools/`, `tb/`, core wrappers) and the changes to third-party code as
@@ -468,6 +468,14 @@ Retro25: GPL-3.0-or-later. The fetched parts keep their licenses —
 MiSTer framework, Main_MiSTer and MiSTer cores (GPL-2.0/3.0, see the
 respective repositories), z486 (Apache-2.0 for the CPU sources, microcode
 excluded, see [`cores/z486/README.md`](cores/z486/README.md)).
+
+The C64 core contains FPGA64 by Peter Wendrich (CPU wrapper, bus logic,
+VIC-II). Its author releases it [for personal educational use
+only](http://www.syntiac.com/fpga64.html) and does not permit
+redistribution, even modified. Retro25 therefore ships none of it: the
+Quartus Pro adjustments to these files are short search-and-replace rules
+(`cores/c64/pro/**/*.subst.json`) applied locally by `tools/setup.py`.
+Do not redistribute C64 bitstreams.
 
 Thanks to Sorgelig and the MiSTer developers, nand2mario (z486, ao486 parts)
 and Terasic for the board material.

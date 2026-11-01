@@ -1,0 +1,4 @@
+[
+  ["when X\"F\" =>", "when others =>", 8],
+  ["when \"111\" =>", "when others =>   -- Retro25: \"111\" (Quartus Pro)", 1]
+]

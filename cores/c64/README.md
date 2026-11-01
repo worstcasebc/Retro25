@@ -7,7 +7,10 @@ in `tools/fetch_c64.py`), adapted to Quartus Pro and Agilex 5.
   the repository**; `python tools/setup.py` (or `tools/fetch_c64.py`) fetches it.
 - `pro/` — adapted copies. Only the diffs are in the repository
   (`*.patch`, paths as in `vendor/`); `tools/apply_patches.py` generates
-  the files from them.
+  the files from them. The FPGA64 files by Peter Wendrich (`cpu_6510.vhd`,
+  `fpga64_*.vhd`) may not be redistributed, not even as patch context
+  ([license](http://www.syntiac.com/fpga64.html)); their changes are
+  search-and-replace rules (`*.subst.json`) instead.
 - `rtl/` — own modules with testbenches in `tb/`: `iecdrv_bitmem.v`
   (1541 track buffer), `opl3_mem.v` (memory of the OPL3 emulation)
 - `ip/pll_c64` — fixed PLL, `c64_de25.sdc` — timing
@@ -23,7 +26,8 @@ Q:\tools\build_core.bat c64          # ~15 min; result quartus/output_files/c64.
 ```
 
 On the board: `c64.core.rbf` as `/media/fat/_Retro25/C64.rbf`. The `.rbf`
-contains the ROMs from `roms/` — for personal use only, do not redistribute.
+contains the ROMs from `roms/` and FPGA64 — for personal use only, do not
+redistribute.
 Utilization (as of 2026-10-22): 35,589 ALMs (76%), 222 M20K, timing met.
 
 ## Clock (PAL only, decision P4)

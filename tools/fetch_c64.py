@@ -63,9 +63,12 @@ Weggelassen:
 
 Lizenz: `c64.sv` und weitere Dateien GPL-2.0-or-later (Dateikopf, Copyright
 Sorgelig u. a.), `rtl/opl3/NextZ80*` LGPL, `iecdrv_via6522.vhd` GPL. Etwa 40
-Dateien haben keinen Lizenzvermerk, darunter der FPGA64-Kern von Peter
-Wendrich (VIC-II, Buslogik) — vor einer Veröffentlichung klären. Retro25
-insgesamt: GPL-3.0-or-later.
+Dateien haben keinen Lizenzvermerk. Der FPGA64-Kern von Peter Wendrich
+(cpu_6510, fpga64_*, video_vicII_656x) ist laut syntiac.com/fpga64.html nur
+für den privaten, edukativen Gebrauch freigegeben, Weitergabe auch geändert
+untersagt (geprüft 2026-11-01; Anfrage beim Autor läuft). Retro25 enthält
+daraus nichts: Anpassungen nur als Ersetzungsregeln (*.subst.json), keine
+C64-Bitstreams weitergeben. Retro25 insgesamt: GPL-3.0-or-later.
 """
 
 

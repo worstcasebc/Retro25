@@ -134,8 +134,10 @@ ext4-Root der SD-Karte zerstört (Rettung mit `tools/sd_rescue.py`).
   (Testmedien `cores/c64/test/make_test_media.py`). Die **ROMs** liegen bei
   MiSTer als `.mif` im Quellcode → nicht einchecken, lokal aus `roms/`
   erzeugen. Laufwerk und Datasette nutzen DDRAM → Burst-Regel aus P3 prüfen.
-- Offen: Lizenz des FPGA64-Codes (VIC-II, Buslogik) ohne Vermerk — vor einer
-  Veröffentlichung klären.
+- Lizenz des FPGA64-Codes (2026-11-01 geprüft): laut syntiac.com nur privat
+  und edukativ, keine Weitergabe, auch nicht geändert. Deshalb Anpassungen an
+  diesen Dateien als Ersetzungsregeln (`*.subst.json`) statt Patches; keine
+  C64-Bitstreams weitergeben. Anfrage beim Autor läuft.
 
 ### P5 — z486
 Siehe [roadmap-z486.md](roadmap-z486.md): Verilator-Simulation (parallel ab

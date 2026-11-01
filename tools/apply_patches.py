@@ -17,7 +17,15 @@ Der z486 hat ein eigenes Skript (cores/z486/make_pro.py, Textersetzungen).
 Die Patches werden streng angewendet (Kontextzeilen müssen genau passen, kein
 "fuzz") — eine geänderte Vorlage fällt so sofort auf. Zeilenenden (CRLF der
 Vorlagen) bleiben erhalten.
+
+Statt <pfad>.patch kann <pfad>.subst.json stehen: eine Liste von
+[regex, ersatz, anzahl] (Python-re, Ersetzung wörtlich). Gedacht für
+Fremdcode, dessen Lizenz keine Weitergabe erlaubt — auch nicht als
+Patch-Kontext (FPGA64 von Peter Wendrich, siehe cores/c64/README.md). Die
+Regeln enthalten nur kurze Bezeichner-Stücke statt ganzer Originalzeilen.
+Jede Regel muss genau "anzahl"-mal treffen, sonst Abbruch (wie beim Patch).
 """
+import json
 import re
 import sys
 from pathlib import Path
@@ -75,6 +83,15 @@ def apply(src: str, patch: str, name: str) -> str:
     return "".join(out)
 
 
+def subst(src: str, rules_text: str, name: str) -> str:
+    """Wendet Ersetzungsregeln [regex, ersatz, anzahl] streng auf src an."""
+    for rx, repl, want in json.loads(rules_text):
+        src, n = re.subn(rx, lambda _m: repl, src)
+        if n != want:
+            raise SystemExit(f"{name}: Regel {rx!r} traf {n}-mal statt {want}-mal")
+    return src
+
+
 def unix(b: bytes) -> bytes:
     """Zeilenenden vereinheitlichen (zum Vergleichen)."""
     return b.replace(b"\r\n", b"\n")
@@ -84,8 +101,11 @@ def main() -> int:
     check = "--check" in sys.argv[1:]
     bad = done = 0
     for pro, vendor in PAIRS:
-        for p in sorted((ROOT / pro).rglob("*.patch")):
-            rel = p.relative_to(ROOT / pro).as_posix()[:-len(".patch")]
+        jobs = sorted(list((ROOT / pro).rglob("*.patch")) + list((ROOT / pro).rglob("*.subst.json")))
+        for p in jobs:
+            is_subst = p.name.endswith(".subst.json")
+            rel = p.relative_to(ROOT / pro).as_posix()
+            rel = rel[:-len(".subst.json")] if is_subst else rel[:-len(".patch")]
             src = ROOT / vendor / rel
             dst = ROOT / pro / rel
             ptext = p.read_bytes().decode("utf-8")
@@ -104,7 +124,10 @@ def main() -> int:
             if not src.exists():
                 raise SystemExit(f"Vorlage fehlt: {src.relative_to(ROOT)} (erst die fetch-Skripte laufen lassen)")
             text = src.read_bytes().decode("utf-8")
-            result = apply(text, ptext, f"{pro}/{rel}").encode("utf-8")
+            if is_subst:
+                result = subst(text, ptext, f"{pro}/{rel}").encode("utf-8")
+            else:
+                result = apply(text, ptext, f"{pro}/{rel}").encode("utf-8")
             if check:
                 # Zeilenenden hängen davon ab, wie git die Vorlagen auscheckt
                 if not dst.exists() or unix(dst.read_bytes()) != unix(result):

@@ -54,6 +54,7 @@ linux/vendor/
 cores/c64/pro/**
 !cores/c64/pro/**/
 !cores/c64/pro/**/*.patch
+!cores/c64/pro/**/*.subst.json
 cores/menu/pro/**
 !cores/menu/pro/**/
 !cores/menu/pro/**/*.patch
