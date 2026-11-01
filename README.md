@@ -2,26 +2,51 @@
 
 Retro25 brings the [MiSTer](https://github.com/MiSTer-devel) framework to the
 **Terasic DE25-Nano** (Intel/Altera Agilex 5 E, Arm HPS running Linux). As on
-MiSTer, Linux loads different FPGA cores at runtime, selected from the
-menu (F12). Ported so far: the `sys/` framework (HDMI, OSD, scaler, audio,
-`hps_io`), the Linux program Main_MiSTer (now aarch64) and these
-cores: Menu, **C64**, **z486** (486 PC), **NES** and **Mega Drive**.
+MiSTer, Linux loads different FPGA cores at runtime, selected from the menu
+(F12). Ported so far: the `sys/` framework (HDMI, OSD, scaler, audio,
+`hps_io`), the Linux program Main_MiSTer (now aarch64) and six cores — Menu,
+**C64**, **z486** (486 PC), **NES**, **Mega Drive** and **SNES**.
 
 > A one-person learning project, not an official MiSTer port. Everything here
 > ran on exactly one board; expect rough edges.
 
-## Status (2026-11-01)
+**Contents:** [Status](#status) · [How it fits together](#how-it-fits-together)
+· [Porting a MiSTer core](#porting-a-mister-core) ·
+[Not in the repository](#what-is-not-in-the-repository-and-why) ·
+[Installation](#step-by-step-installation) ·
+[Troubleshooting](#troubleshooting--tips-and-tricks) ·
+[Directories](#directories) · [License](#license-and-thanks) ·
+[Screenshots](#screenshots)
+
+---
+
+## Status
+
+As of 2026-11-02.
+
+### Cores
+
+| Core | Based on | What works | Size (ALMs / M20K) | Details |
+|---|---|---|---|---|
+| **Menu** | Menu_MiSTer | start core, core selection via F12 | — | |
+| **C64** | C64_MiSTer | BASIC, PRG, D64 read/write, CRT, TAP, SID, joysticks | 76 % / 222 | [`cores/c64`](cores/c64/README.md) |
+| **z486** | z486_MiSTer | FreeDOS, Windows 95, Doom, Quake, SVGA, x87, Sound Blaster | 92 % / 282 | [`cores/z486`](cores/z486/README.md) |
+| **NES** | NES_MiSTer | games with sound, gamepad, save states, battery RAM (NTSC only) | 85 % / 90 | [`cores/nes`](cores/nes/README.md) |
+| **Mega Drive** | MegaDrive_MiSTer (Nuked-MD) | Sonic, Virtua Racing (SVP), sound, gamepad (NTSC only) | 85 % / 252 | [`cores/megadrive`](cores/megadrive/README.md) |
+| **SNES** | SNES_MiSTer | games incl. DSP-1, CX4, SuperFX, SA-1 (NTSC only) | 88 % / 305 | [`cores/snes`](cores/snes/README.md) |
+
+The Agilex 5 on the DE25-Nano has 46,800 ALMs and 358 M20K blocks (DE10-Nano:
+41,910 ALMs, 553 M10K). "NTSC only": MiSTer switches its PLL to the PAL
+clock; in Retro25 only `sys` reconfigures a PLL, so PAL games run at the NTSC
+clock (0.9 % too fast).
+
+### Platform
 
 | Part | Status |
 |---|---|
 | HPS-first boot, core switching from Linux (~2 s) | ✔ 30+ switches without errors |
 | `sys/`: HDMI (ADV7513), scaler `ascal`, OSD, audio, video modes, DDR via F2SDRAM | ✔ |
 | Main_MiSTer (aarch64): menu, USB keyboard/mouse/gamepads, disk images, screenshots | ✔ |
-| Menu core, core selection via F12 | ✔ |
-| **C64** (C64_MiSTer): BASIC, PRG, D64 read/write, CRT, TAP, SID, joysticks | ✔ → [`cores/c64/README.md`](cores/c64/README.md) |
-| **z486** (z486_MiSTer): FreeDOS, Windows 95, Doom, Quake, SVGA, x87, Sound Blaster | ✔ → [`cores/z486/README.md`](cores/z486/README.md) |
-| **NES** (NES_MiSTer, NTSC only): games with sound and gamepad | ✔ → [`cores/nes/README.md`](cores/nes/README.md) |
-| **Mega Drive** (MegaDrive_MiSTer / Nuked-MD, NTSC only): games with sound and gamepad | ✔ → [`cores/megadrive/README.md`](cores/megadrive/README.md) |
 | Read-only Linux root (SD card survives hard resets) | ✔ |
 | `vsync_adjust=1`: HDMI frame rate follows the core (no stutter) | ✔ |
 | `vsync_adjust=2` (low latency), `direct_video`, ALSA output, MIDI | open |
@@ -31,27 +56,111 @@ details of the port: [`sys/de25/README.md`](sys/de25/README.md),
 [`linux/main/README.md`](linux/main/README.md),
 [`linux/system/README.md`](linux/system/README.md).
 
-### How it fits together
+---
 
-```
- Linux (HPS, Cortex-A76/A55)                 FPGA (Agilex 5)
- ┌──────────────────────────┐  LW-Bridge  ┌───────────────────────────────┐
- │ Main_MiSTer (aarch64)    │◄───────────►│ sys/ (same for all cores):    │
- │  menu, input, disks      │ gp_out/gp_in│  HDMI, OSD, scaler, audio,    │
- │  load core via overlay   │             │  hps_io  └─ emu (the core)    │
- └──────────────────────────┘  F2SDRAM ◄──┴───────────────────────────────┘
-        ▲ SD card: Linux, cores, games          HPS DDR: scaler, disks
+## How it fits together
+
+```mermaid
+flowchart LR
+    subgraph HPS["HPS — Linux (Cortex-A76/A55)"]
+        Main["Main_MiSTer<br/>menu, input, disks,<br/>core loading"]
+        Mgr["FPGA manager<br/>(device tree overlay)"]
+    end
+    subgraph FPGA["FPGA — Agilex 5"]
+        Sys["sys/ — same for every core<br/>HDMI, OSD, scaler, audio, hps_io"]
+        Emu["emu — the core<br/>(C64, NES, SNES …)"]
+        Sys --- Emu
+    end
+    SD[("microSD<br/>Linux, cores, games")]
+    DDR[("HPS DDR 1 GB<br/>scaler, disk images")]
+    SDRAM[("SDRAM 128 MB<br/>cartridge ROMs, RAM")]
+    HDMI["HDMI monitor"]
+
+    Main <-->|"LW bridge<br/>gp_out / gp_in"| Sys
+    Mgr -->|"loads .core.rbf"| FPGA
+    SD --- HPS
+    Sys <-->|F2SDRAM| DDR
+    Emu <--> SDRAM
+    Sys --> HDMI
 ```
 
 Analogy: the board is a game console with swappable cartridges. Linux is the
 caretaker who plugs in the cartridges (cores); `sys/` is the ever-identical
 connector strip where every cartridge finds screen, sound and keyboard.
 
-Differences from the DE10-Nano MiSTer: the board boots **HPS-first** — the
-QSPI flash holds only the I/O ring and bootloader, U-Boot loads the start core
-from the SD card, and Linux switches it via a device tree overlay. The SDRAM
-(128 MB) is soldered onto the board, and Linux is Terasic's Ubuntu 22.04
-instead of MiSTer Linux.
+Differences from the DE10-Nano MiSTer:
+
+- the board boots **HPS-first** — the QSPI flash holds only the I/O ring and
+  bootloader, U-Boot loads the start core from the SD card, and Linux
+  switches cores via a device tree overlay;
+- the Agilex 5 has no gp_out/gp_in registers between HPS and FPGA; a small
+  bridge on the LW bus (`hps_gp_bridge`) emulates them, so `hps_io` and the
+  MiSTer protocol stay unchanged;
+- the SDRAM (128 MB, 1.8 V) is soldered onto the board, and Linux is
+  Terasic's Ubuntu 22.04 instead of MiSTer Linux.
+
+### Power-on and core switch
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Q as QSPI flash
+    participant U as U-Boot
+    participant L as Linux
+    participant M as Main_MiSTer
+    participant F as FPGA
+    Q->>U: I/O ring + bootloader
+    U->>F: start core (menu) from the SD card
+    U->>L: boot kernel
+    L->>M: service retro25-main
+    M->>F: OSD, menu (via hps_io)
+    Note over M: F12 → user picks a core
+    M->>F: stop DDR ports
+    M->>L: overlay with new .core.rbf
+    L->>F: reconfigure fabric (~2 s)
+    M->>M: restart, identify core
+    M->>F: video mode, HDMI PLL, ROM download
+```
+
+All cores must contain the **same HPS system** — `quartus_pfg` reports it as
+the `HPS IO hash` (`474D6C20…`). Each core may bring its own PLL.
+
+---
+
+## Porting a MiSTer core
+
+Third-party code is never edited in place. It is fetched at a fixed commit into
+`vendor/`; our changes live next to it as patches or search-and-replace rules,
+and `tools/apply_patches.py` produces the adapted copies in `pro/`.
+
+```mermaid
+flowchart LR
+    GH["MiSTer repository<br/>(fixed commit)"] -->|"tools/fetch_*.py"| V["vendor/<br/>unchanged, not in git"]
+    V --> A["tools/apply_patches.py"]
+    P["pro/*.patch<br/>pro/*.subst.json<br/>(in git)"] --> A
+    A --> PRO["pro/<br/>adapted copies"]
+    PRO --> Q["Quartus Pro<br/>core.tcl → .qsf"]
+    R["rtl/ — own replacements<br/>(RAM, PLL, …)"] --> Q
+    Q --> RBF[".core.rbf"]
+```
+
+Quartus Pro (needed for Agilex 5) is much stricter than the Quartus Standard
+used by MiSTer — and in some places silently builds something else.
+`tools/port_core.py` finds and fixes the common cases:
+
+| Command | What it does |
+|---|---|
+| `port_core.py <core> scan` | lists known problems in the original source (Cyclone V primitives, `.mif` paths, SV keywords as names, `ramstyle M10K`, missing macros …) |
+| `port_core.py <core> fix13386` | `wire`/`output` assigned in `always` → `logic` |
+| `port_core.py <core> fiximplicit` | identifier used before `wire x = …;` (implicit net — Quartus Pro drops the assignment) |
+| `port_core.py <core> fix16754` | initial value inside `always` — Quartus Pro resets it on **every clock** |
+| `port_core.py <core> report` | summarizes the warnings of the synthesis report that caused trouble before |
+
+Lessons from five ports (C64, z486, NES, Mega Drive, SNES), e.g. RAM patterns
+that turn into flip-flops, two-clock RAMs, or a VHDL generic that arrives as
+`'X'`: step-by-step guide (German) in
+[`docs/core-portieren.md`](docs/core-portieren.md), details per core in its
+README.
 
 ---
 
@@ -62,26 +171,37 @@ Not included is everything we may not or should not redistribute:
 
 | Part | Why not | Where from |
 |---|---|---|
-| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES/MegaDrive cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
+| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES/MegaDrive/SNES cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
 | z486_MiSTer | no license file; microcode explicitly not Apache-2.0 | `tools/setup.py` |
 | Terasic GHRD (HPS system, bootloader SPL) | Terasic permits use, not redistribution | Terasic resource package, `tools/fetch_hps.py` |
 | C64 and 1541 ROMs | copyrighted | obtain yourself → `roms/` |
+| Chip ROM dumps of the SNES core (DSP-1, CX4, BSX `.mif`) | copyrighted | fetched with SNES_MiSTer into `vendor/` |
+| Game ROMs | copyrighted | your own cartridge dumps |
 | Built bitstreams (`.rbf`, `.jic`) | contain ROMs, the z486 microcode or FPGA64 (see below) | build yourself |
 
 Instead, the repository contains our own parts (`sys/de25/`, `linux/`,
 `tools/`, `tb/`, core wrappers) and the changes to third-party code as
-**patches** (`*.patch` in `pro/`) or as text substitutions
-(`cores/z486/make_pro.py`). `tools/setup.py` fetches the third-party code into
-`vendor/` and generates the adapted copies in `pro/` from it.
+**patches** (`*.patch` in `pro/`) or as text substitutions (`*.subst.json`,
+`cores/z486/make_pro.py`).
 
 ---
 
 ## Step-by-step installation
 
 These instructions assume a new DE25-Nano and a Windows PC.
-Plan an afternoon for the first run (of which ~1 h is the Quartus build).
-Commands starting with `>` run in the Windows command prompt, those with `$` on the
-board (via SSH or serial console).
+Plan an afternoon for the first run (of which ~1.5 h is Quartus builds).
+Commands starting with `>` run in the Windows command prompt, those with `$` on
+the board (via SSH or serial console).
+
+```mermaid
+flowchart TD
+    S1["1–2 · PC: tools, repository,<br/>tools/setup.py, subst Q:"] --> S3["3 · PC: HPS system<br/>from Terasic's GHRD"]
+    S3 --> S4["4 · PC: build cores + Main"]
+    S4 --> S5["5–7 · Board: SD image, packages,<br/>partitions"]
+    S5 --> S8["8–9 · copy files,<br/>system settings (ro root)"]
+    S8 --> S10["10 · boot script + QSPI flash"]
+    S10 --> S11["11–12 · install Main and cores,<br/>copy games"]
+```
 
 ### 1. What you need
 
@@ -119,15 +239,15 @@ Resources), two downloads:
 > python tools\setup.py
 ```
 
-`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES, MegaDrive and z486
-(each at a fixed commit, via `git`), plus the z486 boot ROMs and FreeDOS test disk,
-and generates the adapted copies. At the end it lists what is still missing.
-`python tools\setup.py --check` lets you check this at any time.
+`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES,
+MegaDrive, SNES and z486 (each at a fixed commit, via `git`), plus the z486
+boot ROMs and FreeDOS test disk, and generates the adapted copies. At the end
+it lists what is still missing. `python tools\setup.py --check` lets you
+check this at any time.
 
 **Short path (important):** Quartus aborts HPS designs in deeply nested
 folders after ~40 s (`dni::save_checkpoint … manifest.txt`). Therefore mount the
-repository as drive `Q:` and start **all Quartus steps from
-`Q:\`**:
+repository as drive `Q:` and start **all Quartus steps from `Q:\`**:
 
 ```
 > subst Q: C:\Retro25
@@ -150,7 +270,8 @@ Platform Designer (via `qsys-script`) for Retro25:
 - `sys/de25/hps_f2sdram_ports.tcl` — three DDR ports for the scaler and cores
 - `sys/de25/hps_slim.tcl` — removes demo and debug parts (room for the z486)
 
-Takes ~5 min. If it ends with "qsys_top neu erzeugt." ("qsys_top regenerated."), all is well.
+Takes ~5 min. If it ends with "qsys_top neu erzeugt." ("qsys_top
+regenerated."), all is well.
 
 ### 4. Build the cores (PC)
 
@@ -170,11 +291,18 @@ Put the C64 ROMs into `roms/` first (file names in
 
 > python tools\make_core_qsf.py nes
 > Q:\tools\build_core.bat nes                  :: ~25 min
+
+> python tools\make_core_qsf.py megadrive
+> Q:\tools\build_core.bat megadrive            :: ~15 min
+
+> python tools\make_core_qsf.py snes
+> Q:\tools\build_core.bat snes                 :: ~15 min
 ```
 
 Result: `cores\<core>\quartus\output_files\<core>.core.rbf`.
-At the end, `build_core.bat` shows the lines containing "hash" — the **HPS IO hash**
-must be identical for all cores (otherwise the core does not match the flash).
+At the end, `build_core.bat` shows the lines containing "hash" — the **HPS IO
+hash** must be identical for all cores (otherwise the core does not match the
+flash).
 
 Flash file (I/O ring + HPS bootloader) from the menu core:
 
@@ -182,8 +310,8 @@ Flash file (I/O ring + HPS bootloader) from the menu core:
 > Q:\tools\make_flash.bat menu                 :: -> menu.hps.jic
 ```
 
-Main_MiSTer (Docker Desktop must be running; the first build takes ~15 min due to
-arm64 emulation):
+Main_MiSTer (Docker Desktop must be running; the first build takes ~15 min due
+to arm64 emulation):
 
 ```
 > python tools\build_main.py                   :: -> linux\main\build\MiSTer
@@ -203,8 +331,8 @@ arm64 emulation):
    has an address). From now on everything also works via SSH:
    `> ssh terasic@<board-ip>`.
 
-Tip: so that the board always gets the same address from the router, set a fixed
-MAC (connection name from `nmcli con show`):
+Tip: so that the board always gets the same address from the router, set a
+fixed MAC (connection name from `nmcli con show`):
 `$ sudo nmcli con modify "Wired connection 1" 802-3-ethernet.cloned-mac-address <MAC>`
 and reserve it in the router.
 
@@ -254,11 +382,11 @@ $ ln -s /media/fat/retro25 ~/retro25
 $ lsblk                                  # p2 ~8G, p3 = rest
 ```
 
-`~/retro25` is the working folder for everything coming from the PC; it lives on
-the data partition so that it remains writable even with a read-only root.
+`~/retro25` is the working folder for everything coming from the PC; it lives
+on the data partition so that it remains writable even with a read-only root.
 
-> These commands are the condensed version of what happened on the developer board in
-> two stages (P0: root enlarged, P3a: data partition). If `sfdisk`
+> These commands are the condensed version of what happened on the developer
+> board in two stages (P0: root enlarged, P3a: data partition). If `sfdisk`
 > reports that the device is busy, adding `--force` helps. If problems arise:
 > rewrite the card and start over — nothing is lost yet.
 
@@ -266,10 +394,7 @@ the data partition so that it remains writable even with a read-only root.
 
 ```
 > scp -r linux\system linux\boot terasic@<board-ip>:~/retro25/
-> scp cores\menu\quartus\output_files\menu.core.rbf terasic@<board-ip>:~/retro25/
-> scp cores\c64\quartus\output_files\c64.core.rbf terasic@<board-ip>:~/retro25/
-> scp cores\z486\quartus\output_files\z486.core.rbf terasic@<board-ip>:~/retro25/
-> scp cores\nes\quartus\output_files\nes.core.rbf terasic@<board-ip>:~/retro25/
+> for %c in (menu c64 z486 nes megadrive snes) do scp cores\%c\quartus\output_files\%c.core.rbf terasic@<board-ip>:~/retro25/
 > python tools\build_main.py --deploy terasic@<board-ip>
 ```
 
@@ -310,8 +435,8 @@ Then program the QSPI flash (HPS-first):
 3. Power the board off and on again.
 
 The serial console now shows `Retro25: lade retro25/core.rbf
-ins FPGA` ("loading retro25/core.rbf into the FPGA"), then Linux boots as usual.
-Check after logging in:
+ins FPGA` ("loading retro25/core.rbf into the FPGA"), then Linux boots as
+usual. Check after logging in:
 `$ ls /proc/device-tree/reserved-memory/` shows `retro25_fpga@a0000000`.
 
 > This step was tested with the `.jic` from the P0 experiment
@@ -322,14 +447,15 @@ Check after logging in:
 
 ```
 $ cd ~/retro25
-$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf
+$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf megadrive.core.rbf snes.core.rbf
 ```
 
-This sets up: Main under `/media/fat/MiSTer`, `MiSTer.ini`, the menu as
-`/media/fat/menu.rbf`, the other cores as `/media/fat/_Retro25/C64.rbf`,
-`Z486.rbf`, `NES.rbf` and `MegaDrive.rbf`, the overlay for loading cores, and the service **`retro25-main`**,
-which runs Main at every boot. The menu appears on the HDMI monitor;
-**F12** opens the core selection.
+This sets up: Main under `/media/fat/MiSTer`, `MiSTer.ini` (new file:
+`vsync_adjust=1`), the menu as `/media/fat/menu.rbf`, the other cores as
+`/media/fat/_Retro25/C64.rbf`, `Z486.rbf`, `NES.rbf`, `MegaDrive.rbf` and
+`SNES.rbf`, the overlay for loading cores, and the service
+**`retro25-main`**, which runs Main at every boot. The menu appears on the HDMI
+monitor; **F12** opens the core selection.
 
 ### 12. Games, ROMs and disks
 
@@ -338,17 +464,18 @@ which runs Main at every boot. The menu appears on the HDMI monitor;
 | C64 | `/media/fat/games/C64/` | `.d64`, `.prg`, `.crt`, `.tap` (ROMs are already in the core) |
 | NES | `/media/fat/games/NES/` | `.nes` (your own cartridge dumps) |
 | Mega Drive | `/media/fat/games/MegaDrive/` | `.bin`, `.gen`, `.md` (your own cartridge dumps) |
+| SNES | `/media/fat/games/SNES/` | `.sfc`, `.smc` (your own cartridge dumps) |
 | z486 | `/media/fat/games/Z486/` | `boot0.rom`, `boot1.rom` (**required**, from `roms\z486\`), `freedos.vhd`, your own `.vhd`/`.img`/`.iso` |
 
 ```
 > scp roms\z486\boot0.rom roms\z486\boot1.rom roms\z486\freedos.vhd terasic@<board-ip>:/media/fat/games/Z486/
 ```
 
-USB stick: Main also finds games under `<stick>/games/C64` or
-`<stick>/games/Z486` (in that case `boot0.rom`/`boot1.rom` must also be on the
-stick). Operation, hard disks, Windows 95, sound: see the core READMEs.
+USB stick: Main also finds games under `<stick>/games/<Core>` (for the z486,
+`boot0.rom`/`boot1.rom` must then also be on the stick). Operation, hard
+disks, Windows 95, sound: see the core READMEs.
 
-**Done.** Menu core via F12 → C64 or Z486; in the z486,
+**Done.** Menu core via F12 → pick a core; in the z486,
 **Win + F12** opens the OSD (DOS needs F12 by itself).
 
 ---
@@ -361,6 +488,7 @@ stick). Operation, hard disks, Windows 95, sound: see the core READMEs.
 |---|---|
 | HDMI stays black after power-on | Is Main running? `systemctl status retro25-main`. Message "FPGA is uninitialized" = no Retro25 core in the FPGA (boot script? flash?). Console: does `Retro25: lade retro25/core.rbf` appear? |
 | HDMI black after a hard reset | `/media/fat` was not mounted in time (file system check). Wait, or look at `journalctl -b \| grep media-fat` |
+| No picture after switching to a game core | The monitor may not accept the core's frame rate with `vsync_adjust=1` (e.g. 50.12 Hz for C64 PAL). Set `vsync_adjust=0` in `/media/fat/MiSTer.ini` |
 | Linux no longer boots after step 10 | Put the SD card into the PC, copy `boot.scr.uimg.orig` to `boot.scr.uimg` on the FAT partition |
 | Flash broken/wrong | can always be rewritten (SW5 AS mode, `flash.bat`); as a last resort Terasic's `golden_top_hps.jic` (comes with the SD image) |
 | Core does not load, OSD shows "DDR busy" | The old core did not release the DDR; it stays loaded. Try again, otherwise reboot |
@@ -387,8 +515,12 @@ $ echo "load_core /media/fat/_Retro25/C64.rbf" > /dev/MiSTer_cmd
 $ echo screenshot > /dev/MiSTer_cmd               # PNG in /media/fat/screenshots/<Core>/
 ```
 
-Screenshots are ideal for sending a picture of the screen to the PC (or
-to a helper) via `scp`.
+`load_core` also accepts an `.mgl` file that names a core and a game, e.g.
+`<file delay="1" type="f" index="1" path="/media/fat/games/SNES/x.sfc"/>`
+(`index` = the digit of the `F` entry in the core's menu string). Together
+with screenshots this makes a test without a person at the board — take
+several screenshots a while apart, many games show a black screen between
+logos.
 
 ### When Linux hangs: Magic SysRq instead of the reset button
 
@@ -422,13 +554,17 @@ empty. For errors that lead to a crash, log the console
 
 - `MiSTer.ini` is in `/media/fat/`. Proven settings: `video_mode=8`
   (1920×1080) and, for the z486, `vscale_mode=1`. Working: `video_mode`
-  0, 1, 6, 8. Recommended: `vsync_adjust=1` — the HDMI output then runs at
-  the core's frame rate (Mega Drive 59.92 Hz, C64 PAL 50.12 Hz), so there
-  is no repeated frame every few seconds. Your monitor has to accept these
+  0, 1, 6, 8.
+- `vsync_adjust=1` (recommended): the HDMI output runs at the core's frame
+  rate (Mega Drive 59.92 Hz, NES/SNES 60.10 Hz, C64 PAL 50.12 Hz), so there is
+  no repeated frame every few seconds. The HDMI PLL only divides by integers;
+  Main also shifts the line length and line count slightly so that a reachable
+  pixel clock fits (< 1 ppm, patch `0012`). Your monitor has to accept these
   slightly unusual timings. `vsync_adjust=2` and `direct_video` are missing.
 - `p3/linux/video_debug.py` (copy to the board via `scp`, then
-  `sudo python3 video_debug.py`) measures the frame rate and pixel clock in the FPGA — e.g. 60 frames/s and
-  74.25 MHz at 720p60.
+  `sudo python3 video_debug.py`) measures the frame rate and pixel clock in
+  the FPGA — e.g. 60 frames/s and 74.25 MHz at 720p60. Main's own log shows
+  both frame times as well: `journalctl -u retro25-main | grep "Frame time"`.
 
 ### Backing up the SD card
 
@@ -448,17 +584,17 @@ The disk number is shown by `Get-CimInstance Win32_DiskDrive`
 - Always build via `Q:\` (see step 2).
 - Compare the **HPS IO hash** after every build — if it differs, the
   core will not start (all cores must have the same HPS system).
-- Quartus Pro has pitfalls with MiSTer code; after every build, search the report for
-  warnings **16788** (implicit net loses its assignment) and **16754**
-  (register with initial value). The table of pitfalls is in
-  [`sys/de25/README.md`](sys/de25/README.md).
+- After every synthesis, run `python tools\port_core.py <core> report`: it
+  lists warnings **16788** (net without driver), **16754** (register with
+  initial value) and others that caused trouble before. Also look at the
+  size: much smaller than expected often means a stuck reset, much larger
+  a RAM built from flip-flops (see [`docs/core-portieren.md`](docs/core-portieren.md)).
 - After changing third-party code in `pro/`: regenerate the patches
   (`python tools\apply_patches.py --make <file>`) and check with
   `python tools\apply_patches.py --check`.
-- Porting another MiSTer core: `python tools\port_core.py <core> scan`
-  lists the usual problems, `fix13386` and `fiximplicit` fix most of them
-  automatically. Step-by-step guide (German):
-  [`docs/core-portieren.md`](docs/core-portieren.md).
+- `quartus_syn` alone does not generate IP (PLL); for a first synthesis run
+  `quartus_ipgenerate <core> -c <core> --synthesis=verilog` once, or use
+  `build_core.bat`.
 
 ---
 
@@ -468,14 +604,15 @@ The disk number is shown by `Get-CimInstance Win32_DiskDrive`
 sys/de25/       port of the MiSTer framework (sys_top_de25, hps_gp_bridge, sysmem …)
 sys/vendor/     MiSTer original (setup.py, not in the repo)
 sys/hps/        HPS system from Terasic's GHRD (fetch_hps.py, not in the repo)
-cores/<name>/   per core: wrapper, patches (pro/*.patch), ip/, testbenches
-linux/main/     Main_MiSTer port: patches, de25/, Docker build, install.sh
+cores/<name>/   per core: core.tcl, ip/ (PLL), rtl/ (own files), pro/ (patches),
+                vendor/ (original, not in the repo), quartus/
+linux/main/     Main_MiSTer port: patches, de25/, test/, Docker build, install.sh
 linux/system/   system settings (ro root, fstab, USB, SysRq)
 linux/boot/     U-Boot script (HPS-first)
-tools/          Python/batch scripts: setup, fetch, build, flash, SD rescue
+tools/          Python/batch scripts: setup, fetch, build, port_core, flash, SD rescue
 tb/             testbenches for our own modules (Icarus/Questa)
 p0/, p3/        feasibility experiments with diagnostic scripts
-docs/           roadmap, analyses
+docs/           roadmap, analyses, porting guide
 roms/           your own ROMs (not in the repo, README only)
 ```
 
@@ -483,8 +620,9 @@ roms/           your own ROMs (not in the repo, README only)
 
 Retro25: GPL-3.0-or-later. The fetched parts keep their licenses —
 MiSTer framework, Main_MiSTer and MiSTer cores (GPL-2.0/3.0, see the
-respective repositories), z486 (Apache-2.0 for the CPU sources, microcode
-excluded, see [`cores/z486/README.md`](cores/z486/README.md)).
+respective repositories), Nuked-MD (GPL-2.0-or-later), z486 (Apache-2.0 for
+the CPU sources, microcode excluded, see
+[`cores/z486/README.md`](cores/z486/README.md)).
 
 The C64 core contains FPGA64 by Peter Wendrich (CPU wrapper, bus logic,
 VIC-II). Its author releases it [for personal educational use
@@ -494,8 +632,9 @@ Quartus Pro adjustments to these files are short search-and-replace rules
 (`cores/c64/pro/**/*.subst.json`) applied locally by `tools/setup.py`.
 Do not redistribute C64 bitstreams.
 
-Thanks to Sorgelig and the MiSTer developers, nand2mario (z486, ao486 parts)
-and Terasic for the board material.
+Thanks to Sorgelig and the MiSTer developers, srg320 (SNES), nukeykt
+(Nuked-MD), nand2mario (z486, ao486 parts) and Terasic for the board
+material.
 
 ## Screenshots
 
