@@ -64,9 +64,22 @@ non-UTF-8 sources through byte for byte.
 
 ## Status
 
-Runs on the board (2026-11-01): Super Mario Bros with sound and gamepad.
-Build: 39,879 ALMs (85 %), 90 M20K, 72 DSP, timing met, `HPS IO hash`
-unchanged. Needs Main with patch 0011 (savestates via `shmem_put`; before,
-Main crashed with SIGBUS when a game was loaded).
+Runs on the board (2026-11-01). Build: 39,879 ALMs (85 %), 90 M20K, 72 DSP,
+timing met, `HPS IO hash` unchanged. Needs Main with patch 0011 (savestates
+via `shmem_put`; before, Main crashed with SIGBUS when a game was loaded).
 
-Not tested yet: savestates, FDS, other mappers, PAL games.
+| Test | Result |
+|---|---|
+| Super Mario Bros (mapper 0), sound, gamepad | ok |
+| Savestates: save to / restore state 1 (`savestates/NES/*.ss`) | ok |
+| Super Mario Bros. 3 (MMC3) | ok |
+| Zelda II (MMC1) | ok |
+| Battery RAM: name registered, `saves/NES/Zelda II.sav` written when the OSD opens, name still there after reloading | ok |
+
+Not tested yet: FDS (needs the disk system BIOS), PAL games (run 0.9 % too
+fast by design, see above).
+
+Test without a person at the board: MGL with the game
+(`<file delay="1" type="f" index="0" path="/media/fat/games/NES/x.nes"/>`),
+`load_core` on the MGL, then `echo screenshot > /dev/MiSTer_cmd`. A grey
+screen means the PPU runs but no cartridge is loaded.
