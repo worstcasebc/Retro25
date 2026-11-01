@@ -158,6 +158,14 @@ behoben; Main-Patch 0011 (Savestates über `shmem_put`). Details
 `cores/nes/README.md`. N5 (Port-Werkzeug `tools/port_core.py` mit
 Selbsttest, Anleitung `docs/core-portieren.md`) erledigt 2026-11-01.
 
+**Vierter Core Mega Drive (2026-11-01):** MegaDrive_MiSTer (Nuked-MD,
+Gatter-Nachbau der Chips), nur NTSC, feste PLL 53,69/107,39 MHz, SDRAM bei
+107 MHz CL2 vorher mit `cores/sdram486test` ausgemessen (Phase 45°). Sonic
+läuft mit Ton und Gamepad; 39 629 ALMs, 252 M20K. Neue Fallen: RAM-Muster,
+die Quartus Pro nicht erkennt (Flipflops statt M20K, stundenlange
+Synthese), Byte-Freigaben zerlegen RAMs je Byte, 16754 hielt den Core im
+Reset (`port_core.py fix16754`). Details `cores/megadrive/README.md`.
+
 ## Größte Risiken
 
 1. ~~Neuladen des Fabrics auf Agilex 5~~ — **P0 bestanden** (2,1 s je Wechsel,

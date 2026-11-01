@@ -14,9 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import port_core as pc  # noqa: E402
 
 
-def src_of(text: str, eol: str = "\r\n") -> pc.Src:
+def src_of(text: str, eol: str = "\r\n", name: str = "x.sv") -> pc.Src:
     d = Path(tempfile.mkdtemp())
-    p = d / "x.sv"
+    p = d / name
     p.write_bytes(text.replace("\n", eol).encode("utf-8"))
     return pc.Src(p)
 
@@ -65,6 +65,23 @@ def t_13386() -> None:
     check("13386 output", lines[2], "\toutput logic [7:0] q,")
     check("13386 output reg bleibt", lines[3], "\toutput   reg r")
 
+    # Verilog-2001 (.v): reg statt logic; auskommentiertes Modul bleibt
+    s = src_of(
+        "module m(input clk, output q);\n"
+        "wire a;\n"
+        "always @(posedge clk) begin a <= 1; q <= 0; end\n"
+        "endmodule\n"
+        "/*module old(\n"
+        "\toutput q\n"
+        ");\n"
+        "assign q = 1;\n"
+        "endmodule*/", "\n", "x.v")
+    n = pc.fix13386_text(s)
+    lines = s.text.split("\n")
+    check(".v Anzahl", str(n), "1")
+    check(".v reg", lines[1].split("//")[0].strip(), "reg a;")
+    check("Blockkommentar bleibt", lines[5], "\toutput q")
+
 
 def t_implicit() -> None:
     s = src_of(
@@ -89,6 +106,23 @@ def t_implicit() -> None:
     check("implizit Protokoll", str(len(log)), "3")
 
 
+def t_16754() -> None:
+    s = src_of(
+        "always @(posedge clk) begin\n"
+        "\treg [4:0] cnt = 0;\n"
+        "\treg pald = 0, pald2 = 1'b0;\n"
+        "\treg init_old=0; // alt\n"
+        "\treg [1:0] st = 2'd1;\n"
+        "end", "\n")
+    log = pc.fix16754_text(s, [(2, "cnt"), (3, "pald"), (4, "init_old"), (5, "st")])
+    lines = s.text.split("\n")
+    check("16754 cnt", lines[1], "\treg [4:0] cnt;" + pc.NOTE_16754)
+    check("16754 zwei", lines[2], "\treg pald, pald2;" + pc.NOTE_16754)
+    check("16754 Kommentar", lines[3], "\treg init_old; // alt")
+    check("16754 nicht 0 bleibt", lines[4], "\treg [1:0] st = 2'd1;")
+    check("16754 Protokoll", str(len(log)), "4")
+
+
 def t_vhdl_case() -> None:
     text = ("case s is\n  when \"00\" => a <= '1';\n  when \"11\" => a <= '0';\nend case;\n"
             "case t is\n  when A => null;\n  when others => null;\nend case;\n")
@@ -98,5 +132,6 @@ def t_vhdl_case() -> None:
 if __name__ == "__main__":
     t_13386()
     t_implicit()
+    t_16754()
     t_vhdl_case()
     print("PASS: test_port_core")

@@ -1,0 +1,19 @@
+--- a/rtl/lightgun.sv
++++ b/rtl/lightgun.sv
+@@ -23,11 +23,11 @@
+ 	input  [7:0] SENSOR_DELAY,
+ 	
+ 	output [2:0] TARGET,
+-	output       SENSOR,
+-	output       BTN_A,
+-	output       BTN_B,
+-	output       BTN_C,
+-	output       BTN_START
++	output logic       SENSOR,
++	output logic       BTN_A,
++	output logic       BTN_B,
++	output logic       BTN_C,
++	output logic       BTN_START
+ );
+ 
+ assign TARGET  = { 2'd0, ~offscreen & draw};

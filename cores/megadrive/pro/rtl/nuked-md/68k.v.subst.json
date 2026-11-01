@@ -1,0 +1,5 @@
+[
+  ["ramstyle = \"M10K\"", "ramstyle = \"M20K\" /* Retro25: Agilex 5 hat M20K statt M10K (272006) */", 2],
+  ["\"68k_ucode.txt\"", "\"../vendor/rtl/nuked-md/68k_ucode.txt\" /* Retro25: Pfad relativ zum Projekt (13307) */", 1],
+  ["\"68k_ncode.txt\"", "\"../vendor/rtl/nuked-md/68k_ncode.txt\" /* Retro25: Pfad relativ zum Projekt (13307) */", 1]
+]

@@ -1,0 +1,316 @@
+--- a/rtl/cartridge.sv
++++ b/rtl/cartridge.sv
+@@ -75,6 +75,70 @@
+ 
+ 	output     [23:0] md_addr
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire svp_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ms_rom_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cart_cs_ext;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire rom_we;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ms_boot_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ms_ram_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire fm_det_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire md_sram_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire pier_prot_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire pier_eeprom_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire md_eeprom_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire jcart_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire sf_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ms_ram_p;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire sf_sram_wr;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire svp_dma;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire eeprom_sda;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [1:0] ms_ram_e;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg        cart_wr_addr0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg        rom_wr = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       rom_wrack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [26:0] cart_wr_addr;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg  [24:1] rom_addr;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg         rom_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        rom_ack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] rom_data;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg         rom_rd;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [20:1] rom2_a;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] rom2_data;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        rom2_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        rom2_ack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg       sram00_quirk, fmbusy_quirk, noram_quirk, pier_quirk, svp_quirk, schan_quirk;
+ 
+ sdram sdram
+ (
+@@ -107,12 +171,12 @@
+ 	.ack2(rom2_ack)
+ );
+ 
+-reg        cart_wr_addr0;
+-reg        rom_wr = 0;
+-wire       rom_wrack;
++// Retro25: Deklaration nach oben gezogen (16746): reg        cart_wr_addr0;
++// Retro25: Deklaration nach oben gezogen (16746): reg        rom_wr = 0;
++// Retro25: Deklaration nach oben gezogen (16746): wire       rom_wrack;
+ reg [24:1] rom_mask;
+ reg [25:1] rom_sz;
+-reg [26:0] cart_wr_addr;
++// Retro25: Deklaration nach oben gezogen (16746): reg [26:0] cart_wr_addr;
+ 
+ always @(posedge clk) begin
+ 	reg old_dl, old_reset;
+@@ -161,11 +225,11 @@
+ wire rom_data_req = cart_cs | ms_rom_cs | cart_cs_ext;
+ wire sdram_rd     = cart_oe;
+ 
+-reg  [24:1] rom_addr;
+-reg         rom_req;
+-wire        rom_ack;
+-wire [15:0] rom_data;
+-reg         rom_rd;
++// Retro25: Deklaration nach oben gezogen (16746): reg  [24:1] rom_addr;
++// Retro25: Deklaration nach oben gezogen (16746): reg         rom_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire        rom_ack;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] rom_data;
++// Retro25: Deklaration nach oben gezogen (16746): reg         rom_rd;
+ reg         dtack_ext;
+ 
+ always @(posedge clk_ram) begin
+@@ -202,10 +266,10 @@
+ 	if(chk_cs)         cart_data <= chk_data;
+ end
+ 
+-wire [16:0] sram_addr;
+-wire  [7:0] sram_di;
++logic [16:0] sram_addr;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++logic  [7:0] sram_di;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire  [7:0] sram_q;
+-wire        sram_wren;
++logic        sram_wren;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	if(cart_ms) begin
+@@ -238,10 +302,10 @@
+ reg [16:1] ram_rst_a;
+ always @(posedge clk) ram_rst_a <= ram_rst_a + 1'd1;
+ 
+-wire [15:0] sram2_addr;
+-wire [15:0] sram2_di;
++logic [15:0] sram2_addr;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++logic [15:0] sram2_di;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire [15:0] sram2_q;
+-wire        sram2_wren;
++logic        sram2_wren;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	if(cart_dl) begin
+@@ -313,13 +377,13 @@
+ 
+ 
+ // SVP
+-wire        svp_dma = svp_quirk & cart_dma;
+-wire        svp_cs  = svp_quirk & ~svp_dtack_n;
+-
+-wire [20:1] rom2_a;
+-wire [15:0] rom2_data;
+-wire        rom2_req;
+-wire        rom2_ack;
++assign svp_dma = svp_quirk & cart_dma;
++assign svp_cs = svp_quirk & ~svp_dtack_n;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [20:1] rom2_a;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] rom2_data;
++// Retro25: Deklaration nach oben gezogen (16746): wire        rom2_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire        rom2_ack;
+ 
+ wire [15:0] svp_data;
+ wire        svp_dtack_n;
+@@ -358,11 +422,11 @@
+ );
+ 
+ // SRAM
+-wire md_sram_cs = ~cart_ms && (cart_addr[23:21] == 1) && (md_bank_sram || (cart_addr >= rom_sz && ~&cart_addr[20:19])) && ~noram_quirk;
++assign md_sram_cs = ~cart_ms && (cart_addr[23:21] == 1) && (md_bank_sram || (cart_addr >= rom_sz && ~&cart_addr[20:19])) && ~noram_quirk;
+ 
+ // EEPROM
+-wire        md_eeprom_cs   = (eeprom_quirk[3:2] == 2'b01) ? (cart_addr[23:19] == 5'b00111) : (eeprom_quirk[2:0] && ((eeprom_bank & ~cart_addr[20]) || !eeprom_quirk[3]) && cart_addr[23:21] == 3'b001);
+-wire [15:0] md_eeprom_data;
++assign md_eeprom_cs = (eeprom_quirk[3:2] == 2'b01) ? (cart_addr[23:19] == 5'b00111) : (eeprom_quirk[2:0] && ((eeprom_bank & ~cart_addr[20]) || !eeprom_quirk[3]) && cart_addr[23:21] == 3'b001);
++logic [15:0] md_eeprom_data;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	md_eeprom_data = 0;
+@@ -403,7 +467,7 @@
+ 	end
+ end
+ 
+-wire eeprom_sda = {eeprom_sdao & eeprom_sdai};
++assign eeprom_sda = {eeprom_sdao & eeprom_sdai};
+ 
+ //                                        C01     C01     C02     C16      C65       C08      C04
+ wire [12:0] eeprom_mask[8] = '{13'h00, 13'h7f, 13'h7f, 13'hff, 13'h7ff, 13'h1fff, 13'h3ff, 13'h1ff};
+@@ -450,7 +514,7 @@
+ 	.ram_RnW(m95_rnw)
+ );
+ 
+-wire pier_prot_cs = pier_quirk && (cart_addr == 'hAF3 || cart_addr == 'hAF4);
++assign pier_prot_cs = pier_quirk && (cart_addr == 'hAF3 || cart_addr == 'hAF4);
+ reg [15:0] pier_prot_data;
+ 
+ always @(posedge clk) begin
+@@ -470,11 +534,11 @@
+ 	end
+ end
+ 
+-wire pier_eeprom_cs = pier_quirk && cart_time && cart_addr[3:1] == 'h5;
++assign pier_eeprom_cs = pier_quirk && cart_time && cart_addr[3:1] == 'h5;
+ wire [15:0] pier_eeprom_data = {15'h7FFF, m95_so};
+ 
+ // Sega Channel, 4MB RAM used as ROM
+-wire rom_we = (cart_lwr || cart_uwr) && !cart_addr[23:22] && ~rom_prot;
++assign rom_we = (cart_lwr || cart_uwr) && !cart_addr[23:22] && ~rom_prot;
+ 
+ reg rom_prot;
+ always @(posedge clk) begin
+@@ -483,7 +547,7 @@
+ end
+ 
+ //JCART multitap
+-wire   jcart_cs = ~cart_ms && jcart_en && (cart_addr == 'h1C7FFF || cart_addr == 'h1FFFFF) && cart_addr >= rom_sz;
++assign jcart_cs = ~cart_ms && jcart_en && (cart_addr == 'h1C7FFF || cart_addr == 'h1FFFFF) && cart_addr >= rom_sz;
+ 
+ always @(posedge clk) begin
+ 	if(reset) jcart_th <= 1;
+@@ -491,7 +555,7 @@
+ end
+ 
+ // MK3U Trilogy 10MB version (13MB isn't compatible with real HW!)
+-wire cart_cs_ext = ~cart_ms && (cart_addr[23:22] && cart_addr[23:20]<'hA) && (cart_addr < rom_sz);
++assign cart_cs_ext = ~cart_ms && (cart_addr[23:22] && cart_addr[23:20]<'hA) && (cart_addr < rom_sz);
+ 
+ // Realtec
+ reg [21:17] realtec_bank;
+@@ -526,7 +590,7 @@
+ wire [23:1] realtec_addr = realtec_boot ? {11'b00000111111,cart_addr[12:1]} : {2'b00,(cart_addr[21:17] & realtec_mask) + realtec_bank,cart_addr[16:1]};
+ 
+ //SF-001,SF-002,SF-004 mappers
+-wire        sf_cs     = sf_quirk && (sf_sram_en | cart_time);
++assign sf_cs = sf_quirk && (sf_sram_en | cart_time);
+ wire [15:0] sf_data   = cart_time ? (sf_quirk[1:0] == 2'd3 ? sf004_do : 16'h0000) : {8'hff,sram_q};
+ 
+ reg   [7:0] sf001_bank_reg;
+@@ -583,7 +647,7 @@
+                             sf_quirk[1:0] == 2 ? sf002_rom_a : 
+                                                  sf004_rom_a;
+ 
+-wire        sf_sram_wr    = sf_sram_en & cart_lwr;
++assign sf_sram_wr = sf_sram_en & cart_lwr;
+ 
+ //Simple check
+ reg         chk_cs;
+@@ -620,7 +684,7 @@
+ wire        iorq_n  = cart_addr[19];
+ 
+ wire [7:0] ms_boot_data;
+-spram #(14,8,"rtl/mboot.mif") boot_rom
++spram #(14,8,"../vendor/rtl/mboot.mif") boot_rom   // Retro25: Pfad relativ zu quartus/ (20059)
+ (
+ 	.clock(clk),
+ 	.address(ms_addr[13:0]),
+@@ -633,10 +697,10 @@
+ 	else if(cart_lwr && ~iorq_n && !ms_addr[7:6] && !ms_addr[0]) boot_en <= 0;
+ end
+ 
+-wire ms_boot_cs = !ms_addr[15:14] && boot_en && cart_ms;
+-
+-wire ms_ram_cs = cart_ms && ~mreq_n && ms_addr[15] && (ms_ram_e[ms_addr[14]] || ((ms_addr[14:13]==1) && ms_ram_c));
+-wire ms_rom_cs = cart_ms && ~mreq_n && ~&ms_addr[15:14];
++assign ms_boot_cs = !ms_addr[15:14] && boot_en && cart_ms;
++
++assign ms_ram_cs = cart_ms && ~mreq_n && ms_addr[15] && (ms_ram_e[ms_addr[14]] || ((ms_addr[14:13]==1) && ms_ram_c));
++assign ms_rom_cs = cart_ms && ~mreq_n && ~&ms_addr[15:14];
+ 
+ reg mapper_codies;
+ reg mapper_msx;
+@@ -652,8 +716,8 @@
+ 
+ reg  [7:0] ms_bank[4];
+ reg  [7:0] ms_cfg;
+-wire [1:0] ms_ram_e = ms_cfg[4:3];
+-wire       ms_ram_p = ms_cfg[2];
++assign ms_ram_e = ms_cfg[4:3];
++assign ms_ram_p = ms_cfg[2];
+ reg        ms_ram_c;
+ 
+ always @(posedge clk) begin
+@@ -713,7 +777,7 @@
+ 	end
+ end
+ 
+-wire [21:0] ms_cart_addr;
++logic [21:0] ms_cart_addr;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ always_comb begin
+ 	ms_cart_addr = ms_addr;
+ 	
+@@ -768,7 +832,7 @@
+ 	.mixout(fm_audio)
+ );
+ 
+-wire fm_det_cs = cart_ms && fm_en && ~iorq_n && ms_addr[7:0] == 8'hF2;
++assign fm_det_cs = cart_ms && fm_en && ~iorq_n && ms_addr[7:0] == 8'hF2;
+ 
+ reg [7:0] fm_det_data;
+ always @(posedge clk) begin
+@@ -778,7 +842,7 @@
+ 
+ //---------------------- Cart detect ---------------------------------------
+ 
+-reg       sram00_quirk, fmbusy_quirk, noram_quirk, pier_quirk, svp_quirk, schan_quirk;
++// Retro25: Deklaration nach oben gezogen (16746): reg       sram00_quirk, fmbusy_quirk, noram_quirk, pier_quirk, svp_quirk, schan_quirk;
+ reg [3:0] eeprom_quirk;
+ reg       realtec_quirk;
+ reg [2:0] sf_quirk;
+@@ -786,10 +850,10 @@
+ 
+ always @(posedge clk) begin
+ 	reg [87:0] cart_id;
+-	reg [15:0] crc = 0;
+-	reg [15:0] crc_real = 0;
+-	reg [31:0] realtec_id = 0;
+-	reg [31:0] sp = 0;
++	reg [15:0] crc;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [15:0] crc_real;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [31:0] realtec_id;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [31:0] sp;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg old_dl;
+ 	old_dl <= cart_dl;
+ 

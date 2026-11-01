@@ -4,8 +4,8 @@ Retro25 brings the [MiSTer](https://github.com/MiSTer-devel) framework to the
 **Terasic DE25-Nano** (Intel/Altera Agilex 5 E, Arm HPS running Linux). As on
 MiSTer, Linux loads different FPGA cores at runtime, selected from the
 menu (F12). Ported so far: the `sys/` framework (HDMI, OSD, scaler, audio,
-`hps_io`), the Linux program Main_MiSTer (now aarch64) and three
-cores: Menu, **C64**, **z486** (486 PC) and **NES**.
+`hps_io`), the Linux program Main_MiSTer (now aarch64) and these
+cores: Menu, **C64**, **z486** (486 PC), **NES** and **Mega Drive**.
 
 > A one-person learning project, not an official MiSTer port. Everything here
 > ran on exactly one board; expect rough edges.
@@ -21,6 +21,7 @@ cores: Menu, **C64**, **z486** (486 PC) and **NES**.
 | **C64** (C64_MiSTer): BASIC, PRG, D64 read/write, CRT, TAP, SID, joysticks | ✔ → [`cores/c64/README.md`](cores/c64/README.md) |
 | **z486** (z486_MiSTer): FreeDOS, Windows 95, Doom, Quake, SVGA, x87, Sound Blaster | ✔ → [`cores/z486/README.md`](cores/z486/README.md) |
 | **NES** (NES_MiSTer, NTSC only): games with sound and gamepad | ✔ → [`cores/nes/README.md`](cores/nes/README.md) |
+| **Mega Drive** (MegaDrive_MiSTer / Nuked-MD, NTSC only): games with sound and gamepad | ✔ → [`cores/megadrive/README.md`](cores/megadrive/README.md) |
 | Read-only Linux root (SD card survives hard resets) | ✔ |
 | `vsync_adjust=2`, `direct_video`, ALSA output, MIDI | open |
 
@@ -60,7 +61,7 @@ Not included is everything we may not or should not redistribute:
 
 | Part | Why not | Where from |
 |---|---|---|
-| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
+| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES/MegaDrive cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
 | z486_MiSTer | no license file; microcode explicitly not Apache-2.0 | `tools/setup.py` |
 | Terasic GHRD (HPS system, bootloader SPL) | Terasic permits use, not redistribution | Terasic resource package, `tools/fetch_hps.py` |
 | C64 and 1541 ROMs | copyrighted | obtain yourself → `roms/` |
@@ -117,7 +118,7 @@ Resources), two downloads:
 > python tools\setup.py
 ```
 
-`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES and z486
+`setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES, MegaDrive and z486
 (each at a fixed commit, via `git`), plus the z486 boot ROMs and FreeDOS test disk,
 and generates the adapted copies. At the end it lists what is still missing.
 `python tools\setup.py --check` lets you check this at any time.
@@ -325,7 +326,7 @@ $ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf
 
 This sets up: Main under `/media/fat/MiSTer`, `MiSTer.ini`, the menu as
 `/media/fat/menu.rbf`, the other cores as `/media/fat/_Retro25/C64.rbf`,
-`Z486.rbf` and `NES.rbf`, the overlay for loading cores, and the service **`retro25-main`**,
+`Z486.rbf`, `NES.rbf` and `MegaDrive.rbf`, the overlay for loading cores, and the service **`retro25-main`**,
 which runs Main at every boot. The menu appears on the HDMI monitor;
 **F12** opens the core selection.
 
@@ -335,6 +336,7 @@ which runs Main at every boot. The menu appears on the HDMI monitor;
 |---|---|---|
 | C64 | `/media/fat/games/C64/` | `.d64`, `.prg`, `.crt`, `.tap` (ROMs are already in the core) |
 | NES | `/media/fat/games/NES/` | `.nes` (your own cartridge dumps) |
+| Mega Drive | `/media/fat/games/MegaDrive/` | `.bin`, `.gen`, `.md` (your own cartridge dumps) |
 | z486 | `/media/fat/games/Z486/` | `boot0.rom`, `boot1.rom` (**required**, from `roms\z486\`), `freedos.vhd`, your own `.vhd`/`.img`/`.iso` |
 
 ```

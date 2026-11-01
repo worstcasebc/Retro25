@@ -11,6 +11,10 @@ Aufruf (aus dem Projektverzeichnis Retro25):
     python tools/port_core.py <core> fiximplicit [--apply]
         liest quartus/output_files/<core>.syn.rpt (nach quartus_syn) und
         behebt die Falle "implizite Netze" (16746/16749 -> 16788).
+    python tools/port_core.py <core> fix16754 [--apply]
+        liest denselben Bericht und entfernt Startwerte 0 von Variablen in
+        always (Quartus Pro setzt sie sonst jeden Takt zurück; MegaDrive:
+        Reset-Zähler blieb 0, der Core stand dauerhaft im Reset).
     python tools/port_core.py <core> report
         fasst die Warnungen des Syntheseberichts zusammen, die bei uns
         schon Fehler verursacht haben (16754, 16788, 1303x, 276009, 22556).
@@ -48,7 +52,10 @@ class Src:
     def __init__(self, path: Path):
         self.path = path
         self.text, self.enc = apply_patches.read_src(path)
-        self.eol = "\r\n" if "\r\n" in self.text else "\n"
+        # CRLF nur, wenn jede Zeile so endet; gemischte Dateien (MegaDrive.sv)
+        # an LF trennen — die CR bleiben in den Zeilen, nichts geht verloren
+        n_lf = self.text.count("\n")
+        self.eol = "\r\n" if n_lf and self.text.count("\r\n") == n_lf else "\n"
 
     @property
     def lines(self) -> list[str]:
@@ -143,18 +150,41 @@ def fix13386_text(src: Src) -> int:
         e = starts[k + 1] if k + 1 < len(starts) else len(lines)
         tg = proc_targets("\n".join(lines[s:e]))
         want_at += [tg] * (e - len(want_at)) if k else [tg] * e
+    # .v-Dateien sind Verilog-2001: dort gibt es kein "logic", "reg" tut dasselbe
+    kw = "reg" if src.path.suffix.lower() == ".v" else "logic"
+    note = NOTE_LOGIC.replace("logic", kw, 1)
+    # Zeilen in /* ... */ (z. B. auskommentierte Module) nicht anfassen
+    in_cmt, cmt = False, []
+    for ln in lines:
+        start = in_cmt
+        s = ln.split("//")[0] if not in_cmt else ln
+        while True:
+            if in_cmt:
+                k = s.find("*/")
+                if k < 0:
+                    break
+                in_cmt, s = False, s[k + 2:]
+            else:
+                k = s.find("/*")
+                if k < 0:
+                    break
+                in_cmt, s = True, s[k + 2:]
+        cmt.append(start or in_cmt)
     out, n = [], 0
     for i, ln in enumerate(lines):
         want = want_at[i] if i < len(want_at) else set()
+        if cmt[i]:
+            out.append(ln)
+            continue
         code = ln.split("//")[0]
         m = WIRE_DECL.match(code)
         if m and names_in(m.group(1)) & want:
-            ln = re.sub(r"^(\s*)wire\b", r"\1logic", ln, count=1) + NOTE_LOGIC
+            ln = re.sub(r"^(\s*)wire\b", r"\1" + kw, ln, count=1) + note
             n += 1
         else:
             m = OUT_DECL.match(code)
             if m and names_in(m.group(2)) & want:
-                ln = re.sub(r"^(\s*)output\b", r"\1output logic", ln, count=1)
+                ln = re.sub(r"^(\s*)output\b", r"\1output " + kw, ln, count=1)
                 n += 1
         out.append(ln)
     src.set_lines(out)
@@ -231,6 +261,46 @@ def parse_report(core: Core):
     return rpt, uses, decls
 
 
+# ------------------------------------------------------------------ 16754
+ZERO = r"(?:0|'0|\d*'[sS]?[bBdDhHoO]0+)"
+NOTE_16754 = "   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)"
+
+
+def parse_16754(core: Core) -> dict[str, list[tuple[int, str]]]:
+    rpt = core.dir / "quartus" / "output_files" / f"{core.name}.syn.rpt"
+    if not rpt.exists():
+        sys.exit(f"{rpt} fehlt (erst quartus_syn laufen lassen)")
+    hits: dict[str, list[tuple[int, str]]] = {}
+    pre = rf"File: Q:/cores/{core.name}/(?:pro|vendor)/(\S+) Line: (\d+)"
+    for ln in rpt.read_text(encoding="latin-1").splitlines():
+        m = re.search(r"\(16754\).*?variable \"(\w+)\".*" + pre, ln)
+        if m and (int(m.group(3)), m.group(1)) not in hits.get(m.group(2), []):
+            hits.setdefault(m.group(2), []).append((int(m.group(3)), m.group(1)))
+    return hits
+
+
+def fix16754_text(src: Src, items: list[tuple[int, str]]) -> list[str]:
+    """Startwert 0 einer Variablen in always entfernen. Quartus Pro setzt
+    'reg x = 0;' innerhalb von always in JEDEM Takt auf 0 (16754); ohne
+    Startwert ist es ein normales Register (Einschaltwert ohnehin 0).
+    Andere Startwerte -> Meldung, von Hand auf Modulebene ziehen."""
+    lines, log = list(src.lines), []
+    for line, var in sorted(items):
+        ln = lines[line - 1]
+        code, sep, com = ln.partition("//")
+        if not re.search(rf"\b{var}\s*=\s*{ZERO}(?=\s*[,;])", code):
+            if not re.search(rf"\b{var}\b(?!\s*=)", code):   # schon ohne Startwert?
+                log.append(f"{line}: {var} — Startwert nicht 0, von Hand (Register auf Modulebene)")
+            continue
+        # alle Startwerte 0 dieser Deklaration (reg a = 0, b = 0;) — meldet
+        # Quartus nur die erste, betroffen sind alle
+        new = re.sub(rf"\b(\w+)\s*=\s*{ZERO}(?=\s*[,;])", r"\1", code)
+        lines[line - 1] = new + sep + com if sep else new.rstrip() + NOTE_16754
+        log.append(f"{line}: {var}")
+    src.set_lines(lines)
+    return log
+
+
 # ------------------------------------------------------------------- scan
 PRIMS = re.compile(r"\b(altsyncram|altddio_out|altddio_in|altera_pll|altpll|altdpram|cyclonev_\w+|"
                    r"intended_device_family\s*\(?\s*\"Cyclone)", re.I)
@@ -253,8 +323,32 @@ def vhdl_case_without_others(text: str) -> list[int]:
     return res
 
 
+def emu_outputs() -> set[str]:
+    """Ausgänge des emu-Moduls laut sys/vendor/mister/emu_ports.vh."""
+    p = ROOT / "sys" / "vendor" / "mister" / "emu_ports.vh"
+    if not p.exists():
+        return set()
+    out = set()
+    for ln in p.read_text(encoding="latin-1").splitlines():
+        m = re.match(r"^\s*(output|inout)\b([^/]*)", ln)
+        if m:
+            out |= names_in(m.group(2)) - {"reg", "wire", "logic", "signed"}
+    return out
+
+
 def cmd_scan(core: Core) -> None:
     print(f"== {core.name}: Quelltext unter {core.vendor.relative_to(ROOT)}")
+    # Makros aus MiSTers .qsf (z. B. MegaDrive: M68K_CHEAT, EXT_CLOCKS) — ohne
+    # sie fehlen Ports hinter `ifdef ("can't find port", 13305)
+    for qsf in sorted(core.vendor.glob("*.qsf")):
+        if qsf.stem.endswith("_Q13"):
+            continue
+        macros = re.findall(r'^\s*set_global_assignment\s+-name\s+VERILOG_MACRO\s+(.+)$',
+                            qsf.read_text(encoding="latin-1"), re.M)
+        if macros:
+            print(f"{qsf.name}: Makros für core.tcl übernehmen:")
+            for m in macros:
+                print(f"  set_global_assignment -name VERILOG_MACRO {m.strip()}")
     for rel in core.sources(SV_EXT + (".vhd", ".vhdl")):
         src = Src(core.vendor / rel)   # Original, nicht die pro-Kopie
         found = []
@@ -264,6 +358,11 @@ def cmd_scan(core: Core) -> None:
             m = re.search(r"\"(rtl/[^\"]+\.(mif|hex|mem))\"", ln)
             if m:
                 found.append(f"  {i}: Pfad relativ zum MiSTer-Projekt: {m.group(1)}")
+            m = re.search(r'\$readmem[bh]\s*\(\s*"([^"/]+)"', ln)
+            if m:   # Datei neben der Quelle — die pro-Kopie liegt woanders
+                found.append(f"  {i}: $readmem ohne Pfad: {m.group(1)} -> Pfad relativ zum Projekt (13307)")
+            if re.search(r'ramstyle\s*=\s*"(M9K|M10K)"', ln, re.I):
+                found.append(f"  {i}: ramstyle M9K/M10K gibt es auf Agilex 5 nicht -> M20K (272006)")
             if re.match(r"^\s*import\s+\w+::\*\s*;", ln) and not ln.startswith(" ") and i < 30:
                 found.append(f"  {i}: Paket-Import auf Dateiebene (gilt bei Quartus Pro nur in dieser Datei)")
         if rel.endswith(SV_EXT):
@@ -271,6 +370,13 @@ def cmd_scan(core: Core) -> None:
             n = fix13386_text(tmp)
             if n:
                 found.append(f"  13386: {n} Deklaration(en) wire/output -> logic (fix13386)")
+            # emu-Ports (sys/emu_ports.vh) haben keinen Typ; prozedural
+            # beschrieben -> 13386, das Werkzeug kann die Deklaration nicht ändern
+            if re.search(r"^\s*module\s+emu\b", src.text, re.M):
+                bad = sorted(proc_targets(src.text) & emu_outputs())
+                if bad:
+                    found.append(f"  13386 (von Hand): emu-Port(s) in always beschrieben: {', '.join(bad)}"
+                                 " -> Hilfsvariable + assign bzw. assign je Bit")
         else:
             for n in vhdl_case_without_others(src.text):
                 found.append(f"  {n}: VHDL-case ohne others (std_logic_vector? dann letzten Zweig -> others)")
@@ -299,6 +405,20 @@ def cmd_fiximplicit(core: Core, apply: bool) -> None:
         log = fix_implicit_text(src, uses.get(rel, []), decls.get(rel, set()))
         if log:
             print(f"{rel}: {len(log)} Änderung(en)")
+            for x in log:
+                print("  " + x)
+            changed[rel] = src
+    if apply and changed:
+        core.commit(changed)
+
+
+def cmd_fix16754(core: Core, apply: bool) -> None:
+    changed = {}
+    for rel, items in sorted(parse_16754(core).items()):
+        src = Src(core.current(rel))
+        log = fix16754_text(src, items)
+        if log:
+            print(f"{rel}: {len(log)} Variable(n)")
             for x in log:
                 print("  " + x)
             changed[rel] = src
@@ -335,6 +455,7 @@ def main() -> int:
     {"scan": lambda: cmd_scan(core),
      "fix13386": lambda: cmd_fix13386(core, apply),
      "fiximplicit": lambda: cmd_fiximplicit(core, apply),
+     "fix16754": lambda: cmd_fix16754(core, apply),
      "report": lambda: cmd_report(core)}.get(cmd, lambda: sys.exit(__doc__))()
     return 0
 

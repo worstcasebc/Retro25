@@ -1,0 +1,20 @@
+--- a/rtl/audio_cond.sv
++++ b/rtl/audio_cond.sv
+@@ -38,6 +38,8 @@
+ 	output [15:0] AUDIO_L,
+ 	output [15:0] AUDIO_R
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] psg;
+ 
+ reg  [15:0] md_fm_l, md_fm_r;
+ always @(posedge clk) begin
+@@ -132,7 +134,7 @@
+ 	.output_l(psg)
+ );
+ 
+-wire [15:0] psg;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] psg;
+ 
+ reg [15:0] pre_lpf_l,pre_lpf_r;
+ always @(posedge clk) begin

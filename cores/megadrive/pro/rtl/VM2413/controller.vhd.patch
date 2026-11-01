@@ -1,0 +1,29 @@
+--- a/rtl/VM2413/controller.vhd
++++ b/rtl/VM2413/controller.vhd
+@@ -128,7 +128,7 @@
+     end component;
+ 
+     -- the array which caches instrument number of each channel.
+-    type inst_array is array (ch_type'range) of integer range 0 to 15;
++    type inst_array is array (ch_type) of integer range 0 to 15;   -- Retro25: ohne 'range (Quartus Pro 17577)
+     signal inst_cache : inst_array;
+ 
+     type kl_array is array (0 to 15) of std_logic_vector(5 downto 0);
+@@ -336,7 +336,7 @@
+                                     user_voice_wr <= '1';
+                                 end if;
+ 
+-                            when "11" =>
++                            when others =>   -- Retro25: others (Quartus Pro 13630)
+                                 if conv_integer(addr(0 downto 0)) = (vindex mod 2) then
+                                     user_voice_tmp.sl := data(7 downto 4);
+                                     user_voice_tmp.rr := data(3 downto 0);
+@@ -393,7 +393,7 @@
+             --------------------------------------------------------------------------
+             -- 4th stage (updating a register and voice parameters.)
+             --------------------------------------------------------------------------
+-            when "11" =>
++            when others =>   -- Retro25: others (Quartus Pro 13630)
+ 
+                 -- output slot number (for explicit synchonization with other units).
+                 -- slot_out <= slot;

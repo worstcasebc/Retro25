@@ -18,7 +18,7 @@ deshalb gibt es dafür ein Werkzeug (`tools/port_core.py`).
 | 3. Analysieren | `python tools/port_core.py <core> scan` | Liste der Baustellen |
 | 4. Takt | `tools/make_iopll.py` | `cores/<core>/ip/pll_<core>.ip` |
 | 5. Projekt | `core.tcl`, `<core>_de25.sdc`, `tools/make_core_qsf.py` | Quartus-Projekt |
-| 6. Synthese-Schleife | `quartus_syn`, `port_core.py … fix13386/fiximplicit/report` | saubere Synthese |
+| 6. Synthese-Schleife | `quartus_syn`, `port_core.py … fix13386/fiximplicit/fix16754/report` | saubere Synthese |
 | 7. Bau | `Q:\tools\build_core.bat <core>` | `.core.rbf`, Timing, Hash |
 | 8. Board | `load_core`, MGL, Screenshot, Main-Log | läuft |
 
@@ -108,6 +108,7 @@ mit der PLL im HPS-System.
 python tools/port_core.py <core> fix13386 --apply
 Set-Location Q:\cores\<core>\quartus; quartus_syn <core> -c <core>
 python tools/port_core.py <core> fiximplicit --apply   # liest den Bericht
+python tools/port_core.py <core> fix16754 --apply      # Startwerte 0 in always
 quartus_syn …   (wiederholen, bis fehlerfrei)
 python tools/port_core.py <core> report
 ```
@@ -131,12 +132,27 @@ Meldung abarbeiten.
 | 13034/13035/13028 | Tri-State falsch aufgelöst (z486: `gamma_bus = 'z`) | Tri-State im Core vermeiden |
 | 13630 / 17577 | VHDL `case` ohne `others`; `'range` auf Integer-Subtyp | `when others`; `array (typ)` |
 | 13780 | direkte Instanz ohne `entity` | `entity work.x` |
-| 272006 | `altsyncram` BIDIR mit `clock1`, `ramstyle "M10K"` | inferiertes RAM (NES `rtl/dpram.vhd`) |
+| 272006 | `altsyncram` BIDIR mit `clock1`, `ramstyle "M10K"` | inferiertes RAM (NES `rtl/dpram.vhd`); `M20K` |
+| 13305 | Port fehlt — Makros aus MiSTers `.qsf` fehlen (`` `ifdef ``) | `VERILOG_MACRO` in `core.tcl` (`scan` listet sie) |
+| 13307 | `$readmem("x.txt")` ohne Pfad: sucht neben der `pro/`-Kopie | Pfad `../vendor/rtl/…` |
+| 170019 | zu viele M20K | RAMs mit Byte-Freigaben werden je Byte zerlegt (jedes ≥ 1 Block) → `altera_syncram` direkt (MegaDrive `rtl/vram_ip.v`) |
 | 22556 | TDP-RAM mit zwei Takten | ein Takt für beide Ports |
 | 276009 | RAM nicht inferiert (Lese-/Schreibverhalten) | `(* ramstyle = "no_rw_check" *)` |
 | 287078 | `altddio_out` | `sdram_clk_ddio` |
 | 20059 | `.mif` nicht gefunden | Pfad `../vendor/rtl/x.mif` (relativ zu `quartus/`) |
 | Absturz | `ram_init_file = " "` | Attribut nur mit echter Datei |
+
+**Stilles Problem: RAM wird zu Flipflops.** Quartus Pro 26.1 erkennt für
+Agilex 5 manche RAM-Muster nicht und baut Register — ohne Fehler, nur riesig
+(MegaDrive: 617 000 ALMs) oder mit stundenlanger Synthese. Betroffen: Byte-
+Auswahl über berechneten Index (verschieden breite Ports), True-Dual-Port
+mit Byte-Freigaben, „neue Daten“ beim Schreiben über große Breite. Abhilfe:
+8-bit-Bänke ohne Byte-Enable (MegaDrive `rtl/bram.vhd`, `dpram_same`).
+Erkennen: `Resource Utilization by Entity` im `.syn.rpt` (Register/LUTs je
+RAM), Synthese über Stunden → Teile einzeln mit Zeitlimit synthetisieren.
+Bei kleiner Belegung umgekehrt prüfen, ob etwas fehlt: „Stuck at“ in
+„Removed Registers Triggering Further Register Optimizations“ (MegaDrive:
+`md_reset` fest 1 durch 16754, VDP weitgehend wegoptimiert).
 
 Ziel nach der Schleife: im Core-Code 0 × 16754, 16788 nur für bewusst
 teilweise belegte Busse (NES: `SS_*_BACK`), 0 × 1303x. Mehr in
@@ -178,3 +194,4 @@ Device-Speicher → über `shmem_put`/`shmem_get` umbauen (Patches 0005, 0006,
 | C64 | 35 589 (76 %) | 222 | PAL fest | FPGA64-Lizenz, 1541 über DDRAM |
 | z486 | 43 159 (92 %) | 282 | 85 MHz | eigenes `make_pro.py`, x87, SVGA |
 | NES | 39 879 (85 %) | 90 | NTSC fest | ~200 Stellen Quartus-Pro-Fallen, Main-Patch 0011 |
+| MegaDrive | 39 629 (85 %) | 252 | NTSC fest, 107 MHz | Nuked-MD (Gatter), eigene RAM-Ersatzdateien, SDRAM-Phase gemessen |

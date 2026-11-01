@@ -80,6 +80,8 @@ for rbf in "$@"; do
 		dst="/media/fat/menu.rbf"
 	elif [ "${name,,}" = nes ]; then
 		dst="/media/fat/_Retro25/NES.rbf"   # Abkürzung ganz groß, wie bei MiSTer
+	elif [ "${name,,}" = megadrive ]; then
+		dst="/media/fat/_Retro25/MegaDrive.rbf"   # Schreibweise wie MiSTers Core
 	else
 		dst="/media/fat/_Retro25/${name^}.rbf"
 	fi

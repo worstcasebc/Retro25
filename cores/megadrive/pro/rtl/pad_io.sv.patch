@@ -1,0 +1,29 @@
+--- a/rtl/pad_io.sv
++++ b/rtl/pad_io.sv
+@@ -54,6 +54,8 @@
+ 	input  [6:0] port_in,
+ 	input  [6:0] port_dir
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [6:0] gdata;
+ 
+ assign port_out = (~port_dir & port_in) | (port_dir & (GUN_EN ? gdata : MOUSE_EN ? {2'b00,mdata} : {1'b1, pdata}));
+ 
+@@ -88,7 +90,7 @@
+ 	end
+ end
+ 
+-wire [5:0] pdata;
++logic [5:0] pdata;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ always @(posedge clk) begin
+ 	priority casex({SMS,JCNT,TH})
+ 		4'b1XXX: pdata <= { ~P_C,     ~P_B, ~P_RIGHT, ~P_LEFT, ~P_DOWN, ~P_UP}; 
+@@ -177,7 +179,7 @@
+ reg jth;
+ reg mth;
+ 
+-wire [6:0] gdata = GUN_TYPE ? {gth & jth, jdo} : {gth & mth, mdo};
++assign gdata = GUN_TYPE ? {gth & jth, jdo} : {gth & mth, mdo};
+ wire [6:4] gdi   = port_in[6:4] | port_dir[6:4];
+ 
+ always @(posedge clk) begin

@@ -16,6 +16,7 @@ Quartus-Paket); sie nennen im Kopf selbst, was sie brauchen:
     // Dateien: pfad/a.v pfad/*.sv ...   (relativ zum Projekt, Muster erlaubt)
     // Include: verzeichnis ...          (Suchpfade für `include)
     // Makros:  NAME NAME=WERT ...
+    // Bibliotheken: altera_lnsim ...    (vorkompiliert, vsim -L; altera_syncram)
 Abgeleitet von tb/run_sim.py aus C64-DE25.
 """
 import argparse
@@ -95,7 +96,9 @@ def run_tb_questa(name: str, source: str) -> bool:
     if comp.returncode != 0:
         print(comp.stdout + comp.stderr)
         return False
-    sim = subprocess.run([tool["vsim"], "-c", "-quiet", "-lib", lib, "-l", f"{rel}/transcript",
+    # vorkompilierte Intel-Bibliotheken (z. B. altera_lnsim für altera_syncram)
+    libs = [x for b in header_values(source, "Bibliotheken") for x in ("-L", b)]
+    sim = subprocess.run([tool["vsim"], "-c", "-quiet", *libs, "-lib", lib, "-l", f"{rel}/transcript",
                           "-wlf", f"{rel}/vsim.wlf", name, "-do", "run -all; quit -f"],
                          cwd=ROOT, capture_output=True, text=True)
     output = sim.stdout + sim.stderr

@@ -1,0 +1,375 @@
+--- a/MegaDrive.sv
++++ b/MegaDrive.sv
+@@ -21,6 +21,58 @@
+ (
+ 	`include "sys/emu_ports.vh"
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire clk_sys;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cart_download;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire PAL;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [1:0] gun_mode;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire snac_port1;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire snac_port2;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg tmss_enable = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg tmss_loaded = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        ym2612_quirk;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg new_vmode;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire[11:0] arx,ary;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg  [1:0] region_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg        region_set = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] jcart_data;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        jcart_th;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [2:0] lg_target;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       lg_sensor;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       lg_a;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       lg_b;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       lg_c;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       lg_start;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg bk_ena = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire bk_change;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        gg_available;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [15:0] m68k_data;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [7:0] z80_data;
+ 
+ assign ADC_BUS  = 'Z;
+ assign {UART_RTS, UART_TXD, UART_DTR} = 0;
+@@ -140,42 +192,42 @@
+ 
+ wire clk_53m, clk_107m, clk_53m_v, pll_locked;
+ 
+-pll pll
++// Retro25: feste Agilex-IOPLL (cores/megadrive/ip/pll_md, tools/make_iopll.py)
++// statt der fraktionalen Cyclone-V-PLL. Nur NTSC (Entscheidung P6): VCO
++// 2362,5 MHz (50 * 189 / 4), clk_53m = 53,693182 MHz (C 44), clk_107m =
++// 107,386364 MHz (C 22), CLK_VIDEO wie clk_53m (eigener Ausgang wie upstream).
++// Zur Laufzeit stellt nur sys eine PLL um; mit "Region EU" bleibt der Takt
++// NTSC, PAL-Spiele laufen 0,9 % zu schnell (MiSTer: 53,203 MHz).
++// clk_sdram: clk_107m +45 Grad für SDRAM_CLK (unten über sdram_clk_ddio).
++// Messung mit cores/sdram486test --g107 (CL2, tRCD 2): 315..135 Grad
++// fehlerfrei, 180 Grad Fehler -> Mitte des Fensters.
++wire clk_sdram;
++pll_md pll
+ (
+ 	.refclk(CLK_50M),
+-	.rst(0),
++	.rst(1'b0),
+ 	.outclk_0(clk_53m),
+ 	.outclk_1(clk_107m),
+ 	.outclk_2(clk_53m_v),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll),
++	.outclk_3(clk_sdram),
+ 	.locked(pll_locked)
+ );
+ 
+-wire [63:0] reconfig_to_pll;
+-wire [63:0] reconfig_from_pll;
+-wire        cfg_waitrequest;
++sdram_clk_ddio sdramclk_ddr
++(
++	.ck(clk_sdram),
++	.din(2'b10),
++	.pad_out(SDRAM_CLK)
++);
++
++wire        cfg_waitrequest = 1'b0;   // Retro25: keine PLL-Umstellung (siehe oben)
+ reg         cfg_write;
+ reg   [5:0] cfg_address;
+ reg  [31:0] cfg_data;
+ 
+-pll_cfg pll_cfg
+-(
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(0),
+-	.mgmt_waitrequest(cfg_waitrequest),
+-	.mgmt_read(0),
+-	.mgmt_readdata(),
+-	.mgmt_write(cfg_write),
+-	.mgmt_address(cfg_address),
+-	.mgmt_writedata(cfg_data),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll)
+-);
+-
+ always @(posedge CLK_50M) begin
+-	reg pald = 0, pald2 = 0;
+-	reg [2:0] state = 0;
++	reg pald, pald2;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [2:0] state;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg pal_r;
+ 
+ 	pald <= PAL;
+@@ -209,7 +261,7 @@
+ 	end
+ end
+ 
+-wire clk_sys     = clk_53m;
++assign clk_sys = clk_53m;
+ wire clk_ram     = clk_107m;
+ wire clk_md      = clk_107m;
+ assign CLK_VIDEO = clk_53m_v;
+@@ -302,10 +354,10 @@
+ 	.EXT_BUS(EXT_BUS)
+ );
+ 
+-wire [1:0] gun_mode = status[41:40];
++assign gun_mode = status[41:40];
+ wire       gun_btn_mode = status[42];
+ 
+-wire cart_download = ioctl_download & (ioctl_index[4:0] == 1 || ioctl_index[4:0] == 2);
++assign cart_download = ioctl_download & (ioctl_index[4:0] == 1 || ioctl_index[4:0] == 2);
+ wire code_download = ioctl_download & &ioctl_index;
+ wire tmss_download = ioctl_download & !ioctl_index;
+ 
+@@ -322,9 +374,9 @@
+ 
+ reg osd_btn = 0;
+ always @(posedge clk_sys) begin
+-	integer timeout = 0;
+-	reg     has_bootrom = 0;
+-	reg     last_rst = 0;
++	integer timeout;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg     has_bootrom;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg     last_rst;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	if (RESET) last_rst <= 0;
+ 	if (status[0]) last_rst <= 1;
+@@ -350,8 +402,8 @@
+ reg        s_reset;
+ reg [15:1] ram_rst_a;
+ always @(posedge clk_md) begin
+-	reg [4:0] cnt = 0;
+-	reg old_reset = 0;
++	reg [4:0] cnt;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg old_reset;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	
+ 	ram_rst_a <= ram_rst_a + 1'd1;
+ 	if(&ram_rst_a & ~&cnt) cnt <= cnt + 1'd1;
+@@ -407,7 +459,7 @@
+ 
+ ///////////////////////////////////////////////////
+ 
+-wire        PAL = status[7];
++assign PAL = status[7];
+ wire        JAP = !status[7:6];
+ 
+ wire [23:1] cart_addr;
+@@ -622,8 +674,8 @@
+ 	.data_b({ioctl_data[7:0],ioctl_data[15:8]})
+ );
+ 
+-reg tmss_enable = 0;
+-reg tmss_loaded = 0;
++// Retro25: Deklaration nach oben gezogen (16746): reg tmss_enable = 0;
++// Retro25: Deklaration nach oben gezogen (16746): reg tmss_loaded = 0;
+ always @(posedge clk_sys) begin
+ 	if(ioctl_wr & tmss_download) tmss_loaded <= 1;
+ 	if(sys_reset) tmss_enable <= status[12];
+@@ -632,7 +684,7 @@
+ wire [13:0] sms_fm_audio;
+ wire        gun_type;
+ wire  [7:0] gun_sensor_delay;
+-wire        ym2612_quirk;
++// Retro25: Deklaration nach oben gezogen (16746): wire        ym2612_quirk;
+ 
+ cartridge cartridge
+ (
+@@ -641,7 +693,7 @@
+ 	.reset(sys_reset),
+ 	.reset_sdram(~pll_locked),
+ 
+-	.SDRAM_CLK(SDRAM_CLK),
++	.SDRAM_CLK(),          // Retro25: SDRAM_CLK kommt von sdram_clk_ddio (oben)
+ 	.SDRAM_CKE(SDRAM_CKE),
+ 	.SDRAM_A(SDRAM_A),
+ 	.SDRAM_BA(SDRAM_BA),
+@@ -799,7 +851,7 @@
+ 
+ ///////////////////////////////////////////////////
+ 
+-reg new_vmode;
++// Retro25: Deklaration nach oben gezogen (16746): reg new_vmode;
+ always @(posedge clk_sys) begin
+ 	reg old_pal;
+ 	int to;
+@@ -821,7 +873,7 @@
+ wire       interlace;
+ wire       vblank_c, hblank_c, hs_c, vs_c;
+ wire [7:0] r_c, g_c, b_c;
+-wire[11:0] arx,ary;
++// Retro25: Deklaration nach oben gezogen (16746): wire[11:0] arx,ary;
+ 
+ // CLK_VIDEO is clk_md/2 at a phase the PLL leaves open: hold the VDP video for two clk_md,
+ // loading on the clocks vdp_hclk1 changes on, so video_cond sees each value once at either phase.
+@@ -946,14 +998,14 @@
+ 
+ ///////////////////////////////////////////////////
+ 
+-reg  [1:0] region_req;
+-reg        region_set = 0;
++// Retro25: Deklaration nach oben gezogen (16746): reg  [1:0] region_req;
++// Retro25: Deklaration nach oben gezogen (16746): reg        region_set = 0;
+ reg        region_set_rst = 0;
+ 
+ wire       pressed = ps2_key[9];
+ wire [8:0] code    = ps2_key[8:0];
+ always @(posedge clk_sys) begin
+-	reg old_state, old_ready = 0;
++	reg old_state, old_ready;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	old_state <= ps2_key[10];
+ 
+ 	if(old_state != ps2_key[10]) begin
+@@ -1039,8 +1091,8 @@
+ 
+ wire [6:0] md_io_port1, md_io_port2;
+ 
+-wire [15:0] jcart_data;
+-wire        jcart_th;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] jcart_data;
++// Retro25: Deklaration nach oben gezogen (16746): wire        jcart_th;
+ 
+ md_io md_io
+ (
+@@ -1143,12 +1195,12 @@
+ 	.KEYBOARD_OPT(status[22:21])
+ );
+ 
+-wire [2:0] lg_target;
+-wire       lg_sensor;
+-wire       lg_a;
+-wire       lg_b;
+-wire       lg_c;
+-wire       lg_start;
++// Retro25: Deklaration nach oben gezogen (16746): wire [2:0] lg_target;
++// Retro25: Deklaration nach oben gezogen (16746): wire       lg_sensor;
++// Retro25: Deklaration nach oben gezogen (16746): wire       lg_a;
++// Retro25: Deklaration nach oben gezogen (16746): wire       lg_b;
++// Retro25: Deklaration nach oben gezogen (16746): wire       lg_c;
++// Retro25: Deklaration nach oben gezogen (16746): wire       lg_start;
+ 
+ lightgun lightgun
+ (
+@@ -1181,7 +1233,7 @@
+ 	.BTN_START(lg_start)
+ );
+ 
+-wire [6:0] SNAC_IN;
++logic [6:0] SNAC_IN;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire [6:0] SNAC_OUT;
+ always_comb begin
+ 	SNAC_IN[0]  = USER_IN[1]; //up
+@@ -1191,19 +1243,21 @@
+ 	SNAC_IN[4]  = USER_IN[2]; //b TL
+ 	SNAC_IN[5]  = USER_IN[6]; //c TR GPIO7
+ 	SNAC_IN[6]  = USER_IN[4]; //  TH
+-	USER_OUT[1] = SNAC_OUT[0];
+-	USER_OUT[0] = SNAC_OUT[1];
+-	USER_OUT[5] = SNAC_OUT[2];
+-	USER_OUT[3] = SNAC_OUT[3];
+-	USER_OUT[2] = SNAC_OUT[4];
+-	USER_OUT[6] = SNAC_OUT[5];
+-	USER_OUT[4] = SNAC_OUT[6];
+-end
+-
+-wire snac_port1 = (status[63:62] == 1);
++end
++// Retro25: USER_OUT ist ein Port ohne Typ aus sys/emu_ports.vh; Quartus Pro
++// erlaubt dafür keine Zuweisung in always_comb (13386) -> gleiche Verdrahtung per assign
++assign USER_OUT[1] = SNAC_OUT[0];
++assign USER_OUT[0] = SNAC_OUT[1];
++assign USER_OUT[5] = SNAC_OUT[2];
++assign USER_OUT[3] = SNAC_OUT[3];
++assign USER_OUT[2] = SNAC_OUT[4];
++assign USER_OUT[6] = SNAC_OUT[5];
++assign USER_OUT[4] = SNAC_OUT[6];
++
++assign snac_port1 = (status[63:62] == 1);
+ assign PA_i = snac_port1 ? SNAC_IN : md_io_port1;
+ 
+-wire snac_port2 = (status[63:62] == 2);
++assign snac_port2 = (status[63:62] == 2);
+ assign PB_i = snac_port2 ? SNAC_IN : md_io_port2;
+ 
+ wire snac_port3 = (status[63:62] == 3);
+@@ -1215,13 +1269,13 @@
+ 
+ wire downloading = cart_download;
+ 
+-reg bk_ena = 0;
++// Retro25: Deklaration nach oben gezogen (16746): reg bk_ena = 0;
+ reg sav_pending = 0;
+-wire bk_change;
++// Retro25: Deklaration nach oben gezogen (16746): wire bk_change;
+ 
+ always @(posedge clk_sys) begin
+-	reg old_downloading = 0;
+-	reg old_change = 0;
++	reg old_downloading;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg old_change;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	old_downloading <= downloading;
+ 	if(~old_downloading & downloading) bk_ena <= 0;
+@@ -1240,8 +1294,8 @@
+ reg  bk_state   = 0;
+ 
+ always @(posedge clk_sys) begin
+-	reg old_downloading = 0;
+-	reg old_load = 0, old_save = 0, old_ack;
++	reg old_downloading;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg old_load, old_save, old_ack;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	old_downloading <= downloading;
+ 
+@@ -1284,7 +1338,7 @@
+ ///////////////////////////////////////////////////
+ // Cheat codes loading for WIDE IO (16 bit)
+ reg [128:0] gg_code;
+-wire        gg_available;
++// Retro25: Deklaration nach oben gezogen (16746): wire        gg_available;
+ 
+ // Code layout:
+ // {clock bit, code flags,     32'b address, 32'b compare, 32'b replace}
+@@ -1312,7 +1366,7 @@
+ 	end
+ end
+ 
+-reg [15:0] m68k_data;
++// Retro25: Deklaration nach oben gezogen (16746): reg [15:0] m68k_data;
+ always @(posedge clk_md) m68k_data <= m68k_genie_data;
+ 
+ wire [15:0] m68k_genie_data;
+@@ -1328,7 +1382,7 @@
+ 	.data_out(m68k_genie_data)
+ );
+ 
+-reg [7:0] z80_data;
++// Retro25: Deklaration nach oben gezogen (16746): reg [7:0] z80_data;
+ always @(posedge clk_md) z80_data <= z80_genie_data;
+ 
+ wire [7:0] z80_genie_data;

@@ -1,0 +1,24 @@
+--- a/rtl/video_cond.sv
++++ b/rtl/video_cond.sv
+@@ -55,6 +55,10 @@
+ 	output            hbl_out,
+ 	output            vbl_out
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] r_c, g_c, b_c;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire hs_c,vs_c,hblank_c,vblank_c;
+ 
+ reg   [1:0] res_h = 0; // 248/256/320/320cor
+ reg   [1:0] res_v = 0; // 192/224/240
+@@ -198,8 +202,8 @@
+ 	.VBlank_out(vblank_c)
+ );
+ 
+-wire [7:0] r_c, g_c, b_c;
+-wire hs_c,vs_c,hblank_c,vblank_c;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] r_c, g_c, b_c;
++// Retro25: Deklaration nach oben gezogen (16746): wire hs_c,vs_c,hblank_c,vblank_c;
+ 
+ cofi coffee
+ (

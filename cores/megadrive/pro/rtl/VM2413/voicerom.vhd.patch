@@ -1,0 +1,11 @@
+--- a/rtl/VM2413/voicerom.vhd
++++ b/rtl/VM2413/voicerom.vhd
+@@ -46,7 +46,7 @@
+ 
+ architecture RTL of VoiceRom is
+ 
+-  type VOICE_ARRAY_TYPE is array (VOICE_ID_TYPE'range) of VOICE_VECTOR_TYPE;
++  type VOICE_ARRAY_TYPE is array (VOICE_ID_TYPE) of VOICE_VECTOR_TYPE;   -- Retro25: ohne 'range (Quartus Pro 17577)
+  
+   constant base_voices : VOICE_ARRAY_TYPE := (
+   -- APEK<ML>KL< TL >W<F><AR><DR><SL><RR>

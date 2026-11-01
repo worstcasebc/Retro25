@@ -64,6 +64,10 @@ cores/memtest/pro/**
 cores/nes/pro/**
 !cores/nes/pro/**/
 !cores/nes/pro/**/*.patch
+cores/megadrive/pro/**
+!cores/megadrive/pro/**/
+!cores/megadrive/pro/**/*.patch
+!cores/megadrive/pro/**/*.subst.json
 sys/de25/pro/**
 !sys/de25/pro/**/
 !sys/de25/pro/**/*.patch
