@@ -99,9 +99,10 @@ Runs on the board (2026-11-01). Build: 39,629 ALMs (85 %), 252 M20K (70 %),
 | Sonic the Hedgehog (`.gen`): picture 320 × 224 at 59.9 Hz, demo, game | ok |
 | Sound (FM and PSG) over HDMI | ok |
 | Gamepad (default mapping) | ok |
+| Virtua Racing (SVP, 2 MB, Europe — PAL timing at the NTSC clock): 3D title demo, menus, driving, sound | ok (no comparison with real hardware) |
 
-Not tested yet: Master System games (`FS2,SMS`), SVP (Virtua Racing),
-EEPROM / SRAM saves, light gun, MD+ / CD audio, PAL games.
+Not tested yet: Master System games (`FS2,SMS`),
+EEPROM / SRAM saves, light gun, MD+ / CD audio, other PAL games.
 
 Test without a person at the board: MGL with the game
 (`<file delay="1" type="f" index="1" path="/media/fat/games/MegaDrive/x.gen"/>`
