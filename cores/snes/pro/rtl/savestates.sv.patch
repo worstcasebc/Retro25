@@ -1,0 +1,11 @@
+--- a/rtl/savestates.sv
++++ b/rtl/savestates.sv
+@@ -29,7 +29,7 @@
+ 	input       [7:0] di,
+ 	output reg  [7:0] ss_do,
+ 
+-	output     [23:0] rom_addr,
++	output logic     [23:0] rom_addr,
+ 
+ 	output     [19:0] ext_addr,
+ 

@@ -1,0 +1,702 @@
+--- a/SNES.sv
++++ b/SNES.sv
+@@ -22,6 +22,184 @@
+ (
+ 	`include "sys/emu_ports.vh"
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cart_download;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ss_allow;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire piano;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] VRAM1_Q;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] VRAM2_Q;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire scandoubler;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [2:0] sl;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire LG_T;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire raw_serial;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg new_vmode;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg status0_fall = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire HVCNT_ATZERO;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg RESET_N = 0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [128:0] gg_code;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire gg_available;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire[23:0] ROM_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       ROM_OE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       ROM_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       ROM_WORD;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire[15:0] ROM_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire[15:0] ROM_Q;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire[16:0] WRAM_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       WRAM_CE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       WRAM_OE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       WRAM_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] WRAM_Q, WRAM_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        VRAM_OE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] VRAM1_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        VRAM1_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] VRAM1_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] VRAM2_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        VRAM2_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] VRAM2_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] ARAM_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        ARAM_CE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        ARAM_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] ARAM_Q, ARAM_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [19:0] BSRAM_ADDR;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        BSRAM_CE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        BSRAM_OE_N, BSRAM_WE_N;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] BSRAM_Q, BSRAM_D;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] R_out,G_out,B_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire HSYNC_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire VSYNC_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire HBlank_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire VBlank_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire DOTCLK_out;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire FIELD,INTERLACE;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire HIGH_RES,V224_MODE;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [63:0] SNI_JOY;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       JOY_STRB;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       JOY1_CLK;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       JOY1_P6;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       JOY2_CLK;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire       JOY2_P6;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [1:0] LG_DO;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [2:0] LG_TARGET;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++logic [1:0] JOY1_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++logic [1:0] JOY2_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++logic JOY2_P6_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire msu_enable;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [35:0] EXT_BUS;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_track_mounting;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_track_missing;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] msu_track_num;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_track_request;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [31:0] msu_audio_size;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] msu_volume;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_repeat;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_playing;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_stop;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_resume;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_ack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_audio_seek;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [21:0] msu_audio_sector;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [21:0] msu_resume_sector;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [31:0] msu_audio_loop_index;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [31:0] msu_resume_loop_index;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [31:0] msu_data_addr;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] msu_data;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_data_ack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_data_seek;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        msu_data_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [31:0] msu_data_base;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [1:0] ss_slot;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] ss_info;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire ss_save, ss_load, ss_info_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire ss_status;
+ 
+ assign ADC_BUS  = 'Z;
+ 
+@@ -68,42 +246,42 @@
+ wire clk_mem;
+ wire clk_sys;
+ 
+-pll pll
++// Retro25: feste Agilex-IOPLL (cores/snes/ip/pll_snes, tools/make_iopll.py)
++// statt der fraktionalen Cyclone-V-PLL mit pll_cfg. Nur NTSC (wie NES): VCO
++// 1890 MHz (50 * 189 / 5), clk_mem = 85,909091 MHz (C 22), CLK_VIDEO =
++// clk_mem/2, clk_sys = clk_mem/4 = 21,477273 MHz (MiSTer NTSC: 21,47727).
++// Zur Laufzeit stellt nur sys eine PLL um; PAL-Spiele (Region PAL) behalten
++// den NTSC-Takt und laufen 0,9 % zu schnell (MiSTer PAL: 21,28137 MHz).
++// clk_sdram: clk_mem +90 Grad für SDRAM_CLK (unten über sdram_clk_ddio), wie
++// NES, C64 und z486 (1,8-V-SDRAM des DE25; bei 85 MHz ausgemessen,
++// cores/sdram486test).
++wire clk_sdram;
++pll_snes pll
+ (
+ 	.refclk(CLK_50M),
+-	.rst(0),
++	.rst(1'b0),
+ 	.outclk_0(clk_mem),
+ 	.outclk_1(CLK_VIDEO),
+ 	.outclk_2(clk_sys),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll),
++	.outclk_3(clk_sdram),
+ 	.locked(clock_locked)
+ );
+ 
+-wire [63:0] reconfig_to_pll;
+-wire [63:0] reconfig_from_pll;
+-wire        cfg_waitrequest;
++sdram_clk_ddio sdramclk_ddr
++(
++	.ck(clk_sdram),
++	.din(2'b10),
++	.pad_out(SDRAM_CLK)
++);
++
++wire        cfg_waitrequest = 1'b0;   // Retro25: keine PLL-Umstellung (siehe oben)
+ reg         cfg_write;
+ reg   [5:0] cfg_address;
+ reg  [31:0] cfg_data;
+ 
+-pll_cfg pll_cfg
+-(
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(0),
+-	.mgmt_waitrequest(cfg_waitrequest),
+-	.mgmt_read(0),
+-	.mgmt_readdata(),
+-	.mgmt_write(cfg_write),
+-	.mgmt_address(cfg_address),
+-	.mgmt_writedata(cfg_data),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll)
+-);
+-
+ always @(posedge CLK_50M) begin
+-	reg pald = 0, pald2 = 0;
+-	reg [2:0] state = 0;
++	reg pald, pald2;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [2:0] state;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	pald  <= PAL;
+ 	pald2 <= pald;
+@@ -329,14 +507,14 @@
+ 
+ wire code_index = &ioctl_index;
+ wire code_download = ioctl_download & code_index;
+-wire cart_download = ioctl_download & ((ioctl_index[5:0] == 6'h01) | (ioctl_index[7:0] == 0));
++assign cart_download = ioctl_download & ((ioctl_index[5:0] == 6'h01) | (ioctl_index[7:0] == 0));
+ wire spc_download = ioctl_download & ioctl_index[5:0] == 6'h04;
+ wire msu_audio_download = ioctl_download & ioctl_index[5:0] == 6'h02;
+ wire msu_data_download  = ioctl_download & ioctl_index[5:0] == 6'h03;
+ wire ssbin_download = ioctl_download & ((ioctl_index[5:0] == 6'h00) & (ioctl_index[7:6] == 2'd1));
+ 
+ 
+-reg new_vmode;
++// Retro25: Deklaration nach oben gezogen (16746): reg new_vmode;
+ always @(posedge clk_sys) begin
+ 	reg old_pal;
+ 	int to;
+@@ -360,7 +538,7 @@
+ reg  [3:0] ram_size;
+ always @(posedge clk_sys) begin
+ 	reg [3:0] rom_size;
+-	reg       rom_region = 0;
++	reg       rom_region;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	if (cart_download) begin
+ 		if(ioctl_wr) begin
+@@ -412,11 +590,11 @@
+ end
+ 
+ reg osd_btn = 0;
+-reg status0_fall = 0;
++// Retro25: Deklaration nach oben gezogen (16746): reg status0_fall = 0;
+ always @(posedge clk_sys) begin
+-	integer timeout = 0;
+-	reg     has_bootrom = 0;
+-	reg     last_rst = 0;
++	integer timeout;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg     has_bootrom;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg     last_rst;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg     old_status0;
+ 
+ 	if (RESET) last_rst <= 0;
+@@ -608,9 +786,9 @@
+ assign AUDIO_L = audio_l;
+ assign AUDIO_R = audio_r;
+ 
+-wire HVCNT_ATZERO;
+-
+-reg RESET_N = 0;
++// Retro25: Deklaration nach oben gezogen (16746): wire HVCNT_ATZERO;
++
++// Retro25: Deklaration nach oben gezogen (16746): reg RESET_N = 0;
+ reg RESET_REFRESH = 0;
+ always @(posedge clk_sys) begin
+ 	reg [1:0] div;
+@@ -629,8 +807,8 @@
+ 
+ ////////////////////////////  CODES  ///////////////////////////////////
+ 
+-reg [128:0] gg_code;
+-wire gg_available;
++// Retro25: Deklaration nach oben gezogen (16746): reg [128:0] gg_code;
++// Retro25: Deklaration nach oben gezogen (16746): wire gg_available;
+ 
+ // Code layout:
+ // {clock bit, code flags,     32'b address, 32'b compare, 32'b replace}
+@@ -700,18 +878,18 @@
+     endcase
+ end
+ 
+-wire[23:0] ROM_ADDR;
+-wire       ROM_OE_N;
+-wire       ROM_WE_N;
+-wire       ROM_WORD;
+-wire[15:0] ROM_D;
+-wire[15:0] ROM_Q;
+-
+-wire[16:0] WRAM_ADDR;
+-wire       WRAM_CE_N;
+-wire       WRAM_OE_N;
+-wire       WRAM_WE_N;
+-wire [7:0] WRAM_Q, WRAM_D;
++// Retro25: Deklaration nach oben gezogen (16746): wire[23:0] ROM_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire       ROM_OE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire       ROM_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire       ROM_WORD;
++// Retro25: Deklaration nach oben gezogen (16746): wire[15:0] ROM_D;
++// Retro25: Deklaration nach oben gezogen (16746): wire[15:0] ROM_Q;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire[16:0] WRAM_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire       WRAM_CE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire       WRAM_OE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire       WRAM_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] WRAM_Q, WRAM_D;
+ 
+ wire[24:0]  SDRAM_SNI_ADDR;
+ wire[7:0]   SDRAM_SNI_DATA;
+@@ -744,7 +922,7 @@
+ wire [15:0] sdr_dout1, sdr_sni_dout;
+ sdram sdram
+ (
+-	.SDRAM_CLK(SDRAM_CLK),
++	.SDRAM_CLK(),   // Retro25: SDRAM_CLK kommt aus sdram_clk_ddio (oben)
+ 	.SDRAM_A(SDRAM_A),
+ 	.SDRAM_BA(SDRAM_BA),
+ 	.SDRAM_DQ(SDRAM_DQ),
+@@ -789,14 +967,14 @@
+ assign WRAM_Q = sdr_dout1[7:0];
+ assign SDRAM_SNI_Q = sdr_sni_dout[7:0];
+ 
+-wire        VRAM_OE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire        VRAM_OE_N;
+ reg         VRAM_OE_N_DELAYED;
+ always @(posedge clk_sys)
+ 	VRAM_OE_N_DELAYED <= VRAM_OE_N;
+ 	
+-wire [15:0] VRAM1_ADDR;
+-wire        VRAM1_WE_N;
+-wire  [7:0] VRAM1_D;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] VRAM1_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire        VRAM1_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] VRAM1_D;
+ wire  [7:0] vram1_q;
+ dpram #(15)	vram1
+ (
+@@ -810,11 +988,11 @@
+ 	.address_b(mem_fill_addr[14:0]),
+ 	.wren_b(mem_fill_we)
+ );
+-wire  [7:0] VRAM1_Q = !VRAM_OE_N && !VRAM_OE_N_DELAYED ? vram1_q : '1;
+-
+-wire [15:0] VRAM2_ADDR;
+-wire        VRAM2_WE_N;
+-wire  [7:0] VRAM2_D;
++assign VRAM1_Q = !VRAM_OE_N && !VRAM_OE_N_DELAYED ? vram1_q : '1;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] VRAM2_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire        VRAM2_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] VRAM2_D;
+ wire  [7:0] vram2_q;
+ dpram #(15) vram2
+ (
+@@ -828,12 +1006,12 @@
+ 	.address_b(mem_fill_addr[14:0]),
+ 	.wren_b(mem_fill_we)
+ );
+-wire  [7:0] VRAM2_Q = !VRAM_OE_N && !VRAM_OE_N_DELAYED ? vram2_q : '1; 
+-
+-wire [15:0] ARAM_ADDR;
+-wire        ARAM_CE_N;
+-wire        ARAM_WE_N;
+-wire  [7:0] ARAM_Q, ARAM_D;
++assign VRAM2_Q = !VRAM_OE_N && !VRAM_OE_N_DELAYED ? vram2_q : '1; 
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] ARAM_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire        ARAM_CE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire        ARAM_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] ARAM_Q, ARAM_D;
+ dpram_dif #(16,8,15,16) aram
+ (
+ 	.clock(clk_sys),
+@@ -849,10 +1027,10 @@
+ );
+ 
+ localparam  BSRAM_BITS = 18; // 256Kbyte
+-wire [19:0] BSRAM_ADDR;
+-wire        BSRAM_CE_N;
+-wire        BSRAM_OE_N, BSRAM_WE_N;
+-wire  [7:0] BSRAM_Q, BSRAM_D;
++// Retro25: Deklaration nach oben gezogen (16746): wire [19:0] BSRAM_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire        BSRAM_CE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire        BSRAM_OE_N, BSRAM_WE_N;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] BSRAM_Q, BSRAM_D;
+ wire [19:0] BSRAM_SNI_ADDR;
+ wire        BSRAM_SNI_RD, BSRAM_SNI_WR;
+ wire [7:0]  BSRAM_SNI_D;
+@@ -876,12 +1054,12 @@
+ 
+ ////////////////////////////  VIDEO  ////////////////////////////////////
+ 
+-wire [7:0] R_out,G_out,B_out;
+-wire HSYNC_out;
+-wire VSYNC_out;
+-wire HBlank_out;
+-wire VBlank_out;
+-wire DOTCLK_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] R_out,G_out,B_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire HSYNC_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire VSYNC_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire HBlank_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire VBlank_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire DOTCLK_out;
+ 
+ always @(posedge clk_sys) begin
+ 	DOTCLK <= DOTCLK_out;
+@@ -897,12 +1075,12 @@
+ end
+ 
+ reg  [7:0] R,G,B;
+-wire FIELD,INTERLACE;
++// Retro25: Deklaration nach oben gezogen (16746): wire FIELD,INTERLACE;
+ reg  HSync, HSYNC;
+ reg  VSync, VSYNC;
+ reg  HBlank;
+ reg  VBlank;
+-wire HIGH_RES,V224_MODE;
++// Retro25: Deklaration nach oben gezogen (16746): wire HIGH_RES,V224_MODE;
+ reg  DOTCLK;
+ 
+ reg interlace;
+@@ -935,8 +1113,8 @@
+ assign VGA_SL = {~interlace,~interlace}&sl[1:0];
+ 
+ wire [2:0] scale = status[11:9];
+-wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
+-wire       scandoubler = ~interlace && (scale || forced_scandoubler);
++assign sl = scale ? scale - 1'd1 : 3'd0;
++assign scandoubler = ~interlace && (scale || forced_scandoubler);
+ 
+ video_mixer #(.LINE_LENGTH(520), .GAMMA(1)) video_mixer
+ (
+@@ -953,7 +1131,7 @@
+ 
+ assign {UART_RTS, UART_DTR} = 1;
+ 
+-wire piano = status[43] & (uart_mode == 3);
++assign piano = status[43] & (uart_mode == 3);
+ reg last_piano = 1'b0;
+ always @(posedge clk_sys) last_piano <= piano;
+ reg piano_tdata_i;
+@@ -994,7 +1172,7 @@
+ 	.rdata_m(data_o)
+ );
+ 
+-wire [63:0] SNI_JOY;
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] SNI_JOY;
+ sni sni(
+ 	.clk(clk_sys),
+ 	.reset(reset || uart_mode != 6),
+@@ -1025,11 +1203,11 @@
+ );
+ wire [1:0] JOY1_DO = piano ? {1'b1,piano_joypad_do} : JOY1_DO_t;
+ 
+-wire       JOY_STRB;
++// Retro25: Deklaration nach oben gezogen (16746): wire       JOY_STRB;
+ 
+ wire [1:0] JOY1_DO_t;
+-wire       JOY1_CLK;
+-wire       JOY1_P6;
++// Retro25: Deklaration nach oben gezogen (16746): wire       JOY1_CLK;
++// Retro25: Deklaration nach oben gezogen (16746): wire       JOY1_P6;
+ ioport port1
+ (
+ 	.CLK(clk_sys),
+@@ -1047,8 +1225,8 @@
+ );
+ 
+ wire [1:0] JOY2_DO;
+-wire       JOY2_CLK;
+-wire       JOY2_P6;
++// Retro25: Deklaration nach oben gezogen (16746): wire       JOY2_CLK;
++// Retro25: Deklaration nach oben gezogen (16746): wire       JOY2_P6;
+ ioport port2
+ (
+ 	.CLK(clk_sys),
+@@ -1070,9 +1248,9 @@
+ );
+ 
+ wire       LG_P6_out;
+-wire [1:0] LG_DO;
+-wire [2:0] LG_TARGET;
+-wire       LG_T = ((GUN_MODE[0]&joy0[6]) | (GUN_MODE[1]&joy1[6])); // always from joysticks
++// Retro25: Deklaration nach oben gezogen (16746): wire [1:0] LG_DO;
++// Retro25: Deklaration nach oben gezogen (16746): wire [2:0] LG_TARGET;
++assign LG_T = ((GUN_MODE[0]&joy0[6]) | (GUN_MODE[1]&joy1[6])); // always from joysticks
+ 
+ lightgun lightgun
+ (
+@@ -1116,7 +1294,7 @@
+ // 5  IN    P1D0        RX-
+ // 6  IN    P2D0        TX+
+ 
+-wire raw_serial = status[8];
++assign raw_serial = status[8];
+ reg snac_p2 = 0;
+ 
+ assign USER_OUT[2] = 1'b1;
+@@ -1124,9 +1302,9 @@
+ assign USER_OUT[6] = 1'b1;
+ 
+ // JOYX_DO[0] is P4, JOYX_DO[1] is P5
+-wire [1:0] JOY1_DI;
+-wire [1:0] JOY2_DI;
+-wire JOY2_P6_DI;
++// Retro25: Deklaration nach oben gezogen (16746): logic [1:0] JOY1_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++// Retro25: Deklaration nach oben gezogen (16746): logic [1:0] JOY2_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++// Retro25: Deklaration nach oben gezogen (16746): logic JOY2_P6_DI;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ always @(posedge clk_sys) begin
+ 	if (raw_serial) begin
+@@ -1137,27 +1315,36 @@
+ 	end
+ end
+ 
++// Retro25: USER_OUT ist ein Port ohne Typ aus sys/emu_ports.vh; Quartus Pro
++// erlaubt keine Zuweisung in always_comb (13386) -> Hilfsvariable SNAC_OUT,
++// unten je Bit per assign auf USER_OUT.
++logic [6:0] SNAC_OUT;
++assign USER_OUT[0] = SNAC_OUT[0];
++assign USER_OUT[1] = SNAC_OUT[1];
++assign USER_OUT[3] = SNAC_OUT[3];
++assign USER_OUT[4] = SNAC_OUT[4];
+ always_comb begin
++	SNAC_OUT[2] = 1'b1; SNAC_OUT[5] = 1'b1; SNAC_OUT[6] = 1'b1;   // nicht benutzt
+ 	if (raw_serial) begin
+-		USER_OUT[0] = JOY_STRB;
+-		USER_OUT[1] = joy_swap ? ~JOY2_CLK : ~JOY1_CLK;
+-		USER_OUT[3] = joy_swap ? ~JOY1_CLK : ~JOY2_CLK;
++		SNAC_OUT[0] = JOY_STRB;
++		SNAC_OUT[1] = joy_swap ? ~JOY2_CLK : ~JOY1_CLK;
++		SNAC_OUT[3] = joy_swap ? ~JOY1_CLK : ~JOY2_CLK;
+ 		if (snac_p2) begin
+-			USER_OUT[4] = joy_swap ? JOY1_P6 : JOY2_P6;
++			SNAC_OUT[4] = joy_swap ? JOY1_P6 : JOY2_P6;
+ 			JOY1_DI = joy_swap ? {1'b1, USER_IN[6]} : {1'b1, USER_IN[5]};
+ 			JOY2_DI = joy_swap ? {USER_IN[2], USER_IN[5]} : {USER_IN[2], USER_IN[6]};
+ 			JOY2_P6_DI = USER_IN[4];
+ 		end else begin
+-			USER_OUT[4] = joy_swap ? JOY2_P6 : JOY1_P6;
++			SNAC_OUT[4] = joy_swap ? JOY2_P6 : JOY1_P6;
+ 			JOY1_DI = joy_swap ? JOY1_DO : {USER_IN[2], USER_IN[5]};
+ 			JOY2_DI = joy_swap ? {USER_IN[2], USER_IN[5]} : JOY2_DO;
+ 			JOY2_P6_DI = joy_swap ? USER_IN[4] : (LG_P6_out | !GUN_MODE);
+ 		end
+ 	end else begin
+-		USER_OUT[0] = 1'b1;
+-		USER_OUT[1] = 1'b1;
+-		USER_OUT[3] = 1'b1;
+-		USER_OUT[4] = 1'b1;
++		SNAC_OUT[0] = 1'b1;
++		SNAC_OUT[1] = 1'b1;
++		SNAC_OUT[3] = 1'b1;
++		SNAC_OUT[4] = 1'b1;
+ 		JOY1_DI = JOY1_DO;
+ 		JOY2_DI = JOY2_DO;
+ 		JOY2_P6_DI = (LG_P6_out | !GUN_MODE);
+@@ -1198,7 +1385,7 @@
+ reg  bk_state   = 0;
+ wire [31:0] sd_lba_end = rom_type[7:4] == 4'h2 && rom_type[3] ? {ram_mask[23:9],1'b1} : ram_mask[23:9];//For Sufami with B cart, it's double size
+ always @(posedge clk_sys) begin
+-	reg old_load = 0, old_save = 0, old_ack;
++	reg old_load, old_save, old_ack;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	old_load <= bk_load & bk_ena;
+ 	old_save <= bk_save & bk_ena;
+@@ -1263,10 +1450,10 @@
+ 
+ ///////////////////////////  MSU1  ///////////////////////////////////
+ 
+-wire msu_enable;
++// Retro25: Deklaration nach oben gezogen (16746): wire msu_enable;
+ 
+ // EXT bus is used to communicate with the HPS for MSU functionality
+-wire [35:0] EXT_BUS;
++// Retro25: Deklaration nach oben gezogen (16746): wire [35:0] EXT_BUS;
+ hps_ext hps_ext
+ (
+ 	.reset(reset),
+@@ -1290,25 +1477,25 @@
+ 	.msu_data_base(msu_data_base)
+ );
+ 
+-wire        msu_track_mounting;
+-wire        msu_track_missing;
+-wire [15:0] msu_track_num;
+-wire        msu_track_request;
+-wire [31:0] msu_audio_size;
+-
+-wire  [7:0] msu_volume;
+-wire        msu_audio_repeat;
+-wire        msu_audio_playing;
+-wire        msu_audio_stop;
+-wire        msu_audio_resume;
+-
+-wire        msu_audio_ack;
+-wire        msu_audio_req;
+-wire        msu_audio_seek;
+-wire [21:0] msu_audio_sector;
+-wire [21:0] msu_resume_sector;
+-wire [31:0] msu_audio_loop_index;
+-wire [31:0] msu_resume_loop_index;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_track_mounting;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_track_missing;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] msu_track_num;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_track_request;
++// Retro25: Deklaration nach oben gezogen (16746): wire [31:0] msu_audio_size;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] msu_volume;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_repeat;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_playing;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_stop;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_resume;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_ack;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_audio_seek;
++// Retro25: Deklaration nach oben gezogen (16746): wire [21:0] msu_audio_sector;
++// Retro25: Deklaration nach oben gezogen (16746): wire [21:0] msu_resume_sector;
++// Retro25: Deklaration nach oben gezogen (16746): wire [31:0] msu_audio_loop_index;
++// Retro25: Deklaration nach oben gezogen (16746): wire [31:0] msu_resume_loop_index;
+ 
+ wire [15:0] msu_l;
+ wire [15:0] msu_r;
+@@ -1357,12 +1544,12 @@
+ 	audio_r <= (^mix_r[16:15]) ? {mix_r[16], {15{mix_r[15]}}} : mix_r[15:0];
+ end
+ 
+-wire [31:0] msu_data_addr;
+-wire  [7:0] msu_data;
+-wire        msu_data_ack;
+-wire        msu_data_seek;
+-wire        msu_data_req;
+-wire [31:0] msu_data_base;
++// Retro25: Deklaration nach oben gezogen (16746): wire [31:0] msu_data_addr;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] msu_data;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_data_ack;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_data_seek;
++// Retro25: Deklaration nach oben gezogen (16746): wire        msu_data_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire [31:0] msu_data_base;
+ 
+ wire [31:3] msu_ram_addr;
+ wire        msu_ram_req;
+@@ -1422,11 +1609,11 @@
+ 
+ 
+ // saving with keyboard/OSD/gamepad
+-wire [1:0] ss_slot;
+-wire [7:0] ss_info;
+-wire ss_save, ss_load, ss_info_req;
+-wire ss_status;
+-wire ss_allow = ss_avail & cart_ready & ssbin_ready;
++// Retro25: Deklaration nach oben gezogen (16746): wire [1:0] ss_slot;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] ss_info;
++// Retro25: Deklaration nach oben gezogen (16746): wire ss_save, ss_load, ss_info_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire ss_status;
++assign ss_allow = ss_avail & cart_ready & ssbin_ready;
+ wire ss_joy_start = joy0[11] | status[53];
+ 
+ savestate_ui #(.INFO_TIMEOUT_BITS(25)) savestate_ui

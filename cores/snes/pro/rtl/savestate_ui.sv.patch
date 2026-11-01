@@ -1,0 +1,11 @@
+--- a/rtl/savestate_ui.sv
++++ b/rtl/savestate_ui.sv
+@@ -39,7 +39,7 @@
+ 
+ always @(posedge clk) begin
+ 	reg old_state;
+-	reg alt = 0;
++	reg alt;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg [1:0] old_st;
+ 
+ 	old_state <= ps2_key[10];

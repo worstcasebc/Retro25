@@ -1,0 +1,28 @@
+--- a/rtl/hps_ext.v
++++ b/rtl/hps_ext.v
+@@ -59,7 +59,7 @@
+ 
+ always@(posedge clk_sys) begin
+ 	reg [15:0] cmd;
+-	reg  [7:0] cd_req = 0;
++	reg  [7:0] cd_req;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	cd_get <= 0;
+ 	if(cd_put) cd_req <= cd_req + 1'd1;
+@@ -108,11 +108,11 @@
+ reg cd_put, cd_get;
+ 
+ always @(posedge clk_sys) begin
+-	reg reset_old = 0;
+-	reg msu_audio_req_old = 0;
+-	reg msu_audio_seek_old = 0;
+-	reg msu_track_request_old = 0;
+-	reg msu_audio_download_old = 0;
++	reg reset_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg msu_audio_req_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg msu_audio_seek_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg msu_track_request_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg msu_audio_download_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	cd_put <= 0;
+ 

@@ -1,0 +1,17 @@
+[
+  [
+    "\"rtl/chip/DSP/dsp11b23410_p.mif\"",
+    "\"../vendor/rtl/chip/DSP/dsp11b23410_p.mif\"",
+    1
+  ],
+  [
+    "\"rtl/chip/DSP/dsp11b23410_d.mif\"",
+    "\"../vendor/rtl/chip/DSP/dsp11b23410_d.mif\"",
+    1
+  ],
+  [
+    "DATA_RAM_ADDR_A or x\"40\";",
+    "DATA_RAM_ADDR_A or (\"000\" & x\"40\");  -- Retro25: 8 auf 11 bit, wertrichtig (Quartus Pro 13825)",
+    1
+  ]
+]

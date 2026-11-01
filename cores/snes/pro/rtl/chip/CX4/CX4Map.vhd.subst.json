@@ -1,0 +1,3 @@
+[
+  ["ROM_ADDR <= CART_ADDR and ROM_MASK\\(22 downto 0\\);", "ROM_ADDR <= ('0' & CART_ADDR) and ROM_MASK(22 downto 0);  -- Retro25: 22 auf 23 bit, wertrichtig (Quartus Pro 13825)", 1]
+]

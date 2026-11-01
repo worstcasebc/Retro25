@@ -1,0 +1,103 @@
+--- a/rtl/main.v
++++ b/rtl/main.v
+@@ -82,7 +82,7 @@
+ 	output            JOY1_P6,
+ 	output            JOY2_P6,
+ 	input             JOY2_P6_in,
+-	output reg [63:0] SNI_JOY,
++	output wire [63:0] SNI_JOY,   // Retro25: von einer Instanz getrieben -> wire (13458)
+ 
+ 	input      [64:0] EXT_RTC,
+ 
+@@ -142,6 +142,36 @@
+ 	output     [15:0] AUDIO_L,
+ 	output     [15:0] AUDIO_R
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        SS_BUSY;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] SS_DO;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] SS_SPC_DI;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [7:0] SS_PPU_DI;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        SS_ARAM_SEL, SS_DSP_REGS_SEL, SS_SMP_SEL;
++
++// Retro25: Savestate-Netze vor die generate-Blöcke gezogen. Werden sie dort
++// zuerst benutzt, legt Quartus Pro im generate-Bereich eigene implizite Netze
++// an (16788, ohne 16746-Meldung): DSP/CX4/GSU-Savestates ohne Treiber.
++wire [23:0] SS_ROM_ADDR;
++wire [19:0] SS_EXT_ADDR;
++wire  [7:0] SS_DSPN_DI;
++wire  [7:0] SS_GSU_DI;
++wire        SS_DO_OVR;
++wire        SS_ROM_OVR;
++wire        SS_BSRAM_SEL;
++wire        SS_DSPN_REGS_SEL, SS_DSPN_RAM_SEL;
++wire        SS_GSU_SEL;
++wire  [7:0] SS_CX4_DO_REG;
++wire  [7:0] SS_CX4_DO_CACHE;
++wire  [7:0] SS_CX4_DI;
++wire        SS_CX4_SEL;
++wire        SS_CX4_CACHE_SEL;
++wire        SS_CX4_IDLE;
++wire        CX4_SS_OK;
+ 
+ parameter USE_DLH = 1'b1;
+ parameter USE_CX4 = 1'b1;
+@@ -905,31 +935,31 @@
+ assign MAP_ACTIVE[6] = 0;
+ endgenerate
+ 
+-wire        SS_BUSY;
+-wire  [7:0] SS_DO;
+-wire [23:0] SS_ROM_ADDR;
+-
+-wire [19:0] SS_EXT_ADDR;
+-wire  [7:0] SS_SPC_DI;
+-wire  [7:0] SS_PPU_DI;
+-wire  [7:0] SS_DSPN_DI;
+-wire  [7:0] SS_GSU_DI;
+-wire        SS_DO_OVR;
+-wire        SS_ROM_OVR;
+-wire        SS_ARAM_SEL, SS_DSP_REGS_SEL, SS_SMP_SEL;
+-wire        SS_BSRAM_SEL;
+-wire        SS_DSPN_REGS_SEL, SS_DSPN_RAM_SEL;
+-wire        SS_GSU_SEL;
+-
+-wire  [7:0] SS_CX4_DO_REG;
+-wire  [7:0] SS_CX4_DO_CACHE;
+-wire  [7:0] SS_CX4_DI;
+-wire        SS_CX4_SEL;
+-wire        SS_CX4_CACHE_SEL;
+-wire        SS_CX4_IDLE;
++// Retro25: Deklaration nach oben gezogen (16746): wire        SS_BUSY;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] SS_DO;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire [23:0] SS_ROM_ADDR;
++
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire [19:0] SS_EXT_ADDR;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] SS_SPC_DI;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] SS_PPU_DI;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire  [7:0] SS_DSPN_DI;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire  [7:0] SS_GSU_DI;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_DO_OVR;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_ROM_OVR;
++// Retro25: Deklaration nach oben gezogen (16746): wire        SS_ARAM_SEL, SS_DSP_REGS_SEL, SS_SMP_SEL;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_BSRAM_SEL;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_DSPN_REGS_SEL, SS_DSPN_RAM_SEL;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_GSU_SEL;
++
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire  [7:0] SS_CX4_DO_REG;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire  [7:0] SS_CX4_DO_CACHE;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire  [7:0] SS_CX4_DI;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_CX4_SEL;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_CX4_CACHE_SEL;
++// Retro25: nach oben gezogen (in generate sonst eigenes implizites Netz, 16788): wire        SS_CX4_IDLE;
+ assign SS_CX4_DI = SS_CX4_CACHE_SEL ? SS_CX4_DO_CACHE : SS_CX4_DO_REG;
+ // Hold the snapshot until the CX4 is idle (only when a CX4 cart is active).
+-wire        CX4_SS_OK = ~MAP_ACTIVE[0] | SS_CX4_IDLE;
++assign CX4_SS_OK = ~MAP_ACTIVE[0] | SS_CX4_IDLE;
+ 
+ 
+ generate

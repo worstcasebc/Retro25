@@ -1,0 +1,29 @@
+--- a/rtl/chip/MSU1/MSU.sv
++++ b/rtl/chip/MSU1/MSU.sv
+@@ -16,7 +16,7 @@
+ 	output            MSU_SEL,
+ 
+ 	output reg [15:0] track_num,
+-	output            track_request,
++	output logic            track_request,
+ 	input             track_mounting,
+ 
+ 	// Audio player control
+@@ -38,6 +38,8 @@
+ 	output reg        data_seek,
+ 	output reg        data_req
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire status_audio_busy;
+ 
+ 
+ // Read 'registers'
+@@ -60,7 +62,7 @@
+ // banks 00-3F and 80-BF, address 2000-2007
+ assign MSU_SEL = ENABLE && !ADDR[22] && (ADDR[15:4] == 'h200) && !ADDR[3];
+ 
+-wire       status_audio_busy = track_request;
++assign status_audio_busy = track_request;
+ reg [15:0] resume_track_num;
+ reg        resume_valid;
+ 

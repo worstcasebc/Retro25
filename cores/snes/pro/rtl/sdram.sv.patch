@@ -1,0 +1,111 @@
+--- a/rtl/sdram.sv
++++ b/rtl/sdram.sv
+@@ -1,11 +1,11 @@
+ module sdram
+ (
+-	inout  reg [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
++	inout  wire [15:0] SDRAM_DQ,  // Retro25: wire + Tri-State unten (Quartus Pro 13386)
+ 	output reg [12:0] SDRAM_A,    // 13 bit multiplexed address bus
+-	output reg        SDRAM_DQML, // byte mask
+-	output reg        SDRAM_DQMH, // byte mask
++	output wire       SDRAM_DQML, // byte mask (Retro25: wire, per assign)
++	output wire       SDRAM_DQMH, // byte mask
+ 	output reg  [1:0] SDRAM_BA,   // two banks
+-	output            SDRAM_nCS,  // a single chip select
++	output logic            SDRAM_nCS,  // a single chip select
+ 	output reg        SDRAM_nWE,  // write enable
+ 	output reg        SDRAM_nRAS, // row address select
+ 	output reg        SDRAM_nCAS, // columns address select
+@@ -56,6 +56,8 @@
+ 	output reg [23:0] dbg_numrfs_in_64ms
+ `endif
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire out_read;
+ 
+ 	localparam RASCAS_DELAY   = 3'd1; // tRCD=20ns -> 2 cycles@85MHz
+ 	localparam BURST          = 3'd0; // 0=1, 1=2, 2=4, 3=8, 7=full page
+@@ -81,9 +83,11 @@
+ 	reg [2:0] init_state = '0;
+ 	reg [1:0] mode;
+ 	reg       init_done = 0;
+-	always @(posedge clk) begin
+-		reg [4:0] reset = 5'h1f;
+-		reg init_old = 0;
++	// Retro25: Startwert 5'h1f auf Modulebene. In always setzt Quartus Pro ihn
++	// jeden Takt neu (16754) -> reset nie 0, das SDRAM würde nie fertig.
++	reg [4:0] reset = 5'h1f;
++	always @(posedge clk) begin
++		reg init_old;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 		
+ 		if(mode != MODE_NORMAL || init_state != STATE_IDLE || reset) begin
+ 			init_state <= init_state + 1'd1;
+@@ -415,7 +419,7 @@
+ 	wire [1:0] data_bank  = state[3].BANK;
+ 	wire       data_rfs  = state[3].RFS;
+ 	wire       data_sni  = state[3].SNI;
+-	wire       out_read  = state[4].RD;
++	assign out_read = state[4].RD;
+ //	wire       out_addr0  = state[4].ADDR[0];
+ 	wire [1:0] out_bank  = state[4].BANK;
+ 	wire       out_sni   = state[4].SNI;
+@@ -453,6 +457,10 @@
+ 	// SDRAM state machines
+ 	wire [22:1] a = ctrl_addr;
+ 	wire [15:0] d = ctrl_data;
++	// Retro25: preserve — jede I/O-Zelle braucht ihr eigenes Datenregister (24873)
++	(* preserve *) reg [15:0] dq_out;
++	reg        dq_oe = 0;
++	assign SDRAM_DQ = dq_oe ? dq_out : 16'bZ;
+ 	wire        we = ctrl_we;
+ 	wire  [1:0] dqm = ~ctrl_be;
+ 	always @(posedge clk) begin
+@@ -471,9 +479,12 @@
+ 										   default: {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE, SDRAM_nCS} <= {CMD_NOP,1'b0};
+ 		endcase
+ 		
+-		SDRAM_DQ <= 'Z;
++		// Retro25: Tri-State als Daten- und Freigaberegister (Quartus Pro 13386);
++		// dq_out ohne Clock-Enable, damit es mit dq_oe in die I/O-Zelle passt
++		dq_oe  <= 1'b0;
++		dq_out <= d;
+ 		casex({init_done,ctrl_rfs,we,mode,ctrl_cmd})
+-			{3'b101, MODE_NORMAL, CTRL_CAS}: begin SDRAM_DQ <= d; end
++			{3'b101, MODE_NORMAL, CTRL_CAS}: begin dq_oe <= 1'b1; end
+ 										   default: ;
+ 		endcase
+ 
+@@ -524,29 +535,9 @@
+ 	end
+ `endif
+ 
+-	altddio_out
+-	#(
+-		.extend_oe_disable("OFF"),
+-		.intended_device_family("Cyclone V"),
+-		.invert_output("OFF"),
+-		.lpm_hint("UNUSED"),
+-		.lpm_type("altddio_out"),
+-		.oe_reg("UNREGISTERED"),
+-		.power_up_high("OFF"),
+-		.width(1)
+-	)
+-	sdramclk_ddr
+-	(
+-		.datain_h(1'b0),
+-		.datain_l(1'b1),
+-		.outclock(clk),
+-		.dataout(SDRAM_CLK),
+-		.aclr(1'b0),
+-		.aset(1'b0),
+-		.oe(1'b1),
+-		.outclocken(1'b1),
+-		.sclr(1'b0),
+-		.sset(1'b0)
+-	);
++	// Retro25: SDRAM_CLK entsteht in pro/SNES.sv (PLL-Ausgang mit +90 Grad über
++	// sdram_clk_ddio, wie NES/C64/z486); der invertierte Takt per altddio_out
++	// (Cyclone V, Fehler 287078) passt nicht zum 1,8-V-SDRAM des DE25.
++	assign SDRAM_CLK = 1'b0;
+ 
+ endmodule

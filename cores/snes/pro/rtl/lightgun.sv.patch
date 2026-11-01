@@ -1,0 +1,11 @@
+--- a/rtl/lightgun.sv
++++ b/rtl/lightgun.sv
+@@ -19,7 +19,7 @@
+ 
+ 	input        PORT_LATCH,
+ 	input        PORT_CLK,
+-	output       PORT_P6,
++	output logic       PORT_P6,
+ 	output [1:0] PORT_DO
+ );
+ 

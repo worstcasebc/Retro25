@@ -1,0 +1,25 @@
+--- a/rtl/cheatcodes.sv
++++ b/rtl/cheatcodes.sv
+@@ -15,8 +15,8 @@
+ 	input  [ADDR_WIDTH - 1:0] addr_in,
+ 	input  [DATA_WIDTH - 1:0] data_in,
+ 	input  [128:0] code,
+-	output genie_ovr,
+-	output [DATA_WIDTH - 1:0] genie_data
++	output logic genie_ovr,
++	output logic [DATA_WIDTH - 1:0] genie_data
+ );
+ 
+ parameter ADDR_WIDTH   = 16; // Not more than 32
+@@ -42,9 +42,9 @@
+ wire [COMP_F_S:0] code_trimmed = {code_comp_f, code_addr, code_compare, code_data};
+ 
+ // If MAX_INDEX is changes, these need to be made larger
+-wire [INDEX_SIZE-1:0] index, dup_index;
++logic [INDEX_SIZE-1:0] index, dup_index;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ reg [INDEX_SIZE:0] next_index;
+-wire found_dup;
++logic found_dup;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ assign index = found_dup ? dup_index : next_index[INDEX_SIZE-1:0];
+ 

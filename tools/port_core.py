@@ -43,6 +43,18 @@ NOTE_LOGIC = "   // Retro25: logic (in always beschrieben, Quartus Pro 13386)"
 NOTE_ASSIGN = "// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)"
 NOTE_MOVE = "// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)"
 SV_EXT = (".v", ".sv")
+# SystemVerilog-Schlüsselwörter, die in altem Verilog gern als Namen vorkommen
+SV_KEYWORDS = ("do|logic|bit|byte|int|shortint|longint|break|continue|return|final|"
+               "priority|unique|bind|alias|context|type|string|chandle|virtual|"
+               "interface|program|package|class|extends|static|automatic|let|soft|"
+               "checker|global|restrict|accept_on|reject_on|until|implies|nexttime|"
+               "strong|weak|eventually|s_always|untyped")
+
+
+def strip_comments(text: str) -> str:
+    """// … und /* … */ entfernen (Zeilen bleiben erhalten)."""
+    text = re.sub(r"/\*.*?\*/", lambda m: "\n" * m.group(0).count("\n"), text, flags=re.S)
+    return re.sub(r"//[^\n]*", "", text)
 
 
 # ----------------------------------------------------------------- Dateien
@@ -365,6 +377,14 @@ def cmd_scan(core: Core) -> None:
                 found.append(f"  {i}: ramstyle M9K/M10K gibt es auf Agilex 5 nicht -> M20K (272006)")
             if re.match(r"^\s*import\s+\w+::\*\s*;", ln) and not ln.startswith(" ") and i < 30:
                 found.append(f"  {i}: Paket-Import auf Dateiebene (gilt bei Quartus Pro nur in dieser Datei)")
+        if rel.endswith(".v"):
+            # Quartus Pro liest auch .v mit SystemVerilog-Schlüsselwörtern
+            # (SNES main.v: Signal "do", 19645) -> -hdl_version VERILOG_2001
+            kws = sorted(set(re.findall(rf"(?:\.\s*|\b(?:wire|reg|input|output|inout)\s+(?:\[[^\]]*\]\s*)?)({SV_KEYWORDS})\b",
+                                        strip_comments(src.text))))
+            if kws:
+                found.append(f"  SV-Schlüsselwort als Name: {', '.join(kws)} -> in core.tcl "
+                             "'-hdl_version VERILOG_2001' an die Datei hängen (19645)")
         if rel.endswith(SV_EXT):
             tmp = Src(core.vendor / rel)
             n = fix13386_text(tmp)

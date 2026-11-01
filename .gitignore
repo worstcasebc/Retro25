@@ -68,6 +68,10 @@ cores/megadrive/pro/**
 !cores/megadrive/pro/**/
 !cores/megadrive/pro/**/*.patch
 !cores/megadrive/pro/**/*.subst.json
+cores/snes/pro/**
+!cores/snes/pro/**/
+!cores/snes/pro/**/*.patch
+!cores/snes/pro/**/*.subst.json
 sys/de25/pro/**
 !sys/de25/pro/**/
 !sys/de25/pro/**/*.patch

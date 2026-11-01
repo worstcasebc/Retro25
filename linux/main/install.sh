@@ -84,8 +84,8 @@ for rbf in "$@"; do
 	# der Menü-Core liegt wie bei MiSTer als menu.rbf in der Wurzel
 	if [ "${name,,}" = menu ]; then
 		dst="/media/fat/menu.rbf"
-	elif [ "${name,,}" = nes ]; then
-		dst="/media/fat/_Retro25/NES.rbf"   # Abkürzung ganz groß, wie bei MiSTer
+	elif [ "${name,,}" = nes ] || [ "${name,,}" = snes ]; then
+		dst="/media/fat/_Retro25/${name^^}.rbf"   # Abkürzung ganz groß, wie bei MiSTer
 	elif [ "${name,,}" = megadrive ]; then
 		dst="/media/fat/_Retro25/MegaDrive.rbf"   # Schreibweise wie MiSTers Core
 	else

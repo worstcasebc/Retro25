@@ -1,0 +1,4 @@
+[
+  ["USE_DSPn\\t: in std_logic := '1'", "USE_DSPn\t: in integer := 1   -- Retro25: integer statt std_logic (Quartus Pro macht aus Verilog 1'b1 sonst 'X', der DSP-1 fehlte)", 1],
+  ["DSPn_BLOCK: if USE_DSPn = '1' generate", "DSPn_BLOCK: if USE_DSPn /= 0 generate", 1]
+]
