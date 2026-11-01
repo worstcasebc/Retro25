@@ -1,0 +1,109 @@
+--- a/rtl/mappers/MMC3.sv
++++ b/rtl/mappers/MMC3.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // MMC3 style mappers. Some of these can probably be consolidated.
+ 
+ // iNES mapper 64 and 158 - Tengen's version of MMC3
+@@ -32,6 +33,8 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] prg_dout;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -46,7 +49,7 @@
+ 
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout = 0;
++assign prg_dout = 0;
+ wire prg_allow;
+ wire chr_allow;
+ wire vram_a10;
+@@ -333,6 +336,12 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire mapper48;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire acclaim;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -351,8 +360,8 @@
+ wire chr_allow;
+ wire vram_a10;
+ wire vram_ce;
+-wire irq;
+-wire [15:0] flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
++logic irq;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++assign flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+ reg prg_bus_write;
+ 
+ reg [2:0] bank_select;             // Register to write to next
+@@ -387,7 +396,7 @@
+ wire mapper37 =  (flags[7:0] == 37);    // European Triple Cart (Super Mario, Tetris, Nintendo World Cup)
+ wire DxROM =     (flags[7:0] == 206);
+ wire mapper112 = (flags[7:0] == 112);   // Ntdec
+-wire mapper48 =  (flags[7:0] == 48);    // Taito's TC0690
++assign mapper48 =  (flags[7:0] == 48);    // Taito's TC0690
+ wire mapper33 =  (flags[7:0] == 33);    // Taito's TC0190 (TC0690-like. No IRQ. Different Mirroring bit)
+ wire mapper95 =  (flags[7:0] == 95);    // NAMCOT-3425
+ wire mapper88 =  (flags[7:0] == 88);    // NAMCOT-3433
+@@ -406,7 +415,7 @@
+ wire mapper205 = (flags[7:0] == 205);		// Mapper 47 is a multicart similar to mapper 37
+ wire mapper208 = (flags[7:0] == 208);		// Mapper 208 is a multicart similar to mapper 189 with copy protection. It has no RAM.
+ wire MMC6 = ((flags[7:0] == 4) && (flags[24:21] == 1)); // mapper 4, submapper 1 = MMC6
+-wire acclaim = ((flags[7:0] == 4) && (flags[24:21] == 3)); // Acclaim mapper
++assign acclaim = ((flags[7:0] == 4) && (flags[24:21] == 3)); // Acclaim mapper
+ wire mapper268 = ({flags[20:17],flags[7:0]} == 268); // Coolboy/Mindkids; Note: if mapper 268-256=12 was in this driver, it would need to check upper mapper bits
+ wire mapper268_5k = (flags[24:21] == 1);
+ wire mapper45 = (flags[7:0] == 45);    // Super 1000000-in-1 multicart
+@@ -940,6 +949,8 @@
+ 	input        m2_inv,
+ 	input        paused
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] prg_dout;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -953,7 +964,7 @@
+ assign audio_b      = enable ? {1'b0, audio_in[15:1]} : 16'hZ;
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout = 0;
++assign prg_dout = 0;
+ wire prg_allow;
+ wire chr_allow;
+ wire vram_a10;
+@@ -1122,6 +1133,8 @@
+ 	input        paused,
+ 	output [2:0] prg_aoute    // Extended prg address out bits
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] prg_dout;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -1135,12 +1148,12 @@
+ assign audio_b      = enable ? {1'b0, audio_in[15:1]} : 16'hZ;
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout = 0;
++assign prg_dout = 0;
+ wire prg_allow;
+ wire chr_allow;
+ wire vram_a10;
+ wire vram_ce;
+-wire irq;
++logic irq;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ reg [15:0] flags_out = 0;
+ 
+ reg irq_enable, irq_reload;        // IRQ enabled, and IRQ reload requested

@@ -1,0 +1,55 @@
+--- a/rtl/mappers/Sunsoft.sv
++++ b/rtl/mappers/Sunsoft.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // 69 - Sunsoft FME-7
+ module Mapper69(
+ 	input        clk,         // System clock
+@@ -213,6 +214,8 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] exp_out;
+ 
+ SS5b_audio snd_5b (
+ 	.clk(clk),
+@@ -236,7 +239,7 @@
+ // The expansion audio is much louder than APU audio, so we reduce it to 68% prior to
+ // mixing.
+ 
+-wire [15:0] exp_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] exp_out;
+ wire [15:0] exp_adj = (|exp_out[15:14] ? 16'hFFFF : {exp_out[13:0], exp_out[1:0]});
+ wire [16:0] audio_mix = audio_in + (exp_adj + exp_adj[15:1]);
+ 
+@@ -394,7 +397,7 @@
+ 
+ end
+ 
+-wire output_a, output_b, output_c;
++logic output_a, output_b, output_c;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	case ({tone_dis_a, noise_dis_a})
+@@ -529,7 +532,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg irq;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+@@ -709,9 +712,9 @@
+ 
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+-wire ram_enable;
++logic ram_enable;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+ 

@@ -1,0 +1,152 @@
+--- a/rtl/nes.v
++++ b/rtl/nes.v
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // Copyright (c) 2012-2013 Ludvig Strigeus
+ // This program is GPL Licensed. See COPYING for the full license.
+ 
+@@ -175,6 +176,45 @@
+ 	output  [7:0] SAVE_out_be,
+ 	input         SAVE_out_done   // should be one cycle high when write is done or read value is valid
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [63:0] SaveStateBus_Din;
++wire [9:0] SaveStateBus_Adr;
++wire SaveStateBus_wren, SaveStateBus_rst;
++wire loading_savestate;
++wire [7:0] Savestate_OAMReadData;
++wire [7:0]  Savestate_MAPRAMReadData;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cpu_ce;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire apu_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire joypad1_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire joypad2_cs;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [1:0] audio_en;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] sample_inverted;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] Savestate_OAMAddr;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire Savestate_OAMRdEn;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire Savestate_OAMWrEn;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] Savestate_OAMWriteData;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire Savestate_MAPRAMactive;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [12:0] Savestate_MAPRAMAddr;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire Savestate_MAPRAMRdEn;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire Savestate_MAPRAMWrEn;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] Savestate_MAPRAMWriteData;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] external_data_bus;
+ 
+ 
+ /**********************************************************/
+@@ -236,7 +276,7 @@
+ reg [1:0] div_sys = 2'd0;
+ 
+ // CE's
+-wire cpu_ce  = (div_cpu == div_cpu_n);
++assign cpu_ce = (div_cpu == div_cpu_n);
+ wire ppu_ce  = (div_ppu == div_ppu_n);
+ wire cart_ce = (div_cpu == div_cpu_n - 5'd2); // First PPU cycle where cpu data is visible.
+ 
+@@ -498,7 +538,7 @@
+ /**********************************************************/
+ 
+ // The APU is part of the 2A03 and parts of it are not exposed to external busses.
+-wire apu_cs = cpu_addr[15:5] == 11'b0100_0000_000;
++assign apu_cs = cpu_addr[15:5] == 11'b0100_0000_000;
+ wire [7:0] apu_dout;
+ wire [15:0] sample_apu;
+ 
+@@ -550,14 +590,14 @@
+ 	endcase
+ end
+ 
+-wire [15:0] sample_inverted = 16'hFFFF - sample_apu;
+-wire [1:0] audio_en = {int_audio, ext_audio};
++assign sample_inverted = 16'hFFFF - sample_apu;
++assign audio_en = {int_audio, ext_audio};
+ wire [15:0] audio_mappers = (audio_en == 2'd1) ? 16'd0 : sample_inverted;
+ 
+ 
+ // Joypads are mapped into the APU's range.
+-wire joypad1_cs = apu_cs && addr[4:0] == 5'h16;
+-wire joypad2_cs = apu_cs && addr[4:0] == 5'h17;
++assign joypad1_cs = apu_cs && addr[4:0] == 5'h16;
++assign joypad2_cs = apu_cs && addr[4:0] == 5'h17;
+ 
+ VsCoinInput vs_coin_input
+ (
+@@ -844,7 +884,7 @@
+ 
+ reg [7:0] ext_bus_driven;
+ 
+-wire [7:0] external_data_bus = (joypad1_cs && ~dma_aout_enable) ? joypad1_read_data :
++assign external_data_bus = (joypad1_cs && ~dma_aout_enable) ? joypad1_read_data :
+ 	(joypad2_cs && ~dma_aout_enable) ? joypad2_read_data : ext_bus_driven;
+ 
+ always @* begin
+@@ -874,9 +914,9 @@
+ /*************       Savestates             ***************/
+ /**********************************************************/
+ 
+-wire [63:0] SaveStateBus_Din;
+-wire [9:0] SaveStateBus_Adr;
+-wire SaveStateBus_wren, SaveStateBus_rst;
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] SaveStateBus_Din;
++// Retro25: Deklaration nach oben gezogen (16746): wire [9:0] SaveStateBus_Adr;
++// Retro25: Deklaration nach oben gezogen (16746): wire SaveStateBus_wren, SaveStateBus_rst;
+ 
+ wire [7:0]  Savestate_RAMWriteData;
+ wire [7:0]  Savestate_RAMReadData;
+@@ -901,7 +941,7 @@
+ 
+ wire [63:0] SaveStateBus_Dout  = SaveStateBus_wired_or[0] | SaveStateBus_wired_or[1] | SaveStateBus_wired_or[2] | SaveStateBus_wired_or[3] | SaveStateBus_wired_or[4] | SaveStateExt_Dout;
+ 
+-wire loading_savestate;
++// Retro25: Deklaration nach oben gezogen (16746): wire loading_savestate;
+ wire saving_savestate;
+ wire sleep_savestates;
+ wire sleep_rewind;
+@@ -911,18 +951,18 @@
+ assign Savestate_SDRAMWrEn      = Savestate_RAMWrEn && (Savestate_RAMType > 1);
+ assign Savestate_SDRAMWriteData = Savestate_RAMWriteData;
+ 
+-wire [7:0] Savestate_OAMAddr      = Savestate_RAMAddr[7:0];
+-wire       Savestate_OAMRdEn      = Savestate_RAMRdEn && (Savestate_RAMType == 0);
+-wire       Savestate_OAMWrEn      = Savestate_RAMWrEn && (Savestate_RAMType == 0);
+-wire [7:0] Savestate_OAMWriteData = Savestate_RAMWriteData;
+-wire [7:0] Savestate_OAMReadData;
+-
+-wire        Savestate_MAPRAMactive    = loading_savestate | saving_savestate;
+-wire [12:0] Savestate_MAPRAMAddr      = Savestate_RAMAddr[12:0];
+-wire        Savestate_MAPRAMRdEn      = Savestate_RAMRdEn && (Savestate_RAMType == 1);
+-wire        Savestate_MAPRAMWrEn      = Savestate_RAMWrEn && (Savestate_RAMType == 1);
+-wire [7:0]  Savestate_MAPRAMWriteData = Savestate_RAMWriteData;
+-wire [7:0]  Savestate_MAPRAMReadData;
++assign Savestate_OAMAddr = Savestate_RAMAddr[7:0];
++assign Savestate_OAMRdEn = Savestate_RAMRdEn && (Savestate_RAMType == 0);
++assign Savestate_OAMWrEn = Savestate_RAMWrEn && (Savestate_RAMType == 0);
++assign Savestate_OAMWriteData = Savestate_RAMWriteData;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] Savestate_OAMReadData;
++
++assign Savestate_MAPRAMactive = loading_savestate | saving_savestate;
++assign Savestate_MAPRAMAddr = Savestate_RAMAddr[12:0];
++assign Savestate_MAPRAMRdEn = Savestate_RAMRdEn && (Savestate_RAMType == 1);
++assign Savestate_MAPRAMWrEn = Savestate_RAMWrEn && (Savestate_RAMType == 1);
++assign Savestate_MAPRAMWriteData = Savestate_RAMWriteData;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0]  Savestate_MAPRAMReadData;
+ 
+ assign Savestate_RAMReadData = (Savestate_RAMType == 0) ? Savestate_OAMReadData :
+ 										 (Savestate_RAMType == 1) ? Savestate_MAPRAMReadData :

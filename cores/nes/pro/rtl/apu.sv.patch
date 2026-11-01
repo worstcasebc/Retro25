@@ -1,0 +1,7 @@
+--- a/rtl/apu.sv
++++ b/rtl/apu.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // Rewritten 6/4/2020 by Kitrinx
+ // This code is GPLv3.
+ 

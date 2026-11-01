@@ -1,0 +1,551 @@
+--- a/NES.sv
++++ b/NES.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // Copyright (c) 2012-2013 Ludvig Strigeus
+ // This program is GPL Licensed. See COPYING for the full license.
+ //
+@@ -7,6 +8,76 @@
+ (
+ 	`include "sys/emu_ports.vh"
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire clk;
++wire [7:0] file_input;
++wire       loader_clk;
++wire trigger;
++wire light;
++wire [24:0] cpu_addr;
++wire [21:0] ppu_addr;
++wire        cpu_read, cpu_write, ppu_read, ppu_write;
++wire  [7:0] cpu_dout, cpu_din, ppu_dout, ppu_din;
++wire [2:0] emphasis;
++wire [7:0] save_dout;
++wire save_busy;
++reg save_wait;
++wire save_written, mapper_has_flashsaves;
++wire [1:0] reticle;
++reg [128:0] gg_code;
++wire gg_avail;
++reg [1:0] max_diskside = 2'd3;
++reg  fds_busy;
++wire [63:0] ss_dout, ss_din;
++wire [27:2] ss_addr;
++wire  [7:0] ss_be;
++wire        ss_rnw, ss_req, ss_ack;
++wire [24:0] Savestate_SDRAMAddr;
++wire        Savestate_SDRAMRdEn;
++wire        Savestate_SDRAMWrEn;
++wire [7:0]  Savestate_SDRAMWriteData;
++wire [7:0]  Savestate_SDRAMReadData;
++wire [63:0] SaveStateBus_Din;
++wire [9:0]  SaveStateBus_Adr;
++wire        SaveStateBus_wren;
++wire        SaveStateBus_rst;
++wire [63:0] SaveStateBus_Dout;
++wire        savestate_load;
++wire [15:0] sdram_ss_out;
++wire [1:0] ss_slot;
++wire ss_save, ss_load, ss_info_req;
++wire mapper_has_savestate;
++wire statusUpdate;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [1:0] hide_overscan;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [1:0] effective_sys_type;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire vs_system;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire raw_serial;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire info_req;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] info;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire paddle_atr;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire mic;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire lightgun_en;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire paddle_en;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire fkeyb;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire reset_nes;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire piano;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] sdram_ss_in;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire bk_busy;
+ 
+ assign ADC_BUS  = 'Z;
+ 
+@@ -173,7 +244,7 @@
+ wire [127:0] status;
+ 
+ wire arm_reset = status[0];
+-wire [1:0] hide_overscan = status[68:67];
++assign hide_overscan = status[68:67];
+ wire [3:0] palette2_osd = status[49:47];
+ wire [6:0] default_expansion = mapper_flags[59:53];
+ wire vs_player_left = vs_system && (default_expansion == 7'h05);
+@@ -191,10 +262,10 @@
+                            (mapper_flags[37:36] == 2'd1) ? 2'd1 :  // PAL
+                            (mapper_flags[37:36] == 2'd3) ? 2'd2 :  // Dendy
+                            2'd0;                                   // NTSC (0 and multi-region)
+-wire [1:0] effective_sys_type = system_type_auto ? auto_sys_type
++assign effective_sys_type = system_type_auto ? auto_sys_type
+                                                   : (system_type_select[1:0] - 2'd1);
+ wire pal_video = (effective_sys_type == 2'd1) || (effective_sys_type == 2'd2);
+-wire vs_system = (effective_sys_type == 2'd3);
++assign vs_system = (effective_sys_type == 2'd3);
+ wire vs_header_zapper = vs_system && (default_expansion == 7'h07);
+ wire vs_menu_hidden = ~vs_system;
+ wire [7:0] vs_dip_switches = vs_menu_hidden ? 8'd0 : status[80:73];
+@@ -254,11 +325,11 @@
+ assign BUTTONS[0] = osd_btn;
+ 
+ // Pop OSD menu if no rom has been loaded automatically
+-wire rom_loaded;
++logic rom_loaded;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ reg osd_btn = 0;
+ always @(posedge clk) begin : osd_block
+-	integer timeout = 0;
++	integer timeout;   // Retro25: ohne Startwert (Quartus Pro setzt ihn in always jeden Takt, 16754; Register starten mit 0)
+ 
+ 	if(!RESET) begin
+ 		osd_btn <= 0;
+@@ -357,45 +428,38 @@
+ 
+ assign joyA = joyA_unmod[23] ? 23'b0 : joyA_unmod;
+ 
+-wire       info_req = diskside_info || ss_info_req || auto_info_req;
+-wire [7:0] info     = ss_info_req ? ss_info : auto_info_req ? 8'd18 : {1'b0,diskside} + 3'd1;
++assign info_req = diskside_info || ss_info_req || auto_info_req;
++assign info = ss_info_req ? ss_info : auto_info_req ? 8'd18 : {1'b0,diskside} + 3'd1;
+ 
+ wire clock_locked;
+ wire clk85;
+-wire clk;
+-
+-pll pll
++// Retro25: Deklaration nach oben gezogen (16746): wire clk;
++
++// Retro25: feste Agilex-IOPLL (cores/nes/ip/pll_nes, tools/make_iopll.py)
++// statt der fraktionalen Cyclone-V-PLL. Nur NTSC (Entscheidung P6): VCO
++// 1890 MHz (50 * 189 / 5), clk85 = 85,909091 MHz (C 22, exakt), CLK_VIDEO
++// = clk85/2, clk = clk85/4. Umgestellt wird zur Laufzeit nichts — in Retro25
++// stellt nur sys eine PLL um. Bei "System Type: PAL" schaltet der Core das
++// PAL-Timing um, der Takt bleibt NTSC: PAL-Spiele laufen 0,9 % zu schnell
++// (MiSTer: 85,1255 MHz). Dendy und Vs. nutzen auch bei MiSTer den NTSC-Takt.
++// clk85_sdram: clk85 mit +90 Grad für SDRAM_CLK (über sdram_clk_ddio in
++// pro/rtl/sdram.sv), wie C64 und z486 (1,8-V-SDRAM des DE25).
++wire clk85_sdram;
++pll_nes pll
+ (
+ 	.refclk(CLK_50M),
+-	.rst(0),
++	.rst(1'b0),
+ 	.outclk_0(clk85),
+ 	.outclk_1(CLK_VIDEO),
+ 	.outclk_2(clk),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll),
++	.outclk_3(clk85_sdram),
+ 	.locked(clock_locked)
+ );
+ 
+-wire [63:0] reconfig_to_pll;
+-wire [63:0] reconfig_from_pll;
+-wire        cfg_waitrequest;
++wire        cfg_waitrequest = 1'b0;   // Retro25: keine PLL-Umstellung (siehe oben)
+ reg         cfg_write;
+ reg   [5:0] cfg_address;
+ reg  [31:0] cfg_data;
+-
+-pll_cfg pll_cfg
+-(
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(0),
+-	.mgmt_waitrequest(cfg_waitrequest),
+-	.mgmt_read(0),
+-	.mgmt_readdata(),
+-	.mgmt_write(cfg_write),
+-	.mgmt_address(cfg_address),
+-	.mgmt_writedata(cfg_data),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll)
+-);
+ 
+ always @(posedge CLK_50M) begin : cfg_block
+ 	reg pald = 0, pald2 = 0;
+@@ -470,7 +534,7 @@
+ 
+ reg [1:0] nes_ce;
+ 
+-wire raw_serial = |status[52:51];
++assign raw_serial = |status[52:51];
+ 
+ // Extend SNAC zapper high signal to be closer to original NES
+ wire extend_serial_d4 = status[52:51] == 2'b10;
+@@ -516,6 +580,11 @@
+ assign USER_OUT[5] = 1'b1;
+ assign USER_OUT[6] = 1'b1;
+ 
++// Retro25: USER_OUT[3:0] wird in always_comb beschrieben, ist aber ein Port
++// ohne Typ aus sys/emu_ports.vh (Quartus Pro 13386) -> Hilfsvariable
++logic [3:0] user_out_lo;
++assign USER_OUT[3:0] = user_out_lo;
++
+ reg [4:0] joypad1_data, joypad2_data;
+ 
+ wire joy0_d0 = snac_p2 ? ~USER_IN[6] : joypad_bits[0];
+@@ -523,10 +592,10 @@
+ 
+ always_comb begin
+ 	if (raw_serial) begin
+-		USER_OUT[0]  = joypad_out[0];
+-		USER_OUT[1]  = ~joy_swap ? ~joypad_clock[1] : ~joypad_clock[0];
+-		USER_OUT[2]  = snac_3d_glasses ? joypad_out[1] : 1'b1;
+-		USER_OUT[3]  = ~joy_swap ? ~joypad_clock[0] : ~joypad_clock[1];
++		user_out_lo[0]  = joypad_out[0];
++		user_out_lo[1]  = ~joy_swap ? ~joypad_clock[1] : ~joypad_clock[0];
++		user_out_lo[2]  = snac_3d_glasses ? joypad_out[1] : 1'b1;
++		user_out_lo[3]  = ~joy_swap ? ~joypad_clock[0] : ~joypad_clock[1];
+ 		joypad1_data = {2'b0, mic, 1'b0, ~joy_swap ? joy0_d0 : ~USER_IN[5]};
+ 		joypad2_data = {serial_d4, snac_3d_glasses ? 1'b1 : ~USER_IN[2], 2'b00, ~joy_swap ? ~USER_IN[5] : joy1_d0};
+ 
+@@ -534,10 +603,10 @@
+ 		// the consumer Zapper D3/D4 lines on controller 1.
+ 		if (vs_zapper_en) joypad1_data[0] = vs_zapper_data;
+ 	end else begin
+-		USER_OUT[0]  = 1'b1;
+-		USER_OUT[1]  = 1'b1;
+-		USER_OUT[2]  = 1'b1;
+-		USER_OUT[3]  = 1'b1;
++		user_out_lo[0]  = 1'b1;
++		user_out_lo[1]  = 1'b1;
++		user_out_lo[2]  = 1'b1;
++		user_out_lo[3]  = 1'b1;
+ 
+ 		joypad1_data = {2'b0, mic, paddle_en & paddle_btn, joypad_bits[0]};
+ 		joypad2_data = joypad_bits2[0];
+@@ -553,11 +622,11 @@
+ 	end
+ end
+ 
+-wire mic = (mic_cnt < 8'd215) && mic_button;
++assign mic = (mic_cnt < 8'd215) && mic_button;
+ reg [7:0] mic_cnt;
+ always @(posedge clk) mic_cnt <= (mic_cnt == 8'd250) ? 8'd0 : mic_cnt + 1'b1;
+ 
+-wire fkeyb = status[53];
++assign fkeyb = status[53];
+ wire [3:0] key_out;
+ keyboard fkey(
+ 	.clk(clk),
+@@ -582,7 +651,7 @@
+ );
+ 
+ wire manual_lightgun_en = ~status[34] & |status[33:32];
+-wire lightgun_en = manual_lightgun_en || vs_header_zapper;
++assign lightgun_en = manual_lightgun_en || vs_header_zapper;
+ wire zapper_port_b = manual_lightgun_en && status[32];
+ wire zapper_mode = manual_lightgun_en ? status[33] : 1'b1;
+ wire zapper_trigger_mode = manual_lightgun_en ? status[21] : 1'b1;
+@@ -618,7 +687,7 @@
+ reg [7:0] paddle = 0;
+ always @(posedge clk) begin
+ 	reg [7:0] old_pdl[4];
+-	reg [1:0] num = 0;
++	reg [1:0] num;   // Retro25: ohne Startwert (Quartus Pro setzt ihn in always jeden Takt, 16754; Register starten mit 0)
+ 
+ 	for(reg [2:0] i=0; i<4; i++) begin
+ 		old_pdl[i] <= pdl[i];
+@@ -632,8 +701,8 @@
+ 
+ wire [7:0] paddle_adj = paddle_off + ((paddle < 40) ? 8'd40 : (paddle > 216) ? 8'd216 : paddle);
+ wire [7:0] paddle_nes = ~{paddle_adj[0],paddle_adj[1],paddle_adj[2],paddle_adj[3],paddle_adj[4],paddle_adj[5],paddle_adj[6],paddle_adj[7]};
+-wire       paddle_en  = (status[34:33] == 2);
+-wire       paddle_atr = paddle_en & status[32];
++assign paddle_en = (status[34:33] == 2);
++assign paddle_atr = paddle_en & status[32];
+ wire       paddle_btn = paddle_atr ? (joyA[4] | joyB[4] | joyC[4] | joyD[4]) : (joyA[10] | joyB[10] | joyC[10] | joyD[10]);
+ 
+ always @(posedge clk) begin
+@@ -664,9 +733,9 @@
+ end
+ 
+ // Loader
+-wire [7:0] file_input;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] file_input;
+ wire [7:0] loader_input = (loader_busy && !downloading) ? !nsf ? bios_data : nsf_data : file_input;
+-wire       loader_clk;
++// Retro25: Deklaration nach oben gezogen (16746): wire       loader_clk;
+ wire [24:0] loader_addr;
+ wire [7:0] loader_write_data;
+ reg loader_reset;
+@@ -675,10 +744,10 @@
+ reg  [63:0] mapper_flags;
+ wire fds = (mapper_flags[7:0] == 8'h14);
+ wire nsf = (loader_flags[7:0] == 8'h1F);
+-wire piano = (mapper_flags[30]);
++assign piano = (mapper_flags[30]);
+ wire [3:0] prg_nvram = mapper_flags[34:31];
+ wire loader_busy, loader_done, loader_fail;
+-wire [9:0] prg_mask, chr_mask;
++logic [9:0] prg_mask, chr_mask;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire [1:0] clearval = status[66:65];
+ wire [7:0] cleardata = (clearval == 3) ? random_byte : (clearval == 2 ? 8'hFF : 8'h00);
+ 
+@@ -716,7 +785,7 @@
+ 
+ reg led_blink;
+ always @(posedge clk) begin : blink_block
+-	int cnt = 0;
++	int cnt;   // Retro25: ohne Startwert (Quartus Pro setzt ihn in always jeden Takt, 16754; Register starten mit 0)
+ 	cnt <= cnt + 1;
+ 	if(cnt == 10000000) begin
+ 		cnt <= 0;
+@@ -724,7 +793,7 @@
+ 	end;
+ end
+ 
+-wire reset_nes =
++assign reset_nes =
+ 	~init_reset_n  ||
+ 	buttons[1]     ||
+ 	arm_reset      ||
+@@ -743,8 +812,8 @@
+ wire [7:0] bram_dout;
+ wire bram_write;
+ wire bram_en;
+-wire trigger;
+-wire light;
++// Retro25: Deklaration nach oben gezogen (16746): wire trigger;
++// Retro25: Deklaration nach oben gezogen (16746): wire light;
+ 
+ wire [1:0] diskside;
+ reg       diskside_info;
+@@ -882,12 +951,12 @@
+ 	.SAVE_out_done           (ss_ack)            // should be one cycle high when write is done or read value is valid
+ );
+ 
+-wire [24:0] cpu_addr;
+-wire [21:0] ppu_addr;
+-wire        cpu_read, cpu_write, ppu_read, ppu_write;
+-wire  [7:0] cpu_dout, cpu_din, ppu_dout, ppu_din;
+-
+-wire [2:0] emphasis;
++// Retro25: Deklaration nach oben gezogen (16746): wire [24:0] cpu_addr;
++// Retro25: Deklaration nach oben gezogen (16746): wire [21:0] ppu_addr;
++// Retro25: Deklaration nach oben gezogen (16746): wire        cpu_read, cpu_write, ppu_read, ppu_write;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] cpu_dout, cpu_din, ppu_dout, ppu_din;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [2:0] emphasis;
+ 
+ wire [7:0] bios_data;
+ wire bios_download = downloading & type_bios;
+@@ -913,7 +982,7 @@
+ );
+ 
+ wire [7:0] nsf_data;
+-spram #(12, 8, "rtl/loopy_NSF.mif") nsfplayrom
++spram #(12, 8, "../vendor/rtl/loopy_NSF.mif") nsfplayrom   // Retro25: Pfad relativ zu quartus/ (SEARCH_PATH löst rtl/... nicht auf, 20059)
+ (
+ 	.clock(clk),
+ 	.address(loader_addr[11:0]),
+@@ -960,6 +1029,7 @@
+ 
+ 	// system interface
+ 	.clk        ( clk85           ),
++	.clk_sdram  ( clk85_sdram     ),   // Retro25: Takt für SDRAM_CLK (+90 Grad)
+ 	.init       ( !clock_locked   ),
+ 
+ 	// cpu/chipset interface
+@@ -991,7 +1061,7 @@
+ 	.ss_out     (sdram_ss_out)
+ );
+ 
+-wire [7:0] save_dout;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] save_dout;
+ assign sd_buff_din = bram_en ? eeprom_dout : save_dout;
+ 
+ wire [7:0] eeprom_dout;
+@@ -1003,16 +1073,20 @@
+ 	.wren_a(bram_write),
+ 	.q_a(bram_din),
+ 
+-	.clock_b(clk),
++	// Retro25: Port B mit clk85 statt clk. Agilex-5-M20K kann kein True-Dual-
++	// Port-RAM mit zwei Takten (22556). clk = clk85/4 aus derselben PLL,
++	// flankengleich: Schreiben (sd_buff_wr, 1 clk lang) erfolgt 4x mit gleichen
++	// Daten, gelesene Daten liegen früher an und sind zur nächsten clk-Flanke gültig.
++	.clock_b(clk85),
+ 	.address_b({sd_lba[1:0],sd_buff_addr}),
+ 	.data_b(sd_buff_dout),
+ 	.wren_b(sd_buff_wr & sd_ack),
+ 	.q_b(eeprom_dout)
+ );
+ 
+-wire save_busy;
++// Retro25: Deklaration nach oben gezogen (16746): wire save_busy;
+ reg save_rd, save_wr;
+-reg save_wait;
++// Retro25: Deklaration nach oben gezogen (16746): reg save_wait;
+ reg [18:0] save_addr;
+ 
+ always @(posedge clk) begin
+@@ -1039,7 +1113,7 @@
+ end
+ 
+ reg bk_pending;
+-wire save_written, mapper_has_flashsaves;
++// Retro25: Deklaration nach oben gezogen (16746): wire save_written, mapper_has_flashsaves;
+ always @(posedge clk) begin
+ 	if ((mapper_flags[25] || vs_system || fds || mapper_has_flashsaves) && ~OSD_STATUS && save_written)
+ 		bk_pending <= 1'b1;
+@@ -1088,7 +1162,7 @@
+ wire [2:0] sl = scale ? scale - 1'd1 : 3'd0;
+ assign VGA_SL = sl[1:0];
+ 
+-wire [1:0] reticle;
++// Retro25: Deklaration nach oben gezogen (16746): wire [1:0] reticle;
+ wire hold_reset;
+ wire ce_pix;
+ wire HSync,VSync,HBlank,VBlank;
+@@ -1202,8 +1276,8 @@
+ 
+ ////////////////////////////  CODES  ///////////////////////////////////
+ 
+-reg [128:0] gg_code;
+-wire gg_avail;
++// Retro25: Deklaration nach oben gezogen (16746): reg [128:0] gg_code;
++// Retro25: Deklaration nach oben gezogen (16746): wire gg_avail;
+ 
+ // Code layout:
+ // {clock bit, code flags,     32'b address, 32'b compare, 32'b replace}
+@@ -1243,7 +1317,7 @@
+ 
+ reg bk_ena = 0;
+ reg old_downloading = 0;
+-reg [1:0] max_diskside = 2'd3;
++// Retro25: Deklaration nach oben gezogen (16746): reg [1:0] max_diskside = 2'd3;
+ always @(posedge clk) begin
+ 	old_downloading <= downloading;
+ 	if(~old_downloading & downloading) bk_ena <= 0;
+@@ -1258,8 +1332,8 @@
+ reg  bk_loading = 0;
+ reg  bk_loading_req = 0;
+ reg  bk_request = 0;
+-wire bk_busy = (bk_state == S_COPY);
+-reg  fds_busy;
++assign bk_busy = (bk_state == S_COPY);
++// Retro25: Deklaration nach oben gezogen (16746): reg  fds_busy;
+ 
+ wire [10:0] save_sz = vs_system ? 11'd3 :
+                       fds ? rom_sz[17:9] :
+@@ -1271,8 +1345,8 @@
+ mystate bk_state = S_IDLE;
+ 
+ always @(posedge clk) begin : save_block
+-	reg old_load = 0, old_save = 0, old_ack;
+-	reg old_downloading = 0;
++	reg old_load, old_save, old_ack;   // Retro25: ohne Startwert (Quartus Pro setzt ihn in always jeden Takt, 16754; Register starten mit 0)
++	reg old_downloading;   // Retro25: ohne Startwert (Quartus Pro setzt ihn in always jeden Takt, 16754; Register starten mit 0)
+ 
+ 	old_downloading <= downloading;
+ 
+@@ -1318,26 +1392,26 @@
+ 
+ ///////////////////////////// savestates /////////////////////////////////
+ 
+-wire [63:0] ss_dout, ss_din;
+-wire [27:2] ss_addr;
+-wire  [7:0] ss_be;
+-wire        ss_rnw, ss_req, ss_ack;
+-
+-wire [24:0] Savestate_SDRAMAddr;
+-wire        Savestate_SDRAMRdEn;
+-wire        Savestate_SDRAMWrEn;
+-wire [7:0]  Savestate_SDRAMWriteData;
+-wire [7:0]  Savestate_SDRAMReadData;
+-
+-wire [63:0] SaveStateBus_Din;
+-wire [9:0]  SaveStateBus_Adr;
+-wire        SaveStateBus_wren;
+-wire        SaveStateBus_rst;
+-wire [63:0] SaveStateBus_Dout;
+-wire        savestate_load;
+-
+-wire [15:0] sdram_ss_in = SS_Ext[15:0];
+-wire [15:0] sdram_ss_out;
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] ss_dout, ss_din;
++// Retro25: Deklaration nach oben gezogen (16746): wire [27:2] ss_addr;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [7:0] ss_be;
++// Retro25: Deklaration nach oben gezogen (16746): wire        ss_rnw, ss_req, ss_ack;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [24:0] Savestate_SDRAMAddr;
++// Retro25: Deklaration nach oben gezogen (16746): wire        Savestate_SDRAMRdEn;
++// Retro25: Deklaration nach oben gezogen (16746): wire        Savestate_SDRAMWrEn;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0]  Savestate_SDRAMWriteData;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0]  Savestate_SDRAMReadData;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] SaveStateBus_Din;
++// Retro25: Deklaration nach oben gezogen (16746): wire [9:0]  SaveStateBus_Adr;
++// Retro25: Deklaration nach oben gezogen (16746): wire        SaveStateBus_wren;
++// Retro25: Deklaration nach oben gezogen (16746): wire        SaveStateBus_rst;
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] SaveStateBus_Dout;
++// Retro25: Deklaration nach oben gezogen (16746): wire        savestate_load;
++
++assign sdram_ss_in = SS_Ext[15:0];
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] sdram_ss_out;
+ 
+ wire [63:0] SS_Ext;
+ wire [63:0] SS_Ext_BACK;
+@@ -1361,11 +1435,11 @@
+ );
+ 
+ // saving with keyboard/OSD/gamepad
+-wire [1:0] ss_slot;
++// Retro25: Deklaration nach oben gezogen (16746): wire [1:0] ss_slot;
+ wire [7:0] ss_info;
+-wire ss_save, ss_load, ss_info_req;
+-wire mapper_has_savestate;
+-wire statusUpdate;
++// Retro25: Deklaration nach oben gezogen (16746): wire ss_save, ss_load, ss_info_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire mapper_has_savestate;
++// Retro25: Deklaration nach oben gezogen (16746): wire statusUpdate;
+ 
+ //Ignore F1-F4 when famicom keyboard is enabled
+ wire skip_ps2 = (ps2_key[7:0] == 'h04) || (ps2_key[7:0] == 'h05) || (ps2_key[7:0] == 'h06) || (ps2_key[7:0] == 'h0C);
+@@ -1415,7 +1489,7 @@
+ 	output reg [24:0] mem_addr,
+ 	output [7:0]  mem_data,
+ 	output        mem_write,
+-	output [63:0] mapper_flags,
++	output logic [63:0] mapper_flags,
+ 	output reg [9:0]  prg_mask,
+ 	output reg [9:0]  chr_mask,
+ 	output reg    busy,
+@@ -1423,6 +1497,8 @@
+ 	output reg    error,
+ 	output reg    rom_loaded
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire is_nes20;
+ 
+ initial begin
+ 	rom_loaded <= 0;
+@@ -1444,7 +1520,7 @@
+ 	|| ((bytes_left != 0) && ((state == S_CLEARRAM) || (state == S_COPYBIOS) || (state == S_COPYPLAY)) && clearclk == 4'h2);
+ 
+ // detect iNES2.0 compliant header
+-wire is_nes20 = (ines[7][3:2] == 2'b10);
++assign is_nes20 = (ines[7][3:2] == 2'b10);
+ wire is_nes20_prg = (is_nes20 && (ines[9][3:0] == 4'hF));
+ wire is_nes20_chr = (is_nes20 && (ines[9][7:4] == 4'hF));
+ 

@@ -1,0 +1,24 @@
+--- a/rtl/video.sv
++++ b/rtl/video.sv
+@@ -133,7 +133,7 @@
+ 
+ wire [23:0] mem_data;
+ 
+-spram #(.addr_width(6), .data_width(24), .mem_name("pal"), .mem_init_file("rtl/tao.mif")) pal_ram
++spram #(.addr_width(6), .data_width(24), .mem_name("pal"), .mem_init_file("../vendor/rtl/tao.mif")) pal_ram   // Retro25: Pfad relativ zu quartus/ (SEARCH_PATH löst rtl/... nicht auf, 20059)
+ (
+ 	.clock(clk),
+ 	.address(load_color ? load_color_index : color_ef),
+@@ -177,9 +177,9 @@
+ reg  [8:0] h, v;
+ wire [8:0] hc = disengaged ? h : count_h;
+ wire [8:0] vc = disengaged ? v : count_v;
+-wire [8:0] vblank_start, vblank_end, hblank_start, hblank_end, hsync_start, hsync_end;
+-wire [8:0] vblank_start_sl, vblank_end_sl, vsync_start_sl;
+-wire hblank_period;
++logic [8:0] vblank_start, vblank_end, hblank_start, hblank_end, hsync_start, hsync_end;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
++logic [8:0] vblank_start_sl, vblank_end_sl, vsync_start_sl;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
++logic hblank_period;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	case (sys_type)

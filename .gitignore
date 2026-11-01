@@ -61,6 +61,9 @@ cores/menu/pro/**
 cores/memtest/pro/**
 !cores/memtest/pro/**/
 !cores/memtest/pro/**/*.patch
+cores/nes/pro/**
+!cores/nes/pro/**/
+!cores/nes/pro/**/*.patch
 sys/de25/pro/**
 !sys/de25/pro/**/
 !sys/de25/pro/**/*.patch

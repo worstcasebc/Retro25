@@ -1,0 +1,7 @@
+--- a/rtl/EEPROM_24C0x.sv
++++ b/rtl/EEPROM_24C0x.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // 24C01, 24C02 EEPROM support
+ // by GreyRogue for NES MiSTer
+ 

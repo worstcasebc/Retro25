@@ -1,0 +1,79 @@
+--- a/rtl/mappers/FDS.sv
++++ b/rtl/mappers/FDS.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ //Famicom Disk System
+ 
+ module MapperFDS(
+@@ -40,6 +41,12 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] audio;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire diskend;
+ 
+ assign prg_aout_b      = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b      = enable ? prg_dout : 8'hZ;
+@@ -59,11 +66,11 @@
+ wire vram_a10;
+ wire vram_ce;
+ wire [7:0] prg_dout;
+-wire [15:0] flags_out = {12'd0, 1'b1, 1'b0, prg_bus_write, 1'b0};
++assign flags_out = {12'd0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+ wire prg_bus_write;
+ wire irq;
+ 
+-wire [15:0] audio = audio_in;
++assign audio = audio_in;
+ 
+ reg fds_prg_bus_write;
+ wire fds_audio_prg_bus_write = (prg_ain >= 16'h4040 && prg_ain < 16'h4080) | (prg_ain >= 16'h4090 && prg_ain <= 16'h4097);
+@@ -426,7 +433,7 @@
+ // diskside_manual to be manage from OSD user input allow to add diskswap capabilities.
+ // (automatic fds_eject should be preferably stopped before changing diskside_manual)
+ 
+-wire diskend=(diskpos==65499);
++assign diskend =(diskpos==65499);
+ always@* case(diskside) //16+65500*diskside
+ 	0:sideoffset=18'h00010;
+ 	1:sideoffset=18'h0ffec;
+@@ -567,7 +574,7 @@
+ 	input         wren,
+ 	input  [15:0] addr_in,
+ 	input   [7:0] data_in,
+-	output  [7:0] data_out,
++	output logic  [7:0] data_out,
+ 	input  [15:0] audio_in,    // Inverted audio from APU
+ 	output [15:0] audio_out,
+ 
+@@ -578,6 +585,8 @@
+ 	input  [7:0]  Savestate_MAPRAMWriteData,
+ 	output [7:0]  Savestate_MAPRAMReadData
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [11:0] audio_exp;
+ 
+ //expansion audio
+ fds_audio fds_audio
+@@ -599,7 +608,7 @@
+ 	.ss_do                    (Savestate_MAPRAMReadData)
+ );
+ 
+-wire [11:0] audio_exp;
++// Retro25: Deklaration nach oben gezogen (16746): wire [11:0] audio_exp;
+ 
+ reg [2:0] div_fds;
+ reg fds_filter_ce;
+@@ -714,7 +723,7 @@
+ // Volume math
+ wire [11:0] mul_out = wave_latch * (vol_pwm_lat[5] ? 6'd32 : vol_pwm_lat);
+ 
+-wire [15:0] level_out;
++logic [15:0] level_out;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ assign audio_out = level_out[11:0];
+ 
+ always_comb begin

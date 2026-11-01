@@ -1,0 +1,238 @@
+--- a/rtl/ppu.sv
++++ b/rtl/ppu.sv
+@@ -199,16 +199,18 @@
+ 	input         SaveStateBus_rst,
+ 	output [63:0] SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire skip_pixel;
+ 
+ reg is_even_frame = 0; // 1 indicates even frame.
+ assign evenframe = is_even_frame;
+ 
+ // Dendy is 291 to 310
+-wire [8:0] vblank_start_sl;
+-wire [8:0] vblank_end_sl;
+-wire [8:0] vsync_start_sl;
++logic [8:0] vblank_start_sl;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
++logic [8:0] vblank_end_sl;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
++logic [8:0] vsync_start_sl;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ wire [8:0] last_sl;
+-wire skip_en;
++logic skip_en;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ reg [3:0] rendering_sr;
+ 
+ always_comb begin
+@@ -243,7 +245,7 @@
+ // In Visual 2C02, the counter starts at zero and flips at scanline 256.
+ assign short_frame = end_of_line & skip_pixel;
+ reg skip_next = 0;
+-wire skip_pixel = skip_next && skip_en;
++assign skip_pixel = skip_next && skip_en;
+ assign end_of_line = at_last_cycle_group && (cycle[3:0] == (skip_pixel ? 3 : 4));
+ 
+ // Confimed with Visual 2C02
+@@ -422,6 +424,10 @@
+ 	output is_sprite0,       // Set to true if sprite #0 was output
+ 	input extra_sprites
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [4:0] bits_orig;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [4:0] bits_ex;
+ 
+ wire [26:0] load_out7, load_out6, load_out5, load_out4, load_out3, load_out2, load_out1, load_out0,
+ 	load_out15, load_out14, load_out13, load_out12, load_out11, load_out10, load_out9, load_out8;
+@@ -453,7 +459,7 @@
+ 
+ // Determine which sprite is visible on this pixel.
+ assign bits = bits_orig;
+-wire [4:0] bits_orig =
++assign bits_orig =
+ 	bits0[1:0]  != 0 ? bits0 :
+ 	bits1[1:0]  != 0 ? bits1 :
+ 	bits2[1:0]  != 0 ? bits2 :
+@@ -464,7 +470,7 @@
+ 	bits7[1:0]  != 0 || ~extra_sprites ? bits7 :
+ 	bits_ex;
+ 
+-wire [4:0] bits_ex =
++assign bits_ex =
+ 	bits8[1:0]  != 0 ? bits8 :
+ 	bits9[1:0]  != 0 ? bits9 :
+ 	bits10[1:0] != 0 ? bits10 :
+@@ -511,7 +517,7 @@
+ 	input         Savestate_OAMRdEn,
+ 	input         Savestate_OAMWrEn,
+ 	input  [7:0]  Savestate_OAMWriteData,
+-	output [7:0]  Savestate_OAMReadData
++	output logic [7:0]  Savestate_OAMReadData
+ );
+ 
+ wire [63:0] SS_OAMEVAL;
+@@ -981,7 +987,7 @@
+ assign load = {load_pix1, load_pix2, load_x, load_attr};
+ assign load_in = {pix1_latch, pix2_latch, load_temp, load_temp[1:0], load_temp[5]};
+ 
+-wire [7:0] load_temp;
++logic [7:0] load_temp;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ always_comb begin
+ 	case (count)
+ 		0: load_temp = temp_y;
+@@ -1213,7 +1219,7 @@
+ 	input w2006,
+ 	input r2007,
+ 	input w2007,
+-	output [5:0] new_color
++	output logic [5:0] new_color
+ );
+ 
+ always_comb begin
+@@ -1330,19 +1336,19 @@
+ 	input         write,            // write
+ 	output reg    nmi,              // one while inside vblank
+ 	output        vram_r,           // read from vram active
+-	output        vram_r_ex,        // use extra sprite address
++	output logic        vram_r_ex,        // use extra sprite address
+ 	output        vram_w,           // write to vram active
+ 	output [13:0] vram_addr,        // vram address
+ 	output [13:0] vram_a_ex,        // vram address for extra sprites
+ 	input   [7:0] vram_dbus_in,     // vram input
+ 	output  [7:0] vram_dout,
+-	output  [8:0] scanline,
+-	output  [8:0] cycle,
++	output logic  [8:0] scanline,
++	output logic  [8:0] cycle,
+ 	output  [2:0] emphasis,
+-	output        hsync,
+-	output        vsync,
+-	output        hblank,
+-	output        vblank,
++	output logic        hsync,
++	output logic        vsync,
++	output logic        hblank,
++	output logic        vblank,
+ 	output        short_frame,
+ 	input         extra_sprites,
+ 	input  [1:0]  mask,
+@@ -1360,8 +1366,26 @@
+ 	input         Savestate_OAMRdEn,
+ 	input         Savestate_OAMWrEn,
+ 	input  [7:0]  Savestate_OAMWriteData,
+-	output [7:0]  Savestate_OAMReadData
+-);
++	output logic [7:0]  Savestate_OAMReadData
++);
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] oam_bus;
++wire sprite_overflow;
++wire obj0_on_line; // True if sprite#0 is included on the current line
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] ppu_dbus;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire vram_r_ppudata;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire vram_w_ppudata;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] vram_din;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire in_rendering_frame;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] vram_latch_value;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [5:0] color0;
+ 
+ wire pal_system = (sys_type == 2'b01);
+ wire pal_or_dendy = pal_system || (sys_type == 2'b10);
+@@ -1426,7 +1450,7 @@
+ reg [7:0] vram_latch;
+ 
+ // Clock generator
+-wire is_in_vblank;        // True if we're in VBLANK
++logic is_in_vblank;        // True if we're in VBLANK   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire end_of_line;         // At the last pixel of a line
+ wire at_last_cycle_group; // At the very last cycle group of the scan line.
+ wire exiting_vblank;      // At the very last cycle of the vblank
+@@ -1452,7 +1476,7 @@
+ 
+ wire clear_signal = is_pre_render_line;
+ 
+-wire [13:0] vram_a;
++logic [13:0] vram_a;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ reg [7:0] vram_a_byte;
+ 
+ wire video_sync, video_burst, video_picture_n;
+@@ -1550,7 +1574,7 @@
+ wire show_bg_on_pixel = (playfield_clip || out_of_clip) && eb_sr[1];
+ wire [3:0] bg_pixel = {bg_pixel_noblank[3:2], show_bg_on_pixel ? bg_pixel_noblank[1:0] : 2'b00};
+ 
+-wire [31:0] oam_bus_ex;
++logic [31:0] oam_bus_ex;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire masked_sprites;
+ 
+ wire [8:0] scanline_nopr = is_pre_render_line ? (pal_or_dendy ? 9'd311 : 9'd261) : scanline;
+@@ -1591,9 +1615,9 @@
+ );
+ 
+ 
+-wire [7:0] oam_bus;
+-wire sprite_overflow;
+-wire obj0_on_line; // True if sprite#0 is included on the current line
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] oam_bus;
++// Retro25: Deklaration nach oben gezogen (16746): wire sprite_overflow;
++// Retro25: Deklaration nach oben gezogen (16746): wire obj0_on_line; // True if sprite#0 is included on the current line
+ 
+ wire [4:0] obj_pixel_noblank;
+ wire [12:0] sprite_vram_addr;
+@@ -1772,12 +1796,12 @@
+ end
+ 
+ // Read from VRAM, either when user requested a manual read, or when we're generating pixels.
+-wire vram_r_ppudata = read_2007_delayed[4];
+-wire vram_w_ppudata = write_2007_delayed[3];
++assign vram_r_ppudata = read_2007_delayed[4];
++assign vram_w_ppudata = write_2007_delayed[3];
+ 
+ wire ALE = (is_rendering_d && ~read_cycle) | (read_2007_delayed[2] || write_2007_delayed[2]);
+ 
+-wire [7:0] vram_din = vram_r ? vram_dbus_in : (vram_w ? vram_dout : (ALE ? vram_a[7:0] : vram_dbus_in));
++assign vram_din = vram_r ? vram_dbus_in : (vram_w ? vram_dout : (ALE ? vram_a[7:0] : vram_dbus_in));
+ 
+ // The true and proper logic is that it will read if rendering is enabled and the previous cycle was odd.
+ // this is important when you go from 340->0 or 339->0.
+@@ -1800,7 +1824,7 @@
+ // cleanliness, but if you ever wanted to add real hardware compatible pins, you'd change this here.
+ assign vram_addr = {vram_a[13:8], ALE ? vram_latch_value : vram_a_byte};
+ 
+-wire [7:0] vram_latch_value = vram_r ? vram_pins : vram_a[7:0];
++assign vram_latch_value = vram_r ? vram_pins : vram_a[7:0];
+ 
+ always @(posedge clk) begin
+ 	if (SaveStateBus_load) begin
+@@ -1826,7 +1850,7 @@
+ // we dont have those here.
+ wire [4:0] pram_addr = is_rendering && in_visible_frame ? pixel : (pal_writes_valid ? vram[4:0] : 5'b00000);
+ 
+-wire in_rendering_frame = scanline < 240 || is_pre_render_line;
++assign in_rendering_frame = scanline < 240 || is_pre_render_line;
+ 
+ PaletteRam palette_ram(
+ 	.clk          (clk),
+@@ -1890,7 +1914,7 @@
+ 	.new_color  (color)
+ );
+ 
+-wire [5:0] color0 = (not_grayscale ? color_pipe[0] : {color_pipe[0][5:4], 4'b0});
++assign color0 = (not_grayscale ? color_pipe[0] : {color_pipe[0][5:4], 4'b0});
+ wire [5:0] color1 = (mask_right | mask_left | mask_pal) ? edge_mask_color : color2;
+ 
+ wire clear_nmi = (clear_signal | (read && ppu_ain == 2));
+@@ -1908,7 +1932,7 @@
+ 	.status_data(ppu_status_data)
+ );
+ 
+-wire [7:0] ppu_dbus =
++assign ppu_dbus =
+ 	write ? din :
+ 	read ? (
+ 		(ppu_ain == 2) ? ppu_status_data : // PPUSTATUS

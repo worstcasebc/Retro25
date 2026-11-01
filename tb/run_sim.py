@@ -64,7 +64,7 @@ def header_values(source: str, key: str) -> list[str]:
 
 def run_tb_questa(name: str, source: str) -> bool:
     """Übersetzt die im Kopf genannten Dateien mit Questa und simuliert."""
-    tool = {t: find_tool(t, QUESTA_DIR / f"{t}.exe") for t in ("vlib", "vlog", "vsim")}
+    tool = {t: find_tool(t, QUESTA_DIR / f"{t}.exe") for t in ("vlib", "vlog", "vcom", "vsim")}
     files = []
     for pat in header_values(source, "Dateien"):
         hits = sorted(p.relative_to(ROOT).as_posix() for p in ROOT.glob(pat))
@@ -80,6 +80,16 @@ def run_tb_questa(name: str, source: str) -> bool:
     rel = work.relative_to(ROOT).as_posix()
     lib = f"{rel}/work"
     subprocess.run([tool["vlib"], lib], cwd=ROOT, capture_output=True, text=True)
+    # VHDL-Dateien (z. B. cores/nes/rtl/dpram.vhd) zuerst mit vcom, in der
+    # genannten Reihenfolge; Verilog-Testbench instanziiert sie danach
+    vhdl = [f for f in files if f.endswith(".vhd")]
+    files = [f for f in files if not f.endswith(".vhd")]
+    if vhdl:
+        comp = subprocess.run([tool["vcom"], "-93", "-quiet", "-work", lib, *vhdl],
+                              cwd=ROOT, capture_output=True, text=True)
+        if comp.returncode != 0:
+            print(comp.stdout + comp.stderr)
+            return False
     comp = subprocess.run([tool["vlog"], "-sv", "-quiet", "-work", lib, *incdirs, *macros,
                            f"tb/{name}.v", *files], cwd=ROOT, capture_output=True, text=True)
     if comp.returncode != 0:

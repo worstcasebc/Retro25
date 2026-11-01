@@ -4,6 +4,9 @@
 Aufruf (aus dem Projektverzeichnis Retro25, nach den fetch-Skripten):
     python tools/apply_patches.py            alle pro/-Kopien erzeugen
     python tools/apply_patches.py --check    nur prüfen, ob sie aktuell sind
+    python tools/apply_patches.py --make <pro-datei> ...
+        schreibt <pro-datei>.patch aus der von Hand geänderten Kopie und
+        ihrer Vorlage (gleicher Pfad unter vendor/) — für neue Anpassungen
 
 Fremdcode liegt nicht im Repository (Lizenzen, siehe README.md), nur die
 Patches. Zu jeder Datei <pro>/<pfad>.patch gehört die Vorlage
@@ -11,6 +14,7 @@ Patches. Zu jeder Datei <pro>/<pfad>.patch gehört die Vorlage
     cores/c64/pro      <- cores/c64/vendor
     cores/menu/pro     <- cores/menu/vendor
     cores/memtest/pro  <- cores/memtest/vendor
+    cores/nes/pro      <- cores/nes/vendor
     sys/de25/pro       <- sys/vendor/mister
 Der z486 hat ein eigenes Skript (cores/z486/make_pro.py, Textersetzungen).
 
@@ -35,6 +39,7 @@ PAIRS = [
     ("cores/c64/pro", "cores/c64/vendor"),
     ("cores/menu/pro", "cores/menu/vendor"),
     ("cores/memtest/pro", "cores/memtest/vendor"),
+    ("cores/nes/pro", "cores/nes/vendor"),
     ("sys/de25/pro", "sys/vendor/mister"),
 ]
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
@@ -97,7 +102,49 @@ def unix(b: bytes) -> bytes:
     return b.replace(b"\r\n", b"\n")
 
 
+def read_src(path: Path) -> tuple[str, str]:
+    """Liest eine Vorlage als Text; gibt (text, kodierung) zurück. Fremdcode ist
+    meist UTF-8/ASCII; VM2413 (NES) hat Shift-JIS-Kommentare -> latin-1 als
+    Rückfall: jedes Byte wird ein Zeichen, das Ergebnis bleibt byte-gleich
+    (im .patch stehen solche Zeichen dann UTF-8-kodiert, das ist gewollt)."""
+    b = path.read_bytes()
+    try:
+        return b.decode("utf-8"), "utf-8"
+    except UnicodeDecodeError:
+        return b.decode("latin-1"), "latin-1"
+
+
+def make_patch(pro_file: str) -> None:
+    """Schreibt <pro_file>.patch (Unified Diff, 3 Kontextzeilen, LF)."""
+    import difflib
+    dst = Path(pro_file).resolve()
+    for pro, vendor in PAIRS:
+        try:
+            rel = dst.relative_to(ROOT / pro).as_posix()
+        except ValueError:
+            continue
+        src = ROOT / vendor / rel
+        if not src.exists():
+            raise SystemExit(f"Vorlage fehlt: {src.relative_to(ROOT)}")
+        old = [ln.rstrip("\r\n") for ln in read_src(src)[0].splitlines()]
+        new = [ln.rstrip("\r\n") for ln in read_src(dst)[0].splitlines()]
+        diff = list(difflib.unified_diff(old, new, f"a/{rel}", f"b/{rel}", lineterm="", n=3))
+        if not diff:
+            raise SystemExit(f"{pro}/{rel}: keine Änderung gegenüber der Vorlage")
+        # difflib schreibt "--- a/x\t" ohne Datum nicht; Kopf wie git
+        diff[0], diff[1] = f"--- a/{rel}", f"+++ b/{rel}"
+        out = dst.with_name(dst.name + ".patch")
+        out.write_text("\n".join(diff) + "\n", encoding="utf-8", newline="\n")
+        print(f"geschrieben: {out.relative_to(ROOT)} ({sum(1 for d in diff if d.startswith('@@'))} Abschnitte)")
+        return
+    raise SystemExit(f"{pro_file}: liegt in keinem pro/-Ordner aus PAIRS")
+
+
 def main() -> int:
+    if sys.argv[1:2] == ["--make"]:
+        for f in sys.argv[2:]:
+            make_patch(f)
+        return 0
     check = "--check" in sys.argv[1:]
     bad = done = 0
     for pro, vendor in PAIRS:
@@ -123,11 +170,11 @@ def main() -> int:
                         src = hits[0]
             if not src.exists():
                 raise SystemExit(f"Vorlage fehlt: {src.relative_to(ROOT)} (erst die fetch-Skripte laufen lassen)")
-            text = src.read_bytes().decode("utf-8")
+            text, enc = read_src(src)
             if is_subst:
-                result = subst(text, ptext, f"{pro}/{rel}").encode("utf-8")
+                result = subst(text, ptext, f"{pro}/{rel}").encode(enc)
             else:
-                result = apply(text, ptext, f"{pro}/{rel}").encode("utf-8")
+                result = apply(text, ptext, f"{pro}/{rel}").encode(enc)
             if check:
                 # Zeilenenden hängen davon ab, wie git die Vorlagen auscheckt
                 if not dst.exists() or unix(dst.read_bytes()) != unix(result):

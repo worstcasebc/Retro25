@@ -149,6 +149,14 @@ verschlankt (`sys/de25/hps_slim.tcl`, alle Cores neu gebaut).
 Video-Modi/INI, Low-Latency-Modus, ALSA, UART/MIDI, Screenshots,
 Shared Folder, weitere MiSTer-Cores.
 
+**Dritter Core NES (2026-11-01, Prüfstein für den Port):** NES_MiSTer,
+nur NTSC mit fester PLL (85,909091 MHz exakt, `tools/make_iopll.py`).
+Super Mario Bros läuft mit Ton und Gamepad. Aufwand: viele Quartus-Pro-
+Fallen (13386, implizite Netze, Paket-Import je Datei, TDP-RAM mit zwei
+Takten geht auf Agilex 5 nicht), per Skript aus dem Synthesebericht
+behoben; Main-Patch 0011 (Savestates über `shmem_put`). Details
+`cores/nes/README.md`. Nächster Schritt N5: Port-Werkzeug und Anleitung.
+
 ## Größte Risiken
 
 1. ~~Neuladen des Fabrics auf Agilex 5~~ — **P0 bestanden** (2,1 s je Wechsel,

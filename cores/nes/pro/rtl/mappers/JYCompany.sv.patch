@@ -1,0 +1,85 @@
+--- a/rtl/mappers/JYCompany.sv
++++ b/rtl/mappers/JYCompany.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // J. Y. Company mappers
+ 
+ module multiplier (
+@@ -86,6 +87,10 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire romtables;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -102,10 +107,10 @@
+ reg [21:0] chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ reg [7:0] chr_dout, prg_dout;
+ wire vram_ce;
+-wire [15:0] flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
++assign flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+ wire irq;
+ reg prg_bus_write;
+ 
+@@ -137,7 +142,7 @@
+ 
+ reg old_a12;
+ reg irq_enable;
+-wire irq_source;
++logic irq_source;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ assign irq = irq_pending && irq_enable;
+ reg irq_pending;
+ reg irq_en;
+@@ -336,7 +341,7 @@
+ end
+ 
+ // Compute PRG address to read from.
+-wire [1:0] prg_reg;
++logic [1:0] prg_reg;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ always @* begin
+ 	casez({prg_6xxx, bank_mode[1:0]})
+ 		3'b000: prg_reg = {2'b11};                       // $8000-$FFFF
+@@ -347,7 +352,7 @@
+ end
+ wire [7:0] bank_val = (!bank_mode[2] && prg_reg == 2'b11) ? 8'hFF : prg_bank[prg_reg];
+ wire [6:0] bank_order = bank_mode[1:0] == 2'b11 ? {bank_val[0], bank_val[1], bank_val[2], bank_val[3], bank_val[4], bank_val[5], bank_val[6]} : bank_val[6:0];
+-wire [5:0] prg_sel;
++logic [5:0] prg_sel;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ always @* begin
+ 	casez({prg_6xxx, bank_mode[1:0]})
+ 		3'b000: prg_sel = {bank_order[3:0], prg_ain[14:13]}; //
+@@ -370,7 +375,7 @@
+ end else if (~paused && chr_read) begin
+ 	chr_latch[chr_ain_o[12]] <= outer_bank[7] && (((chr_ain_o & 14'h2ff8) == 14'h0fd8) ? 1'd0 : ((chr_ain_o & 14'h2ff8) == 14'h0fe8) ? 1'd1 : chr_latch[chr_ain_o[12]]);
+ end
+-wire [2:0] chr_reg;
++logic [2:0] chr_reg;   // Retro25: logic statt wire (in always beschrieben, Quartus Pro 13386)
+ always @* begin
+ 	casez(bank_mode[4:3])
+ 		2'b00: chr_reg = {3'b000};                                   // $0000-$1FFF
+@@ -380,7 +385,7 @@
+ 	endcase
+ end
+ wire [12:0] chr_val = chr_bank[chr_reg][12:0];
+-wire [12:0] chr_sel;
++logic [12:0] chr_sel;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ always @* begin
+ 	casez({romtables, bank_mode[4:3]})
+ 		3'b000: chr_sel = {chr_val[9:0],  chr_ain[12:10]};    //
+@@ -396,7 +401,7 @@
+ 
+ // The a10 VRAM address line. (Used for mirroring)
+ wire xtend = (mirroring[3] || bank_mode[5]) && xmirr || fxmirr;
+-wire romtables = chr_ain[13] && xtend && bank_mode[5] && (bank_mode[6] || (ppu_conf[7] ^ name_bank[chr_ain[11:10]][7]));
++assign romtables = chr_ain[13] && xtend && bank_mode[5] && (bank_mode[6] || (ppu_conf[7] ^ name_bank[chr_ain[11:10]][7]));
+ always @* begin
+ 	casez({xtend, mirroring[1:0]})
+ 		3'b1??: vram_a10 = name_bank[chr_ain[11:10]][0];

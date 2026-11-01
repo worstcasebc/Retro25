@@ -1,0 +1,25 @@
+--- a/rtl/mappers/MMC2.sv
++++ b/rtl/mappers/MMC2.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // MMC 2 and 4 mappers. These can probably be consolidated.
+ 
+ // MMC2 mapper chip. PRG ROM: 128kB. Bank Size: 8kB. CHR ROM: 128kB
+@@ -230,6 +231,8 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] prg_dout;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -243,7 +246,7 @@
+ assign audio_b      = enable ? {1'b0, audio_in[15:1]} : 16'hZ;
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout = 0;
++assign prg_dout = 0;
+ wire prg_allow;
+ wire chr_allow;
+ wire vram_a10;

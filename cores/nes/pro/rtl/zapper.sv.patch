@@ -1,0 +1,30 @@
+--- a/rtl/zapper.sv
++++ b/rtl/zapper.sv
+@@ -16,6 +16,10 @@
+ 	output       light,
+ 	output       trigger
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire light_state;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire trigger_state;
+ 
+ assign light = ~light_state;
+ assign trigger = trigger_state;
+@@ -28,14 +32,14 @@
+ wire signed [8:0] mouse_x = {ps2_mouse[4], ps2_mouse[15:8]};
+ wire signed [8:0] mouse_y = {ps2_mouse[5], ps2_mouse[23:16]};
+ wire mouse_msg = ps2_mouse[24];
+-wire light_state = light_cnt > 0;
++assign light_state = light_cnt > 0;
+ 
+ wire signed [9:0] x_diff = pos_x + mouse_x;
+ wire signed [9:0] y_diff = pos_y - mouse_y;
+ 
+ reg [8:0] light_cnt; // timer for 10-25 scanlines worth of "light" activity.
+ reg signed [9:0] pos_x, pos_y;
+-wire trigger_state = (trigger_cnt > 'd2_100_000);
++assign trigger_state = (trigger_cnt > 'd2_100_000);
+ reg old_msg;
+ reg [8:0] old_scanline;
+ reg pressed;

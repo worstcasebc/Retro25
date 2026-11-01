@@ -26,6 +26,7 @@ DE25-Nano (aarch64, Agilex 5).
 | `patches/0008-…` | Hard disk/floppy images (`ide_img_mount`) without `O_SYNC`; `fsync` after 1 s without writes and before an image change. With `O_SYNC`, stick and SD card managed only ~150 writes/s (Win95 ~40 KB/s, now ~8–10× faster) |
 | `patches/0009-…` | Shared folder (x86_share): fetch MISTERFS frames into normal memory via `shmem_get`, process them there, write the reply back via `shmem_put` (directly in the DDR window → SIGBUS, like 0005/0006) |
 | `patches/0010-…` | Screenshot in a core's framebuffer mode (`MISTER_FB`): image taken directly from DDR (base/line length from `UIO_GET_FB_PAR`), at 8 bpp the palette via the new UIO command `0x4E` (shadow copy in `sys_top_de25`); before, only stripes from the scaler's VGA input |
+| `patches/0011-…` | savestates (`process_ss`, cores with `SS` in the CONF_STR, e.g. NES): buffer built in normal memory and copied with `shmem_put`/`shmem_get` instead of `memset`/`read()` directly into the `/dev/mem` mapping — Main crashed with SIGBUS when loading a NES game (like patches 0005/0006) |
 | `board/retro25-main.dts` | Overlay that Main uses to load a core |
 | `board/retro25-switch-hook` | turns Wi-Fi off and back on during a core switch (P0) |
 | `board/retro25-main.service` | systemd service: starts Main at boot, restarts it after a crash |

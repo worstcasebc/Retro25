@@ -1,0 +1,60 @@
+Retro25: Savestates (process_ss) über shmem_put/shmem_get statt memset und
+read()/write() direkt in der /dev/mem-Abbildung. Auf dem DE25 ist das
+DDR-Fenster nur als Device-Speicher abbildbar; Main stürzte beim Laden eines
+NES-Spiels mit SIGBUS ab (Core mit "SS"-Eintrag in der CONF_STR, wie bei
+C64-Diskette und x86, Patch 0005/0006). Betrifft alle Cores mit Savestates.
+
+--- a/user_io.cpp
++++ b/user_io.cpp
+@@ -2033,7 +2033,18 @@
+ 			else
+ 			{
+ 				ss_cnt[i] = 0xFFFFFFFF;
+-				memset(base[i], 0, len);
++				// Retro25 (DE25): Das DDR-Fenster ist per /dev/mem nur als Device-
++				// Speicher abbildbar; memset und read() hinein lösen SIGBUS aus
++				// (Main stürzte beim Laden eines NES-Spiels ab). Daher in normalem
++				// Speicher aufbauen und per shmem_put übertragen (wie Patch 0005/0006).
++				// base[i] bleibt nur für die Zählerabfrage (ausgerichtete 32-Bit-Lesezugriffe).
++				uint8_t *ssbuf = (uint8_t *)calloc(1, len);
++				if (!ssbuf)
++				{
++					printf("process_ss: kein Speicher (%u Bytes)\n", len);
++					map_addr += len;
++					continue;
++				}
+ 
+ 				if (!i)
+ 				{
+@@ -2054,12 +2065,14 @@
+ 					}
+ 					else
+ 					{
+-						int ret = FileReadAdv(&f, base[i], len);
++						int ret = FileReadAdv(&f, ssbuf, len);
+ 						FileClose(&f);
+ 						printf("process_ss: read %d bytes from file: %s\n", ret, ss_name);
+ 					}
+ 				}
+-				*(uint32_t*)(base[i]) = 0xFFFFFFFF;
++				*(uint32_t*)(ssbuf) = 0xFFFFFFFF;
++				if (!shmem_put(map_addr, len, ssbuf)) printf("process_ss: shmem_put(0x%X) fehlgeschlagen\n", map_addr);
++				free(ssbuf);
+ 			}
+ 
+ 			map_addr += len;
+@@ -2093,7 +2106,13 @@
+ 					Info("Saving the state", 500);
+ 
+ 					*ss_sufx = i + '1';
+-					int ret = FileSave(ss_name, base[i], size);
++					// Retro25 (DE25): erst per shmem_get in normalen Speicher holen;
++					// write() direkt aus dem Device-Speicher kann ebenfalls scheitern.
++					uint8_t *ssbuf = (uint8_t *)malloc(size);
++					int ret = 0;
++					if (ssbuf && shmem_get(ss_base + i * ss_size, size, ssbuf)) ret = FileSave(ss_name, ssbuf, size);
++					else printf("process_ss: shmem_get fehlgeschlagen\n");
++					free(ssbuf);
+ 					if (ret) printf("Wrote %d bytes to file: %s\n", ret, ss_name);
+ 				}
+ 			}

@@ -1,0 +1,473 @@
+--- a/rtl/mappers/misc.sv
++++ b/rtl/mappers/misc.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // These are misc small one-off mappers. Some may end up being merged with Generic mappers.
+ // altera message_off 10027
+ // #15 -  100-in-1 Contra Function 16
+@@ -39,7 +40,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -139,6 +140,10 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire prg_bus_write;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -157,8 +162,8 @@
+ reg vram_a10;
+ wire vram_ce;
+ reg irq;
+-wire [15:0] flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
+-wire [7:0] prg_dout;
++assign flags_out = {12'h0, 1'b1, 1'b0, prg_bus_write, 1'b0};
++logic [7:0] prg_dout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ reg outer_prg_bank;
+ reg [3:0] inner_prg_bank;
+@@ -322,7 +327,7 @@
+ assign prg_aout = prg_is_ram ? prg_ram : prg_aout_tmp;
+ // EEPROM - not used - Could use write to EEPROM cycle for both reads and write accesses, but this is easier
+ assign prg_dout = (!mapper153 && prg_is_ram) ? prg_write ? mapper_data_out : {3'b111, sda_out, 4'b1111} : 8'hFF;
+-wire prg_bus_write = (!mapper153 && prg_is_ram);
++assign prg_bus_write = (!mapper153 && prg_is_ram);
+ 
+ assign prg_allow = (prg_ain[15] && !prg_write) || (prg_is_ram && eeprom_scl && mapper153);
+ assign chr_allow = flags[15];
+@@ -425,7 +430,7 @@
+ wire chr_allow;
+ reg vram_a10;
+ reg irq;
+-wire [7:0] prg_dout;
++logic [7:0] prg_dout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+ 
+@@ -836,7 +841,7 @@
+ wire [7:0] mapper = flags[7:0];
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg irq;
+ reg [15:0] flags_out = 0;
+@@ -968,7 +973,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg irq;
+ reg [15:0] flags_out = 0;
+@@ -1291,7 +1296,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -1365,7 +1370,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+ 
+@@ -1417,7 +1422,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -1487,7 +1492,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -1548,6 +1553,8 @@
+ 	inout [15:0] audio_b,     // Mixed audio output
+ 	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? 8'hFF : 8'hZ;
+@@ -1563,9 +1570,9 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = 0;
++assign flags_out = 0;
+ 
+ reg [7:0] prg_bank0;
+ reg [7:0] prg_bank1;
+@@ -1674,7 +1681,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+ 
+@@ -1771,7 +1778,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -1781,7 +1788,7 @@
+ reg [7:0] state[4];
+ 
+ // register 0x5000 to 0x5FFF
+-wire [7:0] prg_bank;
++logic [7:0] prg_bank;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ always_comb begin
+ 	case ({state[3][2], 1'b0, state[3][0]})
+@@ -1853,7 +1860,7 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = 0;
+ 
+@@ -1909,6 +1916,8 @@
+ 	inout [15:0] flags_out_b, // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ 	input        paused
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -1924,10 +1933,10 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [7:0] prg_dout;
+-wire [15:0] flags_out = {14'd0, prg_bus_write, 1'b0};
++assign flags_out = {14'd0, prg_bus_write, 1'b0};
+ reg prg_bus_write;
+ 
+ reg [7:0] prg_bank;
+@@ -2050,6 +2059,8 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [7:0] prg_dout;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -2065,11 +2076,11 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+ reg [15:0] flags_out = {12'h0, 1'b1, 3'b0};
+ 
+-wire [7:0] prg_dout = 0;
++assign prg_dout = 0;
+ 
+ reg [7:0] prg_bank;
+ reg [7:0] chr_bank_lo [7:0];
+@@ -2206,6 +2217,8 @@
+ 	inout [15:0] audio_b,     // Mixed audio output
+ 	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? 8'hFF : 8'hZ;
+@@ -2221,9 +2234,9 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = 0;
++assign flags_out = 0;
+ 
+ wire mapper212 = (flags[7:0] == 212);
+ 
+@@ -2304,6 +2317,8 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? 8'hFF : 8'hZ;
+@@ -2319,9 +2334,9 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = {12'h0, 1'b1, 3'b00};
++assign flags_out = {12'h0, 1'b1, 3'b00};
+ 
+ // Outer bank register ($4180).
+ // Bit 0 (b): PRG/CHR A15 when M=0
+@@ -2415,6 +2430,10 @@
+ 	inout [15:0] audio_b,     // Mixed audio output
+ 	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire mapper255;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -2430,15 +2449,15 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [7:0] prg_dout;
++logic [7:0] prg_dout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire prg_bus_write = (~mapper255 & prg_ram);
+ wire prg_ram = (prg_ain[15:11] == 5'b01011);
+-wire [15:0] flags_out = {14'h0, prg_bus_write, 1'b0};
++assign flags_out = {14'h0, prg_bus_write, 1'b0};
+ 
+ wire [7:0] mapper = flags[7:0];
+-wire mapper255 = (mapper == 8'd255);
++assign mapper255 = (mapper == 8'd255);
+ 
+ // A~[1BMZ PPPP  PpCC CCCC]
+ //     ||| ||||  |||| ||||
+@@ -2501,6 +2520,8 @@
+ 	inout [15:0] audio_b,     // Mixed audio output
+ 	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? 8'hFF : 8'hZ;
+@@ -2516,9 +2537,9 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = { 16'd0 };
++assign flags_out = { 16'd0 };
+ 
+ // $8000-FFFF:  A~[.... .mLP  OPPP PPMS]
+ //   L = Last PRG Page Mode
+@@ -2556,7 +2577,7 @@
+ //                 +---------------+---------------+
+ // O=0, S=1, L=1:  |  P[5:1], A14  | P[5:3], b111  |
+ //                 +---------------+---------------+
+-wire [5:0] prg_bank;
++logic [5:0] prg_bank;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ wire prg_bank_a0 = prg_size ? prg_ain[14] : prg_bank_t[0]; // 16/32KB banks select
+ 
+@@ -2613,6 +2634,14 @@
+ 	input        chr_write,   // CHR Write
+ 	input  [7:0] fds_din      // fds data in
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire n163_max;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire sharp;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire inc_oct;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -2628,12 +2657,12 @@
+ assign exp_audioe   = enable ? (nsf_reg[3][5:0]==6'd0) ? ({2'b00,midi_reg[5'd7][3],3'b000}) : nsf_reg[3][5:0] : 6'h00;
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout;
++logic [7:0] prg_dout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = {14'd0, prg_bus_write, has_chr_dout};
++assign flags_out = {14'd0, prg_bus_write, has_chr_dout};
+ reg prg_bus_write;
+ 
+ wire has_chr_dout;
+@@ -2766,7 +2795,7 @@
+ 	end
+ end
+ 
+-wire [9:0] prg_bank;
++logic [9:0] prg_bank;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ always begin
+ 	casez({prg_ain[15:12], exp_audioe[2]})
+ 		5'b00???: prg_bank = 10'h0;//{10'b11_1110_0000};
+@@ -2825,7 +2854,7 @@
+ 
+ //wire [3:0] voi_idx = {!(ppu_line[4]^ppu_line[3]),!ppu_line[3],ppu_line[2:1]};
+ wire [2:0] n163_idx = ~(n163_7 ? 3'd7 : n163_6 ? 3'd6 : n163_5 ? 3'd5 : n163_4 ? 3'd4 : n163_3 ? 3'd3 : n163_2 ? 3'd2 : n163_1 ? 3'd1 : 3'd0);
+-wire n163_max = n163_reg[6'h3F][6];
++assign n163_max = n163_reg[6'h3F][6];
+ wire [2:0] vrc7_idx = vrc7_5 ? 3'd5 : vrc7_4 ? 3'd4 : vrc7_3 ? 3'd3 : vrc7_2 ? 3'd2 : vrc7_1 ? 3'd1 : 3'd0;
+ 
+ wire apu_off = !midi_reg[5'h0B][{1'b0, samp, tria | nois, pul1 | nois}]; // 'h403B = copy of read value of 'h4015 - voice on bits [4:0]
+@@ -2862,7 +2891,7 @@
+ wire [4:0] freq = nois ? n_freq : samp ? s_freq : ms_freq;
+ wire use_freq = nois | samp | m5samp;
+ 
+-wire [4:0] voi_tab_idx;
++logic [4:0] voi_tab_idx;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ always begin
+ 	casez({n163_max,exp_audioe,ppu_line}) //6,5
+ 		12'b???????_000??: voi_tab_idx = 5'd0;  //Info;
+@@ -2940,7 +2969,7 @@
+ wire use1615 = use_n163;
+ wire [11:0] period_use = use1615? period1615 : use78 ? period78 : period[find_idx];
+ 
+-wire [17:0] find_bits;
++logic [17:0] find_bits;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 	logic [10:0] find_note_lut[80];  //not used; done in asm
+ 	assign find_note_lut = '{
+ 		11'h7f1,11'h77f,11'h713,11'h6ad,11'h64d,11'h5f3,11'h59d,11'h54c,
+@@ -3061,10 +3090,10 @@
+ wire       spot_vol_row = !chr_ain[5];  // d18,20,22,24,26
+ wire [4:0] note_val = spot[voi_tab_idx][4:0];
+ wire       inc_note = (note_val == 5'd23) || (note_val == 5'd24);
+-wire       inc_oct = (note_val > 5'd5);
++assign inc_oct = (note_val > 5'd5);
+ wire [4:0] note_no = inc_note ? 5'd4 : (note_val + (note_val > 5'd14 ? 5'd9 : note_val > 5'd5 ? 5'd7 : 5'd5));
+ wire [7:0] letter = {5'b0100_0,note_no[4:2]}; // A=$41,G=$47
+-wire       sharp = note_no[1];    // #=$23
++assign sharp = note_no[1];    // #=$23
+ 
+ wire cpu_ppu_write = (prg_write && prg_ain[15:12]==4'h2) || chr_write; // Do not override if this is the cpu writing to the ppu. 'h2000-2FFF - writes may no longer overlap the cpu and ppu access?: using chr_write ; Alternatively could track rendering: never override if not rendering
+ assign has_chr_dout = IsNSF && !(cpu_ppu_write) && (print_reg || print_exp || print_spot || print_midi || print_oct || print_let || print_shp);
+@@ -3104,6 +3133,10 @@
+ 	input               SaveStateBus_load,
+ 	output      [63:0]  SaveStateBus_Dout
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] audio;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -3117,13 +3150,13 @@
+ assign audio_b      = enable ? audio : 16'hZ;
+ 
+ wire [21:0] prg_aout, chr_aout;
+-wire [7:0] prg_dout;
++logic [7:0] prg_dout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire prg_allow, chr_allow;
+-wire vram_ce, vram_a10;
+-wire [15:0] audio = audio_in;
+-wire irq;
+-
+-wire [15:0] flags_out = {10'h0, 1'b1, 1'b0, 1'b1, 3'b0}; // has_flashsaves, has_savestate
++logic vram_ce, vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++assign audio = audio_in;
++logic irq;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++
++assign flags_out = {10'h0, 1'b1, 1'b0, 1'b1, 3'b0}; // has_flashsaves, has_savestate
+ reg [3:0] prgbank_reg;
+ reg chrbank_reg;
+ reg namebank_reg;
+@@ -3231,6 +3264,10 @@
+ 	inout [15:0] audio_b,     // Mixed audio output
+ 	inout [15:0] flags_out_b  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] audio;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? prg_dout : 8'hZ;
+@@ -3246,10 +3283,10 @@
+ wire [21:0] prg_aout, chr_aout;
+ reg [7:0] prg_dout;
+ wire prg_allow, chr_allow;
+-wire vram_ce, vram_a10;
+-wire [15:0] audio = audio_in;
+-wire [15:0] flags_out = {14'h0, prg_bus_write, 1'h0};
+-wire prg_bus_write;
++logic vram_ce, vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
++assign audio = audio_in;
++assign flags_out = {14'h0, prg_bus_write, 1'h0};
++logic prg_bus_write;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ wire submapper1 = flags[21];
+ wire submapper2 = flags[22];
+@@ -3441,6 +3478,8 @@
+ 	inout [15:0] flags_out_b,  // flags {0, 0, 0, 0, has_savestate, prg_conflict, prg_bus_write, has_chr_dout}
+ 	input [13:0] chr_ain_o
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [15:0] flags_out;
+ 
+ assign prg_aout_b   = enable ? prg_aout : 22'hZ;
+ assign prg_dout_b   = enable ? 8'hFF : 8'hZ;
+@@ -3456,9 +3495,9 @@
+ wire [21:0] prg_aout, chr_aout;
+ wire prg_allow;
+ wire chr_allow;
+-wire vram_a10;
++logic vram_a10;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire vram_ce;
+-wire [15:0] flags_out = 0;
++assign flags_out = 0;
+ 
+ reg [7:0] chr_bank_0, chr_bank_1, chr_bank_2, chr_bank_3;
+ reg [3:0] prg_bank_0, prg_bank_1;

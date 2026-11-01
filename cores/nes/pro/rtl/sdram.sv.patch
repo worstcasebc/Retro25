@@ -1,0 +1,120 @@
+--- a/rtl/sdram.sv
++++ b/rtl/sdram.sv
+@@ -23,10 +23,10 @@
+ (
+ 
+ 	// interface to the MT48LC16M16 chip
+-	inout  reg [15:0] SDRAM_DQ,   // 16 bit bidirectional data bus
++	inout  wire [15:0] SDRAM_DQ,  // Retro25: wire + Tri-State unten (Quartus Pro 13386)
+ 	output reg [12:0] SDRAM_A,    // 13 bit multiplexed address bus
+-	output reg        SDRAM_DQML, // byte mask
+-	output reg        SDRAM_DQMH, // byte mask
++	output wire       SDRAM_DQML, // byte mask (Retro25: wire, per assign)
++	output wire       SDRAM_DQMH, // byte mask
+ 	output reg  [1:0] SDRAM_BA,   // two banks
+ 	output reg        SDRAM_nCS,  // a single chip select
+ 	output reg        SDRAM_nWE,  // write enable
+@@ -38,6 +38,7 @@
+ 	// cpu/chipset interface
+ 	input             init,			// init signal after FPGA config to initialize RAM
+ 	input             clk,			// sdram is accessed at up to 128MHz
++	input             clk_sdram,	// Retro25: clk + 90 Grad, nur für SDRAM_CLK
+ 
+ 	input      [24:0] ch0_addr,
+ 	input             ch0_rd,
+@@ -70,6 +71,15 @@
+ assign SDRAM_CKE = 1;
+ assign {SDRAM_DQMH,SDRAM_DQML} = SDRAM_A[12:11];
+ 
++// Retro25: Quartus Pro erlaubt keine prozedurale Zuweisung an einen inout-
++// Port (13386). Gleiches Verhalten: Datenregister + Freigaberegister, Tri-State
++// hier (wie cores/menu/pro/sdram.sv). preserve: data = {din, din} hat zwei
++// gleiche Hälften; ohne das Attribut legt die Synthese gleiche Bits zusammen,
++// die I/O-Zelle jedes Pins braucht aber ihr eigenes Datenregister (24873).
++(* preserve *) reg [15:0] dq_out;
++reg        dq_oe = 0;
++assign SDRAM_DQ = dq_oe ? dq_out : 16'bZ;
++
+ localparam RASCAS_DELAY   = 3'd1; // tRCD=20ns -> 2 cycles@85MHz
+ localparam BURST_LENGTH   = 3'd0; // 0=1, 1=2, 2=4, 3=8, 7=full page
+ localparam ACCESS_TYPE    = 1'd0; // 0=sequential, 1=interleaved
+@@ -98,11 +108,13 @@
+ assign rd = {ch2_rd, ch1_rd, ch0_rd};
+ assign wr = {ch2_wr, ch1_wr, ch0_wr};
+ 
++// Retro25: last_a auf Modulebene (Startwert in always setzt Quartus Pro jeden Takt, 16754)
++reg [24:1] last_a[3] = '{'1,'1,'1};
++
+ // access manager
+ always @(posedge clk) begin
+ 	reg old_ref;
+ 	reg  [2:0] old_rd,old_wr;//,rd,wr;
+-	reg [24:1] last_a[3] = '{'1,'1,'1};
+ 
+ 	old_rd <= old_rd & rd;
+ 	old_wr <= old_wr & wr;
+@@ -174,7 +186,7 @@
+ reg [1:0] mode;
+ reg [4:0] reset=5'h1f;
+ always @(posedge clk) begin
+-	reg init_old=0;
++	reg init_old;   // Retro25: ohne Startwert (16754; Register starten mit 0)
+ 	init_old <= init;
+ 
+ 	if(init_old & ~init) reset <= 5'h1f;
+@@ -207,10 +219,14 @@
+ 
+ 	if(state == STATE_START) SDRAM_BA <= (mode == MODE_NORMAL) ? bank : 2'b00;
+ 
+-	SDRAM_DQ <= 'Z;
++	dq_oe <= 1'b0;
++	// Retro25: Datenregister ohne Clock-Enable (in jedem Takt geladen), damit es
++	// mit dq_oe in die I/O-Zelle passt (FAST_OUTPUT_REGISTER, beide teilen sich
++	// dort ein Enable, 14996/24403). Am Pin wirkt dq_out nur mit dq_oe.
++	dq_out <= data;
+ 	casex({ram_req,we,mode,state})
+ 		{2'b1X, MODE_NORMAL, STATE_START}: {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_ACTIVE;
+-		{2'b11, MODE_NORMAL, STATE_CONT }: {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE, SDRAM_DQ} <= {CMD_WRITE, data};
++		{2'b11, MODE_NORMAL, STATE_CONT }: begin {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_WRITE; dq_oe <= 1'b1; end
+ 		{2'b10, MODE_NORMAL, STATE_CONT }: {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_READ;
+ 		{2'b0X, MODE_NORMAL, STATE_START}: {SDRAM_nRAS, SDRAM_nCAS, SDRAM_nWE} <= CMD_AUTO_REFRESH;
+ 
+@@ -276,29 +292,16 @@
+ assign ss_out = {ch1_dout, ch0_dout};
+ 
+ 
+-altddio_out
+-#(
+-	.extend_oe_disable("OFF"),
+-	.intended_device_family("Cyclone V"),
+-	.invert_output("OFF"),
+-	.lpm_hint("UNUSED"),
+-	.lpm_type("altddio_out"),
+-	.oe_reg("UNREGISTERED"),
+-	.power_up_high("OFF"),
+-	.width(1)
+-)
+-sdramclk_ddr
++// Retro25: statt des invertierten Takts (altddio_out, Cyclone V) clk + 90 Grad
++// über das DDIO-Register im I/O-Block unverändert zum Pin (din 2'b10), so wie
++// Adressen und Daten durch dessen Register laufen (FAST_*_REGISTER in
++// sys_de25.tcl). Der invertierte Takt passt nicht zum 1,8-V-SDRAM des DE25
++// (Messungen in cores/memtest/README.md und cores/sdram486test).
++sdram_clk_ddio sdramclk_ddr
+ (
+-	.datain_h(1'b0),
+-	.datain_l(1'b1),
+-	.outclock(clk),
+-	.dataout(SDRAM_CLK),
+-	.aclr(1'b0),
+-	.aset(1'b0),
+-	.oe(1'b1),
+-	.outclocken(1'b1),
+-	.sclr(1'b0),
+-	.sset(1'b0)
++	.ck(clk_sdram),
++	.din(2'b10),
++	.pad_out(SDRAM_CLK)
+ );
+ 
+ endmodule

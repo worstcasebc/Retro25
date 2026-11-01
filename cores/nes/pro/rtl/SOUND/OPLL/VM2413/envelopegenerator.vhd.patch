@@ -1,0 +1,29 @@
+--- a/rtl/SOUND/OPLL/VM2413/envelopegenerator.vhd
++++ b/rtl/SOUND/OPLL/VM2413/envelopegenerator.vhd
+@@ -186,7 +186,7 @@
+                         when Release=>
+                             rm := '0'&rr;
+                             egtmp := ("00"&tl&"000000") + ("00"&egphase(22-1 downto 22-7-6));
+-                        when Finish =>
++                        when others =>   -- Retro25: others (Quartus Pro 13630)
+                             egtmp(egtmp'high downto egtmp'high -1) := "00";
+                             egtmp(egtmp'high-2 downto 0) := (others=>'1');
+                     end case;
+@@ -232,7 +232,7 @@
+                                 dphase(2 downto 0) := '1'&rks(1 downto 0);
+                                 dphase  := SHL(dphase, rm(3 downto 0) - '1');
+                                 egphase := egphase + dphase(egphase'range);
+-                            when Finish =>
++                            when others =>   -- Retro25: others (Quartus Pro 13630)
+                                 null;
+                         end case;
+ 
+@@ -252,7 +252,7 @@
+                             if( egphase(egphase'high downto egphase'high-4) >= "01111" ) then
+                                 egstate:= Finish;
+                             end if;
+-                        when Finish =>
++                        when others =>   -- Retro25: others (Quartus Pro 13630)
+                             egphase := (others => '1');
+                     end case;
+ 

@@ -1,0 +1,16 @@
+--- a/rtl/mappers/MMC1.sv
++++ b/rtl/mappers/MMC1.sv
+@@ -1,3 +1,4 @@
++import regs_savestates::*;   // Retro25: je Datei (Quartus Pro: eigene Übersetzungseinheit)
+ // MMC1 mapper chip. Maps prg or chr addresses into a linear address.
+ 
+ // If vram_ce is set, {vram_a10, chr_aout[9:0]} are used to access the NES internal VRAM instead.
+@@ -43,7 +44,7 @@
+ assign flags_out_b  = enable ? flags_out : 16'hZ;
+ assign audio_b      = enable ? {1'b0, audio_in[15:1]} : 16'hZ;
+ 
+-wire [21:0] prg_aout, chr_aout;
++logic [21:0] prg_aout, chr_aout;   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ wire prg_allow;
+ wire chr_allow;
+ wire vram_a10;
