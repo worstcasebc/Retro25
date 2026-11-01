@@ -8,7 +8,7 @@
 #
 # Legt an bzw. überschreibt:
 #   /media/fat/MiSTer                     das Programm (MiSTer-Ordnerstruktur)
-#   /media/fat/MiSTer.ini                 nur, wenn noch keine da ist
+#   /media/fat/MiSTer.ini                 nur, wenn noch keine da ist (dann vsync_adjust=1)
 #   /media/fat/_Retro25/<Core>.rbf        die angegebenen Cores (menu: /media/fat/menu.rbf)
 #   /media/fat/games/C64                  Spiele/Disketten (Besitzer terasic)
 #   /lib/firmware/retro25/main.dtbo       Overlay zum Core-Laden
@@ -59,7 +59,13 @@ chown -R terasic:terasic /media/fat/games /media/fat/_Retro25
 systemctl stop retro25-main 2>/dev/null || true
 if pgrep -x MiSTer >/dev/null; then pkill -x MiSTer; sleep 0.5; fi
 install -m 755 "$HERE/MiSTer" /media/fat/MiSTer
-[ -e /media/fat/MiSTer.ini ] || install -m 644 "$HERE/MiSTer.ini" /media/fat/MiSTer.ini
+if [ ! -e /media/fat/MiSTer.ini ]; then
+	install -m 644 "$HERE/MiSTer.ini" /media/fat/MiSTer.ini
+	# Neue INI: HDMI-Bildrate folgt dem Core (Main-Patch 0012, ohne Ruckeln
+	# durch doppelte Bilder). Eine vorhandene INI bleibt, wie sie ist.
+	echo "MiSTer.ini: vsync_adjust=1 (HDMI-Bildrate folgt dem Core)"
+	sed -i 's/^vsync_adjust=0/vsync_adjust=1/' /media/fat/MiSTer.ini
+fi
 # Die HDMI-PLL ist (bis P3 Schritt 4) fest auf 74,25 MHz = Modus 0
 # (1280x720@60). Ohne video_mode fragte Main die EDID des Monitors ab — über
 # den I2C des HPS, an dem der HDMI-Sender beim DE25 nicht hängt. Daher die

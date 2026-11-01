@@ -1,0 +1,92 @@
+Retro25: vsync_adjust mit ganzzahliger HDMI-PLL — Zeilenlänge/-zahl anpassen.
+Die PLL-Suche aus 0004 liegt jetzt in de25/pll_fit.cpp (mit Test
+linux/main/test/test_pll_fit.cpp). Bei vsync_adjust=1/2 verändert Main
+zusätzlich hfp (±24, gerade) und vfp (−4..+8) so, dass ein erreichbarer
+Pixeltakt die gemessene Bildrate des Cores trifft: Restabweichung meist
+< 1 ppm statt 30..170 ppm (Mega Drive 1080p: +166 ppm, ein doppeltes Bild
+etwa alle 100 s).
+
+--- a/video.cpp
++++ b/video.cpp
+@@ -28,6 +28,7 @@
+ #include "profiling.h"
+ #include "offload.h"
+ #include "hdmi_cec.h"
++#include "pll_fit.h"   // Retro25 (DE25): ganzzahlige HDMI-PLL
+ 
+ #include "support.h"
+ #include "support/arcade/mra_loader.h"
+@@ -300,41 +301,17 @@
+ }
+ 
+ // Retro25 (DE25): Die HDMI-PLL des Agilex 5 (HVIO-IOPLL) kann nur ganzzahlig
+-// teilen: Fpix = 50 MHz * M / (N * C). Grenzen laut Agilex-5-Datenblatt und
+-// Clocking-Handbuch: PFD 10..325 MHz (N 1..5 bei 50 MHz), VCO 600..3200 MHz,
+-// M bis 320 (Ladungspumpen-Tabelle), C bis 510 (je 8 bit high/low).
+-// Gesucht wird die kleinste Abweichung; bei Gleichstand gewinnt das kleinere
+-// N (höhere PFD-Frequenz), danach der höhere VCO (beides: weniger Jitter). Die Register gehen weiter im
+-// Cyclone-V-Format hinaus, das FPGA (pll_cfg_de25) übersetzt sie.
++// teilen: Fpix = 50 MHz * M / (N * C); Suche in de25/pll_fit.cpp. Die
++// Register gehen weiter im Cyclone-V-Format hinaus, das FPGA (pll_cfg_de25)
++// übersetzt sie.
+ static void setPLL(double Fout, vmode_custom_t *v)
+ {
+ 	PROFILE_FUNCTION();
+ 
+ 	printf("Calculate PLL for %.4f MHz:\n", Fout);
+ 
+-	uint32_t best_n = 1, best_m = 0, best_c = 0;
+-	double best_err = 1e9;
+-	for (uint32_t n = 1; n <= 5; n++)
+-	{
+-		for (uint32_t m = 1; m <= 320; m++)
+-		{
+-			double fvco = 50.0 * m / n;
+-			if (fvco < 600.0 || fvco > 3200.0) continue;
+-			uint32_t c = (uint32_t)(fvco / Fout + 0.5);
+-			if (c < 2 || c > 510) continue;
+-			double err = fabs(fvco / c - Fout);
+-			// gleiche Abweichung: höherer VCO (weniger Jitter), N bleibt klein
+-			bool better = (err < best_err - 1e-9) ||
+-				(err < best_err + 1e-9 && n == best_n && m > best_m);
+-			if (better)
+-			{
+-				best_err = err;
+-				best_n = n; best_m = m; best_c = c;
+-			}
+-		}
+-	}
+-
+-	if (!best_m)
++	uint32_t best_n, best_m, best_c;
++	if (!pll_fit_search(Fout, &best_n, &best_m, &best_c))
+ 	{
+ 		// außerhalb des Bereichs: 74,25 MHz wie die Startwerte der PLL
+ 		best_n = 5; best_m = 297; best_c = 40;
+@@ -3523,6 +3500,26 @@
+ 				}
+ 			}
+ 
++			// Retro25 (DE25): ganzzahlige PLL — Zeilenlänge/-zahl so wählen, dass
++			// ein erreichbarer Pixeltakt die Bildrate des Cores trifft
++			// (de25/pll_fit.cpp; ohne das 30..170 ppm Abweichung)
++			if (Fpix && !video_is_direct())
++			{
++				const int H = v->param.hact + v->param.hfp + v->param.hs + v->param.hbp;
++				const int V = v->param.vact + v->param.vfp + v->param.vs + v->param.vbp;
++				int dh, dv;
++				double ppm;
++				if (pll_fit_totals(H, V, v->param.hfp, v->param.vfp, vtime, &dh, &dv, &ppm))
++				{
++					double F = 100.0 * (H + dh) * (V + dv) / vtime;
++					printf("Retro25: htotal %d%+d, vtotal %d%+d, Fpix %.6f -> %.6f MHz, PLL %.2f ppm\n",
++						H, dh, V, dv, Fpix, F, ppm);
++					v->param.hfp += dh;
++					v->param.vfp += dv;
++					Fpix = F;
++				}
++			}
++
+ 			video_set_mode(v, Fpix);
+ 			user_io_send_buttons(1);
+ 			rep_force = true;

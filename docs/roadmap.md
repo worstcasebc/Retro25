@@ -166,6 +166,12 @@ die Quartus Pro nicht erkennt (Flipflops statt M20K, stundenlange
 Synthese), Byte-Freigaben zerlegen RAMs je Byte, 16754 hielt den Core im
 Reset (`port_core.py fix16754`). Details `cores/megadrive/README.md`.
 
+**vsync_adjust=1 (2026-11-01):** HDMI-Bildrate folgt dem Core. Die ganzzahlige
+PLL allein läge 30..170 ppm daneben, Main-Patch 0012 verändert zusätzlich
+hfp/vfp leicht (`linux/main/de25/pll_fit.cpp`, Test `test/test_pll_fit.cpp`):
+Rest < 1 ppm, am Board für Mega Drive, NES und C64 PAL gemessen gleich auf
+einen 100-MHz-Takt. Offen: vsync_adjust=2 (Low Latency, B2).
+
 ## Größte Risiken
 
 1. ~~Neuladen des Fabrics auf Agilex 5~~ — **P0 bestanden** (2,1 s je Wechsel,

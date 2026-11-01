@@ -16,6 +16,7 @@ DE25-Nano (aarch64, Agilex 5).
 | `de25/fpga_io.cpp` | **new:** gp_out/gp_in via `hps_gp_bridge`, core loading via overlay, Wi-Fi hook |
 | `de25/shmem.cpp` | **new:** maps only known addresses (parameter page as a file, DDR window); `shmem_put`/`shmem_get` copy with aligned accesses (via `/dev/mem` the window can only be mapped as device memory: `memset`/`memcpy` raise SIGBUS there); addresses in the middle of a page work (mapped from the start of the page, `mmap` requires page boundaries — otherwise EINVAL for x86_share `0x300CE004`) |
 | `de25/smbus.cpp` | **new:** I2C to the HDMI transmitter via the I2C master in the FPGA instead of `/dev/i2c-N` |
+| `de25/pll_fit.cpp` | **new:** integer HDMI PLL search (N/M/C) and, for `vsync_adjust`, the search for HDMI totals that match the core's frame rate; test `test/test_pll_fit.cpp` |
 | `patches/0001-…` | Amiga disk structures with 32-bit fields (also affects IDE/z486) |
 | `patches/0002-…` | Main on CPU 3, helper thread on CPU 2 (the Cortex-A76 cores) |
 | `patches/0003-…` | three places that only compile correctly on 32 bit |
@@ -27,6 +28,7 @@ DE25-Nano (aarch64, Agilex 5).
 | `patches/0009-…` | Shared folder (x86_share): fetch MISTERFS frames into normal memory via `shmem_get`, process them there, write the reply back via `shmem_put` (directly in the DDR window → SIGBUS, like 0005/0006) |
 | `patches/0010-…` | Screenshot in a core's framebuffer mode (`MISTER_FB`): image taken directly from DDR (base/line length from `UIO_GET_FB_PAR`), at 8 bpp the palette via the new UIO command `0x4E` (shadow copy in `sys_top_de25`); before, only stripes from the scaler's VGA input |
 | `patches/0011-…` | savestates (`process_ss`, cores with `SS` in the CONF_STR, e.g. NES): buffer built in normal memory and copied with `shmem_put`/`shmem_get` instead of `memset`/`read()` directly into the `/dev/mem` mapping — Main crashed with SIGBUS when loading a NES game (like patches 0005/0006) |
+| `patches/0012-…` | `vsync_adjust`: besides the PLL, Main shifts the line length (hfp, ±24) and the line count (vfp, −4…+8) so that a reachable pixel clock matches the core's frame rate — residual error < 1 ppm instead of 30…170 ppm (search in `de25/pll_fit.cpp`) |
 | `board/retro25-main.dts` | Overlay that Main uses to load a core |
 | `board/retro25-switch-hook` | turns Wi-Fi off and back on during a core switch (P0) |
 | `board/retro25-main.service` | systemd service: starts Main at boot, restarts it after a crash |
@@ -137,8 +139,12 @@ echo screenshot > /dev/MiSTer_cmd      # PNG in /media/fat/screenshots/<CORE>/
 - **Video mode:** `video_mode` takes effect (since P3 step 4). The Agilex 5
   HDMI PLL only divides by integers; patch `0004-hdmi-pll-ganzzahlig.patch`
   calculates N/M/C instead of M/K (deviation mostly 0 ppm, 640×480:
-  +17 ppm). Missing are `vsync_adjust=2` (low-latency PLL readjustment,
-  fractional) and `direct_video`. `install.sh` sets `video_mode=0` if none
+  +17 ppm). `vsync_adjust=1` works since patch 0012 (2026-11-01): with an
+  integer PLL alone the HDMI frame rate would be 30…170 ppm off, so Main
+  also adjusts the HDMI totals slightly (Mega Drive 1080p: 2198 × 1127 at
+  148.4375 MHz = 59.9227 Hz, measured equal to the core within one
+  100 MHz tick). Missing are `vsync_adjust=2` (low latency: MiSTer
+  readjusts the fractional PLL continuously) and `direct_video`. `install.sh` sets `video_mode=0` if none
   is set.
 - **Core file in RAM:** Main writes the core to be loaded to
   `/run/retro25-fw/retro25/main.core.rbf` and sets the kernel's firmware

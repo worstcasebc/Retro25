@@ -23,7 +23,8 @@ cores: Menu, **C64**, **z486** (486 PC), **NES** and **Mega Drive**.
 | **NES** (NES_MiSTer, NTSC only): games with sound and gamepad | ✔ → [`cores/nes/README.md`](cores/nes/README.md) |
 | **Mega Drive** (MegaDrive_MiSTer / Nuked-MD, NTSC only): games with sound and gamepad | ✔ → [`cores/megadrive/README.md`](cores/megadrive/README.md) |
 | Read-only Linux root (SD card survives hard resets) | ✔ |
-| `vsync_adjust=2`, `direct_video`, ALSA output, MIDI | open |
+| `vsync_adjust=1`: HDMI frame rate follows the core (no stutter) | ✔ |
+| `vsync_adjust=2` (low latency), `direct_video`, ALSA output, MIDI | open |
 
 Milestones and decisions: [`docs/roadmap.md`](docs/roadmap.md);
 details of the port: [`sys/de25/README.md`](sys/de25/README.md),
@@ -421,7 +422,10 @@ empty. For errors that lead to a crash, log the console
 
 - `MiSTer.ini` is in `/media/fat/`. Proven settings: `video_mode=8`
   (1920×1080) and, for the z486, `vscale_mode=1`. Working: `video_mode`
-  0, 1, 6, 8; `vsync_adjust=2` and `direct_video` are missing.
+  0, 1, 6, 8. Recommended: `vsync_adjust=1` — the HDMI output then runs at
+  the core's frame rate (Mega Drive 59.92 Hz, C64 PAL 50.12 Hz), so there
+  is no repeated frame every few seconds. Your monitor has to accept these
+  slightly unusual timings. `vsync_adjust=2` and `direct_video` are missing.
 - `p3/linux/video_debug.py` (copy to the board via `scp`, then
   `sudo python3 video_debug.py`) measures the frame rate and pixel clock in the FPGA — e.g. 60 frames/s and
   74.25 MHz at 720p60.
