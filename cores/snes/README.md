@@ -95,9 +95,9 @@ Runs on the board (2026-11-01). Build: 40,987 ALMs (88 %), 305 M20K (85 %),
 | Super Mario Kart | DSP-1 | ok (played) |
 | Mega Man X2 | CX4 | ok (played) |
 | Star Fox | GSU (SuperFX) | ok (played) |
-| Super Mario RPG | SA-1 | ok (intro, first scene) |
+| Super Mario RPG | SA-1 | ok (played, battery save written and reloaded) |
 
-Not tested yet: save states, battery saves, SDD-1, SPC7110, BSX, MSU-1,
+Not tested yet: save states, SDD-1, SPC7110, BSX, MSU-1,
 PAL games.
 
 Test without a person at the board: MGL with the game

@@ -33,7 +33,7 @@ As of 2026-11-02.
 | **z486** | z486_MiSTer | FreeDOS, Windows 95, Doom, Quake, SVGA, x87, Sound Blaster | 92 % / 282 | [`cores/z486`](cores/z486/README.md) |
 | **NES** | NES_MiSTer | games with sound, gamepad, save states, battery RAM (NTSC only) | 85 % / 90 | [`cores/nes`](cores/nes/README.md) |
 | **Mega Drive** | MegaDrive_MiSTer (Nuked-MD) | Sonic, Virtua Racing (SVP), sound, gamepad (NTSC only) | 85 % / 252 | [`cores/megadrive`](cores/megadrive/README.md) |
-| **SNES** | SNES_MiSTer | games incl. DSP-1, CX4, SuperFX, SA-1 (NTSC only) | 88 % / 305 | [`cores/snes`](cores/snes/README.md) |
+| **SNES** | SNES_MiSTer | games incl. DSP-1, CX4, SuperFX, SA-1, battery RAM (NTSC only) | 88 % / 305 | [`cores/snes`](cores/snes/README.md) |
 
 The Agilex 5 on the DE25-Nano has 46,800 ALMs and 358 M20K blocks (DE10-Nano:
 41,910 ALMs, 553 M10K). "NTSC only": MiSTer switches its PLL to the PAL
