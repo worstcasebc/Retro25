@@ -1,0 +1,11 @@
+--- a/rtl/MiSTerFloppyi2c.v
++++ b/rtl/MiSTerFloppyi2c.v
+@@ -65,7 +65,7 @@
+ 
+ always @(posedge CLK) begin
+ 	reg old_clk;
+-	reg old_st = 0;
++	reg old_st;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg rd,len;
+ 
+ 	old_clk <= I2C_CLOCK;

@@ -1,0 +1,11 @@
+--- a/rtl/fpga-toccata/toccata_fifo.sv
++++ b/rtl/fpga-toccata/toccata_fifo.sv
+@@ -22,7 +22,7 @@
+ );
+ 
+ // Internal variables
+-(* ramstyle = "M10K" *)
++(* ramstyle = "M20K" *)
+ logic [DATA_WIDTH-1:0] fifo_array [FIFO_DEPTH-1:0];
+ // int read_ptr = 0, write_ptr = 0;
+ logic [$clog2(FIFO_DEPTH): 0] count; // To handle full and empty states

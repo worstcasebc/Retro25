@@ -1,0 +1,31 @@
+--- a/rtl/ide.v
++++ b/rtl/ide.v
+@@ -54,6 +54,10 @@
+ 	input             mgmt_read,
+ 	output reg [15:0] mgmt_readdata
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire reset;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire io_done;
+ 
+ assign drq      = status[3];
+ assign drive_en = present;
+@@ -214,7 +218,7 @@
+ 
+ //------------------------------------------------------------------------------
+ 
+-wire reset = ~rst_n | sw_reset;
++assign reset = ~rst_n | sw_reset;
+ 
+ reg disable_irq;
+ always @(posedge clk) begin
+@@ -242,7 +246,7 @@
+ wire write_data_io = io_wr   && io_address == 0 && drq;
+ wire read_data_io  = io_read && io_address == 0 && drq;
+ 
+-wire       io_done = (blk_size && io_cnt >= blk_size);
++assign io_done = (blk_size && io_cnt >= blk_size);
+ reg [13:0] io_cnt;
+ wire       io_stb = read_data_io | write_data_io;
+ 

@@ -1,0 +1,430 @@
+--- a/Minimig.sv
++++ b/Minimig.sv
+@@ -8,6 +8,120 @@
+ (
+ 	`include "sys/emu_ports.vh"
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire [4:0] mt32_cfg;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ram_ready;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire zram_sel;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire mt32_use;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire vblank;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire scandoubler;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire vde;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire mt32_lcd;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [35:0] EXT_BUS;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire clk_sys;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        dcache_sw_en;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        z2ram_ena;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [4:0] z3ram_base0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        z3ram_ena0;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [3:0] z3ram_base1;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        z3ram_ena1;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [28:0] a2065_mem_address;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0]  a2065_mem_burstcount, a2065_mem_byteenable;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        a2065_mem_read, a2065_mem_write;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [63:0] a2065_mem_writedata, a2065_mem_readdata;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        a2065_mem_readdatavalid, a2065_mem_waitrequest;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] fastchip_dout;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_sel;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_lds;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_uds;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_rnw;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_selack;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_ready;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        fastchip_lw;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        ide_fast;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [5:0] ide_f_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] ide_f_readdata;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [2:0] cpucfg;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [2:0] cachecfg;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        bootrom;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] ram_data;      // sram data bus
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] ramdata_in;    // sram data bus in
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [47:0] chip48;        // big chip read
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [23:1] ram_address;   // sram address bus
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        _ram_bhe;      // sram upper byte select
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        _ram_ble;      // sram lower byte select
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        _ram_we;       // sram write enable
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        _ram_oe;       // sram output enable
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [5:0] ide_c_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [15:0] ide_c_readdata;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        ide_ena;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire pwr_led;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [2:0] fx;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg  hde;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [7:0] red, green, blue, r,g,b;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire lace, field1;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire hblank, vbl;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [1:0] res;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire mt32_available;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg mt32_info_req;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [3:0] mt32_info_disp;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg ce_pix_mt32;
+ 
+ assign ADC_BUS  = 'Z;
+ assign {SD_SCK, SD_MOSI, SD_CS} = 'Z;
+@@ -148,7 +262,7 @@
+ wire        arb_chip_dma;
+ wire [15:0] arb_chip_wr;
+ 
+-wire [35:0] EXT_BUS;
++// Retro25: Deklaration nach oben gezogen (16746): wire [35:0] EXT_BUS;
+ hps_ext hps_ext(.*, .ide_req(ide_fast ? ide_f_req : ide_c_req),  .ide_din(ide_fast ? ide_f_readdata : ide_c_readdata));
+ 
+ assign LED_POWER[1] = 1;
+@@ -157,75 +271,20 @@
+ assign VGA_SCALER   = FB_EN;
+ 
+ wire clk_114;
+-wire clk_sys;
++// Retro25: Deklaration nach oben gezogen (16746): wire clk_sys;
+ wire locked;
+ 
+-pll pll
++// Retro25: feste PLL, nur PAL (113,5 und 28,375 MHz; MiSTer: 113,50064 und
++// 28,37516 MHz). MiSTer stellt die PLL zur Laufzeit auf NTSC um, bei uns stellt
++// nur sys eine PLL um. Mit NTSC-Chipsatz läuft der Amiga daher 0,9 % zu langsam.
++pll_minimig pll
+ (
+ 	.refclk(CLK_50M),
++	.rst(1'b0),
+ 	.outclk_0(clk_114),
+ 	.outclk_1(clk_sys),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll),
+ 	.locked(locked)
+ );
+-
+-wire [63:0] reconfig_to_pll;
+-wire [63:0] reconfig_from_pll;
+-wire        cfg_waitrequest;
+-reg         cfg_write;
+-reg   [5:0] cfg_address;
+-reg  [31:0] cfg_data;
+-
+-pll_cfg pll_cfg
+-(
+-	.mgmt_clk(CLK_50M),
+-	.mgmt_reset(0),
+-	.mgmt_waitrequest(cfg_waitrequest),
+-	.mgmt_read(0),
+-	.mgmt_readdata(),
+-	.mgmt_write(cfg_write),
+-	.mgmt_address(cfg_address),
+-	.mgmt_writedata(cfg_data),
+-	.reconfig_to_pll(reconfig_to_pll),
+-	.reconfig_from_pll(reconfig_from_pll)
+-);
+-
+-always @(posedge CLK_50M) begin
+-	reg ntscd = 0, ntscd2 = 0;
+-	reg [2:0] state = 0;
+-	reg ntsc_r;
+-
+-	ntscd <= ntsc;
+-	ntscd2 <= ntscd;
+-
+-	cfg_write <= 0;
+-	if(ntscd2 == ntscd && ntscd2 != ntsc_r) begin
+-		state <= 1;
+-		ntsc_r <= ntscd2;
+-	end
+-
+-	if(!cfg_waitrequest) begin
+-		if(state) state<=state+1'd1;
+-		case(state)
+-			1: begin
+-					cfg_address <= 0;
+-					cfg_data <= 0;
+-					cfg_write <= 1;
+-				end
+-			3: begin
+-					cfg_address <= 7;
+-					cfg_data <= ntsc_r ? 702807747 : 343817200;
+-					cfg_write <= 1;
+-				end
+-			5: begin
+-					cfg_address <= 2;
+-					cfg_data <= 0;
+-					cfg_write <= 1;
+-				end
+-		endcase
+-	end
+-end
+ 
+ wire reset = ~locked | buttons[1] | RESET;
+ 
+@@ -320,8 +379,8 @@
+ wire        ram_uds;
+ wire [15:0] ram_din;
+ wire [15:0] ram_dout  = zram_sel ? ram_dout2  : ram_dout1;
+-wire        ram_ready = zram_sel ? ram_ready2 : ram_ready1;
+-wire        zram_sel  = |ram_addr[28:26];
++assign ram_ready = zram_sel ? ram_ready2 : ram_ready1;
++assign zram_sel = |ram_addr[28:26];
+ wire        ramshared;
+ 
+ wire [7:0] toccata_base;
+@@ -406,13 +465,13 @@
+ 	.dcache_sw_en (dcache_sw_en    )
+ );
+ 
+-wire        dcache_sw_en;
+-
+-wire        z2ram_ena;
+-wire  [4:0] z3ram_base0;
+-wire        z3ram_ena0;
+-wire  [3:0] z3ram_base1;
+-wire        z3ram_ena1;
++// Retro25: Deklaration nach oben gezogen (16746): wire        dcache_sw_en;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire        z2ram_ena;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [4:0] z3ram_base0;
++// Retro25: Deklaration nach oben gezogen (16746): wire        z3ram_ena0;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [3:0] z3ram_base1;
++// Retro25: Deklaration nach oben gezogen (16746): wire        z3ram_ena1;
+ 
+ wire [28:1] dma_ddr_addr;
+ wire        dma_ddr_l;
+@@ -578,27 +637,27 @@
+ // controller above. Fast RAM has priority: it carries every 68k access to
+ // Zorro RAM, while the card touches DDR3 rarely and can wait.
+ 
+-wire [28:0] a2065_mem_address;
+-wire [7:0]  a2065_mem_burstcount, a2065_mem_byteenable;
+-wire        a2065_mem_read, a2065_mem_write;
+-wire [63:0] a2065_mem_writedata, a2065_mem_readdata;
+-wire        a2065_mem_readdatavalid, a2065_mem_waitrequest;
+-
+-wire [15:0] fastchip_dout;
+-wire        fastchip_sel;
+-wire        fastchip_lds;
+-wire        fastchip_uds;
+-wire        fastchip_rnw;
+-wire        fastchip_selack;
+-wire        fastchip_ready;
+-wire        fastchip_lw;
+-
+-wire        ide_fast;
++// Retro25: Deklaration nach oben gezogen (16746): wire [28:0] a2065_mem_address;
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0]  a2065_mem_burstcount, a2065_mem_byteenable;
++// Retro25: Deklaration nach oben gezogen (16746): wire        a2065_mem_read, a2065_mem_write;
++// Retro25: Deklaration nach oben gezogen (16746): wire [63:0] a2065_mem_writedata, a2065_mem_readdata;
++// Retro25: Deklaration nach oben gezogen (16746): wire        a2065_mem_readdatavalid, a2065_mem_waitrequest;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] fastchip_dout;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_sel;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_lds;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_uds;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_rnw;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_selack;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_ready;
++// Retro25: Deklaration nach oben gezogen (16746): wire        fastchip_lw;
++
++// Retro25: Deklaration nach oben gezogen (16746): wire        ide_fast;
+ wire        ide_f_led;
+ wire        ide_f_irq;
+ wire        akiko_f_irq;
+-wire  [5:0] ide_f_req;
+-wire [15:0] ide_f_readdata;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [5:0] ide_f_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] ide_f_readdata;
+ 
+ // fastchip is working on CPU clock.
+ // Only high performance 68020 devices are inside
+@@ -686,18 +745,18 @@
+ ///////////////////////////////////////////////////////////////////////
+ 
+ //// minimig top ////
+-wire  [2:0] cpucfg;
+-wire  [2:0] cachecfg;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [2:0] cpucfg;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [2:0] cachecfg;
+ wire  [6:0] memcfg;
+-wire        bootrom;   
+-wire [15:0] ram_data;      // sram data bus
+-wire [15:0] ramdata_in;    // sram data bus in
+-wire [47:0] chip48;        // big chip read
+-wire [23:1] ram_address;   // sram address bus
+-wire        _ram_bhe;      // sram upper byte select
+-wire        _ram_ble;      // sram lower byte select
+-wire        _ram_we;       // sram write enable
+-wire        _ram_oe;       // sram output enable
++// Retro25: Deklaration nach oben gezogen (16746): wire        bootrom;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] ram_data;      // sram data bus
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] ramdata_in;    // sram data bus in
++// Retro25: Deklaration nach oben gezogen (16746): wire [47:0] chip48;        // big chip read
++// Retro25: Deklaration nach oben gezogen (16746): wire [23:1] ram_address;   // sram address bus
++// Retro25: Deklaration nach oben gezogen (16746): wire        _ram_bhe;      // sram upper byte select
++// Retro25: Deklaration nach oben gezogen (16746): wire        _ram_ble;      // sram lower byte select
++// Retro25: Deklaration nach oben gezogen (16746): wire        _ram_we;       // sram write enable
++// Retro25: Deklaration nach oben gezogen (16746): wire        _ram_oe;       // sram output enable
+ wire [14:0] ldata;         // left DAC data
+ wire [14:0] rdata;         // right DAC data
+ wire [9:0]  ldata_okk;     // left DAC data  (PWM vol version)
+@@ -707,10 +766,10 @@
+ wire  [1:0] ar;
+ wire        ntsc;
+ 
+-wire  [5:0] ide_c_req;
+-wire [15:0] ide_c_readdata;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [5:0] ide_c_req;
++// Retro25: Deklaration nach oben gezogen (16746): wire [15:0] ide_c_readdata;
+ wire        ide_c_led;
+-wire        ide_ena;
++// Retro25: Deklaration nach oben gezogen (16746): wire        ide_ena;
+ 
+ wire [15:0] toccata_aud_left;
+ wire [15:0] toccata_aud_right;
+@@ -893,7 +952,7 @@
+ );
+ 
+ // power led control
+-wire pwr_led;
++// Retro25: Deklaration nach oben gezogen (16746): wire pwr_led;
+ reg [5:0] led_cnt;
+ reg led_dim;
+ 
+@@ -930,8 +989,8 @@
+ 
+ assign ce_pix = ce_out;
+ 
+-wire [2:0] fx;
+-wire       scandoubler = (fx || forced_scandoubler) & ~lace;
++// Retro25: Deklaration nach oben gezogen (16746): wire [2:0] fx;
++assign scandoubler = (fx || forced_scandoubler) & ~lace;
+ wire [7:0] R,G,B;
+ 
+ video_mixer #(.LINE_LENGTH(2000), .HALF_DEPTH(0), .GAMMA(1)) video_mixer
+@@ -1008,17 +1067,17 @@
+ wire [2:0] sl = fx ? fx - 1'd1 : 3'd0;
+ assign VGA_SL = sl[1:0];
+ 
+-reg  hde;
+-wire vde = ~(fvbl | svbl);
+-
+-wire [7:0] red, green, blue, r,g,b;
+-wire lace, field1;
+-wire hblank, vbl;
+-wire vblank = vbl | ~vs;
++// Retro25: Deklaration nach oben gezogen (16746): reg  hde;
++assign vde = ~(fvbl | svbl);
++
++// Retro25: Deklaration nach oben gezogen (16746): wire [7:0] red, green, blue, r,g,b;
++// Retro25: Deklaration nach oben gezogen (16746): wire lace, field1;
++// Retro25: Deklaration nach oben gezogen (16746): wire hblank, vbl;
++assign vblank = vbl | ~vs;
+ reg  fhbl, fvbl, shbl, svbl;
+ wire hbl = fhbl | shbl | ~hs;
+ 
+-wire  [1:0] res;
++// Retro25: Deklaration nach oben gezogen (16746): wire  [1:0] res;
+ 
+ wire sset;
+ wire [11:0] shbl_l, shbl_r;
+@@ -1097,7 +1156,7 @@
+ 
+ always @(posedge clk_sys) begin
+ 	reg old_level;
+-	reg alt = 0;
++	reg alt;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	old_level <= kbd_mouse_level;
+ 	if((old_level ^ kbd_mouse_level) && (kbd_mouse_type==3)) begin
+@@ -1176,8 +1235,8 @@
+ wire        midi_rx;
+ 
+ wire mt32_newmode;
+-wire mt32_available;
+-wire mt32_use  = mt32_available & ~mt32_disable;
++// Retro25: Deklaration nach oben gezogen (16746): wire mt32_available;
++assign mt32_use = mt32_available & ~mt32_disable;
+ wire mt32_mute = mt32_available &  mt32_disable;
+ 
+ mt32pi mt32pi
+@@ -1191,11 +1250,11 @@
+ 	.midi_tx(midi_tx | mt32_mute)
+ );
+ 
+-wire  [4:0] mt32_cfg = (mt32_mode == 'hA2) ? {mt32_sf[2:0],  2'b10} :
++assign mt32_cfg = (mt32_mode == 'hA2) ? {mt32_sf[2:0],  2'b10} :
+                        (mt32_mode == 'hA1) ? {mt32_rom[1:0], 2'b01} : 5'd0;
+ 
+-reg mt32_info_req;
+-reg [3:0] mt32_info_disp;
++// Retro25: Deklaration nach oben gezogen (16746): reg mt32_info_req;
++// Retro25: Deklaration nach oben gezogen (16746): reg [3:0] mt32_info_disp;
+ reg last_userport_mode;
+ always @(posedge clk_sys) begin
+ 	reg old_mode;
+@@ -1232,9 +1291,9 @@
+ 	end
+ end
+ 
+-wire mt32_lcd = mt32_lcd_on & mt32_lcd_en;
+-
+-reg ce_pix_mt32;
++assign mt32_lcd = mt32_lcd_on & mt32_lcd_en;
++
++// Retro25: Deklaration nach oben gezogen (16746): reg ce_pix_mt32;
+ always @(posedge CLK_VIDEO) begin
+ 	reg [3:0] div;
+ 	

@@ -17,6 +17,7 @@ Patches. Zu jeder Datei <pro>/<pfad>.patch gehört die Vorlage
     cores/nes/pro      <- cores/nes/vendor
     cores/megadrive/pro <- cores/megadrive/vendor
     cores/snes/pro     <- cores/snes/vendor
+    cores/minimig/pro  <- cores/minimig/vendor
     sys/de25/pro       <- sys/vendor/mister
 Der z486 hat ein eigenes Skript (cores/z486/make_pro.py, Textersetzungen).
 
@@ -44,6 +45,7 @@ PAIRS = [
     ("cores/nes/pro", "cores/nes/vendor"),
     ("cores/megadrive/pro", "cores/megadrive/vendor"),
     ("cores/snes/pro", "cores/snes/vendor"),
+    ("cores/minimig/pro", "cores/minimig/vendor"),
     ("sys/de25/pro", "sys/vendor/mister"),
 ]
 HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")

@@ -1,0 +1,11 @@
+--- a/rtl/akiko_nvram.v
++++ b/rtl/akiko_nvram.v
+@@ -1,7 +1,7 @@
+ 
+ module akiko_nvram
+ #(
+-	parameter INIT_FILE = "rtl/init/nvram_init.mif"
++	parameter INIT_FILE = "../vendor/rtl/init/nvram_init.mif"
+ )
+ (
+ 	input  wire        clk,

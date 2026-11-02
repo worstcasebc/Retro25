@@ -1,0 +1,20 @@
+--- a/rtl/cdtv_bridge.v
++++ b/rtl/cdtv_bridge.v
+@@ -67,6 +67,8 @@
+ 	output      [7:0] cdtv_dma_wbyte,
+ 	input             cdtv_dma_ack
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire stch_pulse;
+ 
+ localparam CNTR_TCEN_BIT  = 3'd7;
+ localparam CNTR_PREST_BIT = 3'd6;
+@@ -229,7 +231,7 @@
+ wire [7:0] cmd_out_data   = uio_din[7:0];
+ wire       sec_byte_push  = uio_wr & uio_cs_sec;
+ wire [7:0] sec_byte_data  = uio_din[7:0];
+-wire       stch_pulse     = uio_wr & uio_cs_stch;
++assign stch_pulse = uio_wr & uio_cs_stch;
+ wire       stch_ack_clr   = uio_rd & uio_cs_stch;
+ 
+ reg        stch_ack;

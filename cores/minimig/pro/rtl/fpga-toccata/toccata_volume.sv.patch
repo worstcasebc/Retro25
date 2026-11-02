@@ -1,0 +1,11 @@
+--- a/rtl/fpga-toccata/toccata_volume.sv
++++ b/rtl/fpga-toccata/toccata_volume.sv
+@@ -25,7 +25,7 @@
+ parameter integer ATTEN_LEVELS = 64; // 6 bits for attenuation level
+ 
+ // LUT for attenuation factors
+-wire signed [31:0] attenuation_factors[ATTEN_LEVELS];
++logic signed [31:0] attenuation_factors[ATTEN_LEVELS];   // Retro25: logic (in always beschrieben, Quartus Pro 13386)
+ 
+ // Initialize the LUT
+ initial begin

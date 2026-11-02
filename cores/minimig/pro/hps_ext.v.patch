@@ -1,0 +1,13 @@
+--- a/hps_ext.v
++++ b/hps_ext.v
+@@ -111,8 +111,8 @@
+ 
+ always@(posedge clk_sys) begin : main_proc
+ 	reg [15:0] cmd;
+-	reg ide_cs = 0;
+-	reg cdda_cs = 0;
++	reg ide_cs;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg cdda_cs;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	sset <= 0;
+ 

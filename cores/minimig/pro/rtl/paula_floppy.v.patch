@@ -1,0 +1,31 @@
+--- a/rtl/paula_floppy.v
++++ b/rtl/paula_floppy.v
+@@ -126,6 +126,10 @@
+ 	
+ 	output	[2:0]  mister_floppy_status  // bit 0=Detected, Bit1= running in IBM Drive mode (compared to Shuggart), Bit2=Swapped Cable
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire paula_fifo_reset;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire flux_fifo_empty;
+ 
+ 
+ 
+@@ -755,7 +759,7 @@
+ 
+ wire flux_fifo_reset;
+ assign flux_fifo_reset = reset | ~dmaen;
+-wire paula_fifo_reset;
++// Retro25: Deklaration nach oben gezogen (16746): wire paula_fifo_reset;
+ assign paula_fifo_reset = reset | (~dmaen & ~virtualFloppyMode) | virtualFloppyFifoReset;
+ 	
+ 
+@@ -804,7 +808,7 @@
+ 
+ 
+ wire flux_fifo_full;
+-wire flux_fifo_empty;
++// Retro25: Deklaration nach oben gezogen (16746): wire flux_fifo_empty;
+ 
+ // Small fifo for the flux based stuff
+ MiSTerFloppyFifo fluxfifo 

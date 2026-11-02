@@ -7,10 +7,10 @@ Aufruf (aus dem Projektverzeichnis Retro25, braucht git und Python 3.10+):
     python tools/setup.py --check    nur prüfen, was fehlt
 
 Warum ein Skript? Fremdcode (MiSTer-Framework, Main_MiSTer, Menü, C64,
-MemTest, NES, MegaDrive, SNES, z486) liegt aus Lizenzgründen nicht im Repository.
+MemTest, NES, MegaDrive, SNES, Minimig, z486) liegt aus Lizenzgründen nicht im Repository.
 Jedes fetch-Skript holt seinen Teil aus einem festen Commit des Originals nach
 vendor/; danach entstehen die angepassten Kopien (pro/) aus den Patches:
-    tools/apply_patches.py     C64, Menü, MemTest, NES, MegaDrive, SNES, sys
+    tools/apply_patches.py     C64, Menü, MemTest, NES, MegaDrive, SNES, Minimig, sys
     cores/z486/make_pro.py     z486 (Textersetzungen)
 Nicht automatisch (Lizenz/Urheberrecht, siehe README.md):
     - Terasics HPS-System (GHRD) -> tools/fetch_hps.py <Paket>/Demonstration/SoC_FPGA/GHRD sys/hps
@@ -32,11 +32,12 @@ STEPS = [
     ("NES-Core", ["tools/fetch_nes.py"], ROOT / "cores/nes/vendor/NES.sv"),
     ("MegaDrive-Core", ["tools/fetch_megadrive.py"], ROOT / "cores/megadrive/vendor/MegaDrive.sv"),
     ("SNES-Core", ["tools/fetch_snes.py"], ROOT / "cores/snes/vendor/SNES.sv"),
+    ("Amiga-Core", ["tools/fetch_minimig.py"], ROOT / "cores/minimig/vendor/Minimig.sv"),
     ("z486-Core", ["tools/fetch_z486.py"], ROOT / "cores/z486/vendor/z486_mister.sv"),
     ("z486 Boot-ROMs, FreeDOS, MISTERFS", ["tools/fetch_z486.py", "--roms"], ROOT / "roms/z486/boot0.rom"),
 ]
 GENERATE = [
-    ("angepasste Kopien (C64, Menü, MemTest, NES, MegaDrive, SNES, sys)", ["tools/apply_patches.py"]),
+    ("angepasste Kopien (C64, Menü, MemTest, NES, MegaDrive, SNES, Minimig, sys)", ["tools/apply_patches.py"]),
     ("angepasste Kopien z486", ["cores/z486/make_pro.py"]),
 ]
 

@@ -1,0 +1,20 @@
+--- a/rtl/fastchip.v
++++ b/rtl/fastchip.v
+@@ -84,6 +84,8 @@
+ 	output        akiko_uio_rx_busy,
+ 	output        akiko_uio_nvr_dirty
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire sel_akiko;
+ 
+ localparam NATIVE_CD32 = 1;
+ 
+@@ -91,7 +93,7 @@
+ assign ready   = sel_akiko  | ide_ready | rtg_ready;
+ assign dout    = akiko_dout | ide_dout  | rtg_dout;
+ 
+-wire        sel_akiko = sel && (addr[23:8] == 'hB800);
++assign sel_akiko = sel && (addr[23:8] == 'hB800);
+ wire [15:0] akiko_dout;
+ 
+ wire        akiko_hps_cmd_pending;

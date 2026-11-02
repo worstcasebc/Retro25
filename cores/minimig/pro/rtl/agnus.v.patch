@@ -1,0 +1,43 @@
+--- a/rtl/agnus.v
++++ b/rtl/agnus.v
+@@ -101,6 +101,16 @@
+ 	input         aga,             // enables AGA features
+ 	input         floppy_speed     // allocates refresh slots for disk DMA
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        blit_busy;       //blitter busy status
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire  [8:0] hpos;      //alternative horizontal beam counter
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire [10:0] vpos;      //vertical beam counter
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        vbl;       //JB: vertical blanking
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        vblend;    //JB: last line of vertical blanking
+ 
+ //register names and adresses
+ localparam DMACON  = 9'h096;
+@@ -428,7 +438,7 @@
+ 		else if (bls_cnt[1:0] != BLS_CNT_MAX) bls_cnt <= bls_cnt + 2'b01;
+ end
+ 
+-wire        blit_busy;       //blitter busy status
++// Retro25: Deklaration nach oben gezogen (16746): wire        blit_busy;       //blitter busy status
+ wire        blit_zero;       //blitter zero status
+ wire        req_blt;         //blitter dma request
+ wire [20:1] address_blt;     //blitter dma engine chip address out
+@@ -460,10 +470,10 @@
+ 
+ //--------------------------------------------------------------------------------------
+ 
+-wire  [8:0] hpos;      //alternative horizontal beam counter
+-wire [10:0] vpos;      //vertical beam counter
+-wire        vbl;       //JB: vertical blanking
+-wire        vblend;    //JB: last line of vertical blanking
++// Retro25: Deklaration nach oben gezogen (16746): wire  [8:0] hpos;      //alternative horizontal beam counter
++// Retro25: Deklaration nach oben gezogen (16746): wire [10:0] vpos;      //vertical beam counter
++// Retro25: Deklaration nach oben gezogen (16746): wire        vbl;       //JB: vertical blanking
++// Retro25: Deklaration nach oben gezogen (16746): wire        vblend;    //JB: last line of vertical blanking
+ wire [15:0] data_bmc;  //beam counter data out
+ 
+ //instantiate beam counters

@@ -1,0 +1,78 @@
+--- a/rtl/cpu_wrapper.v
++++ b/rtl/cpu_wrapper.v
+@@ -90,6 +90,22 @@
+ 
+ 	output            dcache_sw_en
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cpu_req;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire cchip;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire ckick;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire sel_autoconfig;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire clkena_p_throttled;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg  [31:0] cpu_addr;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg         wr;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [2:0] cpu_ipl;
+ 
+ wire dcache_sw_en_p;
+ assign dcache_sw_en = cpucfg[1] ? dcache_sw_en_p : 1'b1;
+@@ -143,13 +159,13 @@
+ assign fastchip_uds = uds_in;
+ assign fastchip_rnw = wr;
+ 
+-reg  [31:0] cpu_addr;
++// Retro25: Deklaration nach oben gezogen (16746): reg  [31:0] cpu_addr;
+ reg  [15:0] cpu_dout;
+ wire [15:0] cpu_din = ramsel ? ramdat :
+                       fastchip_selack ? fastchip_dout :
+                       cdtv_selack ? cdtv_din :
+                       {sel_autoconfig ? autocfg_data : chip_data[15:12], chip_data[11:0]};
+-reg         wr;
++// Retro25: Deklaration nach oben gezogen (16746): reg         wr;
+ reg         uds_in;
+ reg         lds_in;
+ reg  [15:0] chip_data;
+@@ -284,10 +300,10 @@
+ 	.eab(cpu_addr_o)
+ );
+ 
+-wire cpu_req = (cpustate != 1);
+-
+-wire cchip = turbochip_d & (!cpustate | (dcache_d & (cpustate != 2'd3)));
+-wire ckick = turbokick_d & (!cpustate | dcache_d);
++assign cpu_req = (cpustate != 1);
++
++assign cchip = turbochip_d & (!cpustate | (dcache_d & (cpustate != 2'd3)));
++assign ckick = turbokick_d & (!cpustate | dcache_d);
+ 
+ reg turbochip_d;
+ reg turbokick_d;
+@@ -314,10 +330,10 @@
+ 	else if (cooldown != 4'd0)                 cooldown <= cooldown - 4'd1;
+ 	else if (stock_speed & clkena_p_base)      cooldown <= 4'd4;
+ end
+-wire clkena_p_throttled = clkena_p_base & (cooldown == 4'd0);
++assign clkena_p_throttled = clkena_p_base & (cooldown == 4'd0);
+ 
+ reg       chipreq;
+-reg [2:0] cpu_ipl;
++// Retro25: Deklaration nach oben gezogen (16746): reg [2:0] cpu_ipl;
+ always @(posedge clk) begin
+ 	chipreq <= cpu_req & ~ramsel & ~fastchip_selack;
+ 	cpu_ipl <= ipl_i;
+@@ -491,7 +507,7 @@
+ 	end
+ end
+ 
+-wire sel_autoconfig = (chip_addr[23:16] == 8'b11101000) && (ac_memcard || ac_toccata || ac_a2065 || ac_cdtv); //$E80000 - $E8FFFF
++assign sel_autoconfig = (chip_addr[23:16] == 8'b11101000) && (ac_memcard || ac_toccata || ac_a2065 || ac_cdtv); //$E80000 - $E8FFFF
+ 
+ always @(posedge clk) begin
+ 	reg old_uds;

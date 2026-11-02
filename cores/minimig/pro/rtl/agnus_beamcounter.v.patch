@@ -1,0 +1,28 @@
+--- a/rtl/agnus_beamcounter.v
++++ b/rtl/agnus_beamcounter.v
+@@ -55,6 +55,10 @@
+ 	output            harddis_out,
+ 	output            varbeamen_out
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire last_line;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire end_of_frame;
+ 
+ //register names and adresses		
+ parameter VPOSR    = 9'h004;
+@@ -352,12 +356,12 @@
+ 
+ //in non-interlaced display the last line is equal to vtotal or vtotal+1 (depends on long_frame)
+ //in interlaced mode every second frame is vtotal+1 long
+-wire last_line = long_frame ? extra_line : vpos_equ_vtotal;
++assign last_line = long_frame ? extra_line : vpos_equ_vtotal;
+ 
+ assign field1 = (~long_frame) & lace;
+ 
+ //generate end of frame signal
+-wire end_of_frame = vpos_inc & last_line;
++assign end_of_frame = vpos_inc & last_line;
+ 
+ //external signal assigment
+ assign eof = end_of_frame;

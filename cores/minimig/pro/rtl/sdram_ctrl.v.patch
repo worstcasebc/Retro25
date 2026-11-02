@@ -1,0 +1,74 @@
+--- a/rtl/sdram_ctrl.v
++++ b/rtl/sdram_ctrl.v
+@@ -46,7 +46,7 @@
+ 	output reg        sd_ras,
+ 	output reg        sd_cas,
+ 	output reg  [1:0] sd_dqm,
+-	inout  reg [15:0] sd_data,
++	inout  wire [15:0] sd_data,
+ 	output reg        sd_clk,
+ 	output            sd_cke,
+ 	// chip
+@@ -68,6 +68,12 @@
+ 	output     [15:0] cpuRD,
+ 	output            ramready
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg cache_fill;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [15:0] sdata_reg;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg        chipWE;
+ 
+ assign sd_cs = 0;
+ assign sd_cke = 1;
+@@ -133,7 +139,7 @@
+ 	.snoop_bs         ({!chipU, !chipL})       // snoop byte selects
+ );
+ 
+-reg cache_fill;
++// Retro25: Deklaration nach oben gezogen (16746): reg cache_fill;
+ always @ (posedge sysclk) begin
+ 	cache_fill <= 0;
+ 
+@@ -254,8 +260,14 @@
+ //// sdram control ////
+ 
+ reg  [2:0] slot_type = IDLE;
+-reg [15:0] sdata_reg;
+-reg        chipWE;
++// Retro25: Deklaration nach oben gezogen (16746): reg [15:0] sdata_reg;
++// Retro25: Deklaration nach oben gezogen (16746): reg        chipWE;
++
++// Retro25: inout reg mit Zuweisung in always lehnt Quartus Pro ab (13386), daher
++// getrennter Tri-State. preserve: jede I/O-Zelle braucht ihr eigenes Register (24873).
++(* preserve *) reg [15:0] dq_out;
++reg        dq_oe = 1'b0;
++assign sd_data = dq_oe ? dq_out : 16'bZ;
+ 
+ always @ (posedge sysclk) begin
+ 	reg        cas_sd_cas;
+@@ -266,12 +278,13 @@
+ 	reg  [3:0] rcnt;
+ 	
+ 	sd_clk <= sdram_state[0];
++	dq_out <= datawr;   // Retro25: ohne Clock-Enable, passt so mit dq_oe in die I/O-Zelle
+ 
+ 	if(~sdram_state[0]) begin
+ 		sd_ras                <= 1;
+ 		sd_cas                <= 1;
+ 		sd_we                 <= 1;
+-		sd_data               <= 16'hZZZZ;
++		dq_oe                 <= 1'b0;
+ 		chipWE                <= 0;
+ 	end
+ 
+@@ -368,7 +381,7 @@
+ 				sd_cas          <= cas_sd_cas;
+ 				sd_dqm          <= 0;
+ 				if(!cas_sd_we) begin
+-					sd_data      <= datawr;
++					dq_oe        <= 1'b1;
+ 					sd_addr[12:11]<= cas_dqm;
+ 					sd_dqm       <= cas_dqm;
+ 					sd_we        <= 0;

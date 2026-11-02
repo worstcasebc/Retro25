@@ -1,0 +1,20 @@
+--- a/rtl/rtg.v
++++ b/rtl/rtg.v
+@@ -55,6 +55,8 @@
+ 	output     [7:0]  pal_a,
+ 	output            pal_wr
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire rd_ready;
+ 
+ reg [23:0] rpal;
+ 
+@@ -103,7 +105,7 @@
+ 
+ reg [2:0] rd_r;
+ always @(posedge clk) rd_r <= rd_ready ? 3'd0 : {rd_r[1:0],aen & rd};
+-wire rd_ready = r_pal ? rd_r[2] : rd_r[0];
++assign rd_ready = r_pal ? rd_r[2] : rd_r[0];
+ 
+ assign pal_clk  = clk;
+ assign pal_a    = rs[9:2];

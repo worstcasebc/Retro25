@@ -1,0 +1,31 @@
+--- a/rtl/gayle.v
++++ b/rtl/gayle.v
+@@ -43,6 +43,10 @@
+ 
+ 	output        led
+ );
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire port_num;
++// Retro25: vor der ersten Verwendung deklariert (Quartus Pro verwirft sonst die Zuweisung, 16746/16788)
++wire intreq;
+ 
+ /*
+ memory map:
+@@ -137,7 +141,7 @@
+ 	else if (!addr[4:1]) longword_r <= longword;
+ end
+ 
+-wire port_num = addr[12];
++assign port_num = addr[12];
+ wire data_wr  = wr_stb || ((addr[4:1] == 1) && wr);
+ wire io_32    = (longword_r | longword) && rd;
+ 
+@@ -201,7 +205,7 @@
+ 	.mgmt_readdata(ide1_readdata)
+ );
+ 
+-wire   intreq  = ide0_intreq | ide1_intreq;
++assign intreq = ide0_intreq | ide1_intreq;
+ wire   gayleid = ~gayleid_cnt[1] | gayleid_cnt[0];
+ 
+ wire [31:0] tfr= port_num ? ide1_data : ide0_data;

@@ -1,0 +1,13 @@
+--- a/rtl/userio.v
++++ b/rtl/userio.v
+@@ -397,8 +397,8 @@
+ 
+ // configuration changes only while reset is active
+ always @(posedge clk) begin
+-	reg [5:0] ide_cfg = 0;
+-	reg [2:0] cpu_cfg = 0;
++	reg [5:0] ide_cfg;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
++	reg [2:0] cpu_cfg;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 
+ 	if (reset) begin
+ 		chipset_config <= t_chipset_config;

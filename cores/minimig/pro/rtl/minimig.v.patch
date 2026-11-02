@@ -1,0 +1,31 @@
+--- a/rtl/minimig.v
++++ b/rtl/minimig.v
+@@ -321,6 +321,10 @@
+ 	output        a2065_mem_write,
+ 	input         a2065_mem_waitrequest
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg ovl; //kickstart overlay enable
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++wire        a2065_nrdy;
+ 
+ 
+ //local signals for data bus
+@@ -964,7 +968,7 @@
+ 	.reset(sys_reset)
+ );
+ 
+-reg ovl; //kickstart overlay enable
++// Retro25: Deklaration nach oben gezogen (16746): reg ovl; //kickstart overlay enable
+ always @(posedge clk) begin
+ 	if(~_cpu_reset | ~_cpu_reset_in)       ovl <= 1;
+ 	else if(sel_cia_a & (cpu_lwr|cpu_hwr)) ovl <= 0;
+@@ -1018,7 +1022,7 @@
+ // core sees only the 68k bus, an interrupt, and one memory port.
+ 
+ wire [15:0] a2065_dout;
+-wire        a2065_nrdy;
++// Retro25: Deklaration nach oben gezogen (16746): wire        a2065_nrdy;
+ 
+ a2065 a2065_inst (
+ 	.clk_sys          (clk),

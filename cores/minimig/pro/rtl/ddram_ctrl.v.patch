@@ -1,0 +1,28 @@
+--- a/rtl/ddram_ctrl.v
++++ b/rtl/ddram_ctrl.v
+@@ -76,6 +76,10 @@
+ 	output reg [15:0] dmaRD,
+ 	output            dmaACK
+ );
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg        ddr_swap;
++// Retro25: Deklaration vor die erste Verwendung gezogen (Quartus Pro 16746)
++reg [15:0] ddr_data;
+ 
+ wire ramsel = cpuCS & (~&cpustate | ~cpuU | ~cpuL);
+ 
+@@ -283,11 +287,11 @@
+ 
+ assign mem2_readdata = DDRAM_DOUT;
+ 
+-reg        ddr_swap;
+-reg [15:0] ddr_data;
++// Retro25: Deklaration nach oben gezogen (16746): reg        ddr_swap;
++// Retro25: Deklaration nach oben gezogen (16746): reg [15:0] ddr_data;
+ 
+ always @ (posedge sysclk) begin
+-	reg  [2:0] state = 0;
++	reg  [2:0] state;   // Retro25: Startwert 0 entfernt (Quartus Pro 16754: sonst jeden Takt 0)
+ 	reg  [1:0] ba;
+ 	reg [63:0] dout;
+ 

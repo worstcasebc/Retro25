@@ -1,0 +1,20 @@
+--- a/rtl/fx68k/fx68k.sv
++++ b/rtl/fx68k/fx68k.sv
+@@ -2474,7 +2474,7 @@
+ module uRom( input clk, input [UADDR_WIDTH-1:0] microAddr, output logic [UROM_WIDTH-1:0] microOutput);
+ 	reg [UROM_WIDTH-1:0] uRam[ UROM_DEPTH];		
+ 	initial begin
+-		$readmemb("microrom.mem", uRam);
++		$readmemb("../vendor/rtl/fx68k/microrom.mem", uRam);
+ 	end
+ 	
+ 	always_ff @( posedge clk) 
+@@ -2485,7 +2485,7 @@
+ module nanoRom( input clk, input [NADDR_WIDTH-1:0] nanoAddr, output logic [NANO_WIDTH-1:0] nanoOutput);
+ 	reg [NANO_WIDTH-1:0] nRam[ NANO_DEPTH];		
+ 	initial begin
+-		$readmemb("nanorom.mem", nRam);
++		$readmemb("../vendor/rtl/fx68k/nanorom.mem", nRam);
+ 	end
+ 	
+ 	always_ff @( posedge clk) 

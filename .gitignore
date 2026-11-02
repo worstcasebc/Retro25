@@ -72,6 +72,10 @@ cores/snes/pro/**
 !cores/snes/pro/**/
 !cores/snes/pro/**/*.patch
 !cores/snes/pro/**/*.subst.json
+cores/minimig/pro/**
+!cores/minimig/pro/**/
+!cores/minimig/pro/**/*.patch
+!cores/minimig/pro/**/*.subst.json
 sys/de25/pro/**
 !sys/de25/pro/**/
 !sys/de25/pro/**/*.patch
