@@ -99,12 +99,13 @@ Remaining 16788 warnings, unchanged from upstream: `leadlag[1]` in
 
 Tested on the board: Kickstart 3.1, Workbench 3.1 from floppy and from hard
 disk, floppy read and write, disk change, partitioning, formatting, keyboard,
-mouse including the right button, sound (beep in `Prefs/Sound`). HDMI locks at
-49.92 Hz with `vsync_adjust=1`.
+mouse including the right button, sound. Pinball Fantasies runs with sound, in
+both the normal and the AGA version; these are the only games tried so far. HDMI
+locks at 49.92 Hz with `vsync_adjust=1`.
 
 Open:
 
-- no long run under load, no games or demos yet
+- no long run under load
 - not tested: CD32, CDTV, RTG graphics, Toccata, MIDI, MiSTer Floppy
 - no network: the A2065 mailbox at `0x1FF00000` is outside the DDR window
 - Main still uses `unsigned long` in the old configuration format in
