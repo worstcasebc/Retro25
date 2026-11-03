@@ -4,8 +4,9 @@ Retro25 brings the [MiSTer](https://github.com/MiSTer-devel) framework to the
 **Terasic DE25-Nano** (Intel/Altera Agilex 5 E, Arm HPS running Linux). As on
 MiSTer, Linux loads different FPGA cores at runtime, selected from the menu
 (F12). Ported so far: the `sys/` framework (HDMI, OSD, scaler, audio,
-`hps_io`), the Linux program Main_MiSTer (now aarch64) and six cores — Menu,
-**C64**, **z486** (486 PC), **NES**, **Mega Drive** and **SNES**.
+`hps_io`), the Linux program Main_MiSTer (now aarch64) and seven cores — Menu,
+**C64**, **z486** (486 PC), **NES**, **Mega Drive**, **SNES** and **Amiga**
+(A1200).
 
 > A one-person learning project, not an official MiSTer port. Everything here
 > ran on exactly one board; expect rough edges.
@@ -34,11 +35,13 @@ As of 2026-11-02.
 | **NES** | NES_MiSTer | games with sound, gamepad, save states, battery RAM (NTSC only) | 85 % / 90 | [`cores/nes`](cores/nes/README.md) |
 | **Mega Drive** | MegaDrive_MiSTer (Nuked-MD) | Sonic, Virtua Racing (SVP), sound, gamepad (NTSC only) | 85 % / 252 | [`cores/megadrive`](cores/megadrive/README.md) |
 | **SNES** | SNES_MiSTer | games incl. DSP-1, CX4, SuperFX, SA-1, battery RAM (NTSC only) | 88 % / 305 | [`cores/snes`](cores/snes/README.md) |
+| **Amiga** | Minimig-AGA_MiSTer | A1200 with AGA, Workbench 3.1 from floppy and hard disk, sound, mouse, keyboard (PAL only) | 67 % / 186 | [`cores/minimig`](cores/minimig/README.md) |
 
 The Agilex 5 on the DE25-Nano has 46,800 ALMs and 358 M20K blocks (DE10-Nano:
 41,910 ALMs, 553 M10K). "NTSC only": MiSTer switches its PLL to the PAL
 clock; in Retro25 only `sys` reconfigures a PLL, so PAL games run at the NTSC
-clock (0.9 % too fast).
+clock (0.9 % too fast). The Amiga is the other way round: its clock is fixed
+to PAL, and an NTSC chipset setting runs 0.9 % too slow.
 
 ### Platform
 
@@ -156,7 +159,7 @@ used by MiSTer — and in some places silently builds something else.
 | `port_core.py <core> fix16754` | initial value inside `always` — Quartus Pro resets it on **every clock** |
 | `port_core.py <core> report` | summarizes the warnings of the synthesis report that caused trouble before |
 
-Lessons from five ports (C64, z486, NES, Mega Drive, SNES), e.g. RAM patterns
+Lessons from six ports (C64, z486, NES, Mega Drive, SNES, Amiga), e.g. RAM patterns
 that turn into flip-flops, two-clock RAMs, or a VHDL generic that arrives as
 `'X'`: step-by-step guide (German) in
 [`docs/core-portieren.md`](docs/core-portieren.md), details per core in its
@@ -171,12 +174,13 @@ Not included is everything we may not or should not redistribute:
 
 | Part | Why not | Where from |
 |---|---|---|
-| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES/MegaDrive/SNES cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
+| MiSTer `sys/`, Main_MiSTer, Menu/C64/MemTest/NES/MegaDrive/SNES/Minimig cores | third-party code; partly without per-file license notice | `tools/setup.py` fetches them from fixed commits |
 | z486_MiSTer | no license file; microcode explicitly not Apache-2.0 | `tools/setup.py` |
 | Terasic GHRD (HPS system, bootloader SPL) | Terasic permits use, not redistribution | Terasic resource package, `tools/fetch_hps.py` |
 | C64 and 1541 ROMs | copyrighted | obtain yourself → `roms/` |
 | Chip ROM dumps of the SNES core (DSP-1, CX4, BSX `.mif`) | copyrighted | fetched with SNES_MiSTer into `vendor/` |
 | Game ROMs | copyrighted | your own cartridge dumps |
+| Amiga Kickstart ROMs, Workbench disks | copyrighted | your own copies, e.g. Amiga Forever or Hyperion |
 | Built bitstreams (`.rbf`, `.jic`) | contain ROMs, the z486 microcode or FPGA64 (see below) | build yourself |
 
 Instead, the repository contains our own parts (`sys/de25/`, `linux/`,
@@ -240,7 +244,7 @@ Resources), two downloads:
 ```
 
 `setup.py` fetches the MiSTer framework, Main_MiSTer, Menu, C64, MemTest, NES,
-MegaDrive, SNES and z486 (each at a fixed commit, via `git`), plus the z486
+MegaDrive, SNES, Minimig and z486 (each at a fixed commit, via `git`), plus the z486
 boot ROMs and FreeDOS test disk, and generates the adapted copies. At the end
 it lists what is still missing. `python tools\setup.py --check` lets you
 check this at any time.
@@ -297,6 +301,9 @@ Put the C64 ROMs into `roms/` first (file names in
 
 > python tools\make_core_qsf.py snes
 > Q:\tools\build_core.bat snes                 :: ~15 min
+
+> python tools\make_core_qsf.py minimig
+> Q:\tools\build_core.bat minimig              :: ~15 min
 ```
 
 Result: `cores\<core>\quartus\output_files\<core>.core.rbf`.
@@ -394,7 +401,7 @@ on the data partition so that it remains writable even with a read-only root.
 
 ```
 > scp -r linux\system linux\boot terasic@<board-ip>:~/retro25/
-> for %c in (menu c64 z486 nes megadrive snes) do scp cores\%c\quartus\output_files\%c.core.rbf terasic@<board-ip>:~/retro25/
+> for %c in (menu c64 z486 nes megadrive snes minimig) do scp cores\%c\quartus\output_files\%c.core.rbf terasic@<board-ip>:~/retro25/
 > python tools\build_main.py --deploy terasic@<board-ip>
 ```
 
@@ -447,13 +454,13 @@ usual. Check after logging in:
 
 ```
 $ cd ~/retro25
-$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf megadrive.core.rbf snes.core.rbf
+$ sudo ./install.sh menu.core.rbf c64.core.rbf z486.core.rbf nes.core.rbf megadrive.core.rbf snes.core.rbf minimig.core.rbf
 ```
 
 This sets up: Main under `/media/fat/MiSTer`, `MiSTer.ini` (new file:
 `vsync_adjust=1`), the menu as `/media/fat/menu.rbf`, the other cores as
-`/media/fat/_Retro25/C64.rbf`, `Z486.rbf`, `NES.rbf`, `MegaDrive.rbf` and
-`SNES.rbf`, the overlay for loading cores, and the service
+`/media/fat/_Retro25/C64.rbf`, `Z486.rbf`, `NES.rbf`, `MegaDrive.rbf`,
+`SNES.rbf` and `Minimig.rbf`, the overlay for loading cores, and the service
 **`retro25-main`**, which runs Main at every boot. The menu appears on the HDMI
 monitor; **F12** opens the core selection.
 
@@ -465,6 +472,7 @@ monitor; **F12** opens the core selection.
 | NES | `/media/fat/games/NES/` | `.nes` (your own cartridge dumps) |
 | Mega Drive | `/media/fat/games/MegaDrive/` | `.bin`, `.gen`, `.md` (your own cartridge dumps) |
 | SNES | `/media/fat/games/SNES/` | `.sfc`, `.smc` (your own cartridge dumps) |
+| Amiga | `/media/fat/games/Amiga/` | `a1200.rom` (**required**, your own Kickstart, lower-case name), `.adf`, `.hdf`; first start in [`cores/minimig`](cores/minimig/README.md#on-the-board) |
 | z486 | `/media/fat/games/Z486/` | `boot0.rom`, `boot1.rom` (**required**, from `roms\z486\`), `freedos.vhd`, your own `.vhd`/`.img`/`.iso` |
 
 ```
@@ -556,7 +564,7 @@ empty. For errors that lead to a crash, log the console
   (1920×1080) and, for the z486, `vscale_mode=1`. Working: `video_mode`
   0, 1, 6, 8.
 - `vsync_adjust=1` (recommended): the HDMI output runs at the core's frame
-  rate (Mega Drive 59.92 Hz, NES/SNES 60.10 Hz, C64 PAL 50.12 Hz), so there is
+  rate (Mega Drive 59.92 Hz, NES/SNES 60.10 Hz, C64 PAL 50.12 Hz, Amiga PAL 49.92 Hz), so there is
   no repeated frame every few seconds. The HDMI PLL only divides by integers;
   Main also shifts the line length and line count slightly so that a reachable
   pixel clock fits (< 1 ppm, patch `0012`). Your monitor has to accept these
@@ -633,7 +641,8 @@ Quartus Pro adjustments to these files are short search-and-replace rules
 Do not redistribute C64 bitstreams.
 
 Thanks to Sorgelig and the MiSTer developers, srg320 (SNES), nukeykt
-(Nuked-MD), nand2mario (z486, ao486 parts) and Terasic for the board
+(Nuked-MD), nand2mario (z486, ao486 parts), Dennis van Weeren, Rok Krajnc and
+the other Minimig authors, Jorge Cwik (fx68k) and Terasic for the board
 material.
 
 ## Screenshots

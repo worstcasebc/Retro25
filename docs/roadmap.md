@@ -172,6 +172,14 @@ hfp/vfp leicht (`linux/main/de25/pll_fit.cpp`, Test `test/test_pll_fit.cpp`):
 Rest < 1 ppm, am Board für Mega Drive, NES und C64 PAL gemessen gleich auf
 einen 100-MHz-Takt. Offen: vsync_adjust=2 (Low Latency, B2).
 
+**Amiga 1200 (2026-11-04):** Minimig-AGA_MiSTer, Commit passend zu Main, nur
+PAL, feste PLL 113,5/28,375 MHz; 31 282 ALMs, 186 M20K. Kickstart 3.1 und
+Workbench 3.1 laufen, auch von der Festplatte (Installation: 331 Dateien
+byte-gleich mit den Disketten), Ton, Maus, Tastatur. `sd_clk` kommt aus der
+Logik und liegt schon etwa 90° versetzt. Offen: Dauerlauf, Spiele, CD32/CDTV/
+RTG ungetestet, kein Netzwerk (A2065-Fenster außerhalb des DDR-Fensters).
+Details `cores/minimig/README.md`.
+
 ## Größte Risiken
 
 1. ~~Neuladen des Fabrics auf Agilex 5~~ — **P0 bestanden** (2,1 s je Wechsel,

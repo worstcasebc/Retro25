@@ -195,3 +195,4 @@ Device-Speicher → über `shmem_put`/`shmem_get` umbauen (Patches 0005, 0006,
 | z486 | 43 159 (92 %) | 282 | 85 MHz | eigenes `make_pro.py`, x87, SVGA |
 | NES | 39 879 (85 %) | 90 | NTSC fest | ~200 Stellen Quartus-Pro-Fallen, Main-Patch 0011 |
 | MegaDrive | 39 629 (85 %) | 252 | NTSC fest, 107 MHz | Nuked-MD (Gatter), eigene RAM-Ersatzdateien, SDRAM-Phase gemessen |
+| Minimig | 31 282 (67 %) | 186 | PAL fest, 113,5 MHz | `sd_clk` aus der Logik (kein `sdram_clk_ddio`), eigene RAM-Ersatzdateien |
